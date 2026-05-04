@@ -1,69 +1,211 @@
-import { api, apiClient } from './client'
-import { Transaction, TransactionFormData, TransactionFilters, TransactionSummary } from '@/types'
-
-const ENDPOINT = '/transactions'
+import { adapter } from './client'
+import { accountsApi } from './accounts'
+import { categoriesApi } from './categories'
+import { tagsApi } from './tags'
+import type { Transaction, TransactionFormData, TransactionFilters, TransactionSummary } from '@/types'
 
 export interface TransactionsResponse {
-    data: Transaction[]
-    summary?: TransactionSummary
-    meta?: {
-        current_page: number
-        last_page: number
-        per_page: number
-        total: number
-        from: number
-        to: number
-    }
+  data: Transaction[]
+  summary?: TransactionSummary
+  meta?: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+    from: number
+    to: number
+  }
+}
+
+async function loadLookups() {
+  const [accounts, categories, tags] = await Promise.all([
+    accountsApi.getAll(),
+    categoriesApi.getAll(),
+    tagsApi.getAll(),
+  ])
+  return {
+    accountMap: new Map(accounts.map(a => [a.id, a])),
+    categoryMap: new Map(categories.map(c => [c.id, c])),
+    tagMap: new Map(tags.map(t => [t.id, t])),
+  }
+}
+
+function toTransaction(
+  r: Record<string, unknown>,
+  accountMap: Map<string, unknown>,
+  categoryMap: Map<string, unknown>,
+  tagMap: Map<string, unknown>,
+): Transaction {
+  const tagIds = r.tag_ids ? String(r.tag_ids).split(',').filter(Boolean) : []
+  return {
+    id: r.id as string,
+    type: r.type as Transaction['type'],
+    amount: Number(r.amount),
+    toAmount: r.to_amount ? Number(r.to_amount) : undefined,
+    exchangeRate: r.exchange_rate ? Number(r.exchange_rate) : undefined,
+    description: r.description as string | undefined,
+    date: r.date as string,
+    account: accountMap.get(r.account_id as string) as Transaction['account'],
+    toAccount: r.to_account_id ? accountMap.get(r.to_account_id as string) as Transaction['toAccount'] : undefined,
+    category: r.category_id ? categoryMap.get(r.category_id as string) as Transaction['category'] : undefined,
+    items: [],
+    tags: tagIds.map(tid => tagMap.get(tid)).filter(Boolean) as Transaction['tags'],
+    createdAt: r.created_at as string,
+  }
+}
+
+function applyFilters(txns: Transaction[], filters: TransactionFilters): Transaction[] {
+  let result = txns
+  if (filters.type) result = result.filter(t => t.type === filters.type)
+  if (filters.account_id) result = result.filter(t => t.account?.id === String(filters.account_id))
+  if (filters.category_id) result = result.filter(t => t.category?.id === String(filters.category_id))
+  if (filters.category_ids?.length) result = result.filter(t => t.category && filters.category_ids!.map(String).includes(t.category.id))
+  if (filters.tag_ids?.length) result = result.filter(t => t.tags.some(tag => filters.tag_ids!.map(String).includes(tag.id)))
+  if (filters.start_date) result = result.filter(t => t.date >= filters.start_date!)
+  if (filters.end_date) result = result.filter(t => t.date <= filters.end_date!)
+  if (filters.sort_by) {
+    const dir = filters.sort_direction === 'asc' ? 1 : -1
+    result = [...result].sort((a, b) => {
+      const va = filters.sort_by === 'amount' ? a.amount : a.date
+      const vb = filters.sort_by === 'amount' ? b.amount : b.date
+      return va < vb ? -dir : va > vb ? dir : 0
+    })
+  } else {
+    result = [...result].sort((a, b) => b.date.localeCompare(a.date))
+  }
+  return result
 }
 
 export const transactionsApi = {
-    getAll: async (filters?: TransactionFilters & { with_summary?: boolean }): Promise<TransactionsResponse> => {
-        const searchParams = new URLSearchParams()
-        if (filters?.type) searchParams.set('type', filters.type)
-        if (filters?.account_id) searchParams.set('account_id', String(filters.account_id))
-        if (filters?.category_id) searchParams.set('category_id', String(filters.category_id))
-        if (filters?.category_ids?.length) {
-            filters.category_ids.forEach(id => searchParams.append('category_ids[]', String(id)))
-        }
-        if (filters?.tag_ids?.length) {
-            filters.tag_ids.forEach(id => searchParams.append('tag_ids[]', String(id)))
-        }
-        if (filters?.start_date) searchParams.set('start_date', filters.start_date)
-        if (filters?.end_date) searchParams.set('end_date', filters.end_date)
-        if (filters?.sort_by) searchParams.set('sort_by', filters.sort_by)
-        if (filters?.sort_direction) searchParams.set('sort_direction', filters.sort_direction)
-        if (filters?.per_page) searchParams.set('per_page', String(filters.per_page))
-        if (filters?.page) searchParams.set('page', String(filters.page))
-        if (filters?.with_summary) searchParams.set('with_summary', 'true')
-        const query = searchParams.toString()
-        // Don't unwrap - we need full response with data, summary and meta
-        const response = await apiClient.get(`${ENDPOINT}${query ? `?${query}` : ''}`)
-        return response.data
-    },
+  getAll: async (filters?: TransactionFilters & { with_summary?: boolean; per_page?: number; page?: number }): Promise<TransactionsResponse> => {
+    const [rows, lookups] = await Promise.all([
+      adapter.getAll('transactions'),
+      loadLookups(),
+    ])
+    let txns = rows.map(r => toTransaction(r, lookups.accountMap, lookups.categoryMap, lookups.tagMap))
+    if (filters) txns = applyFilters(txns, filters)
 
-    getById: (id: number | string) =>
-        api.get<Transaction>(`${ENDPOINT}/${id}`),
+    const perPage = filters?.per_page ?? 50
+    const page = filters?.page ?? 1
+    const total = txns.length
+    const from = (page - 1) * perPage
+    const paginated = txns.slice(from, from + perPage)
 
-    create: (data: TransactionFormData) =>
-        api.post<Transaction, TransactionFormData>(ENDPOINT, data),
+    let summary: TransactionSummary | undefined
+    if (filters?.with_summary) {
+      summary = {
+        income: txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+        expense: txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+        balance: 0,
+        transactions_count: total,
+        currency: 'USD',
+      }
+      summary.balance = summary.income - summary.expense
+    }
 
-    update: (id: number | string, data: Partial<TransactionFormData>) =>
-        api.patch<Transaction, Partial<TransactionFormData>>(`${ENDPOINT}/${id}`, data),
+    return {
+      data: paginated,
+      summary,
+      meta: {
+        current_page: page,
+        last_page: Math.ceil(total / perPage),
+        per_page: perPage,
+        total,
+        from: from + 1,
+        to: Math.min(from + perPage, total),
+      },
+    }
+  },
 
-    delete: (id: number | string) =>
-        api.delete<void>(`${ENDPOINT}/${id}`),
+  getById: async (id: string | number): Promise<Transaction> => {
+    const [r, lookups] = await Promise.all([
+      adapter.getById('transactions', String(id)),
+      loadLookups(),
+    ])
+    if (!r) throw new Error('Transaction not found')
+    return toTransaction(r, lookups.accountMap, lookups.categoryMap, lookups.tagMap)
+  },
 
-    duplicate: (id: number | string) =>
-        api.post<Transaction, void>(`${ENDPOINT}/${id}/duplicate`, undefined),
+  create: async (data: TransactionFormData): Promise<Transaction> => {
+    const id = crypto.randomUUID()
+    const row = {
+      id,
+      type: data.type,
+      account_id: String(data.account_id),
+      to_account_id: data.to_account_id ? String(data.to_account_id) : '',
+      category_id: data.category_id ? String(data.category_id) : '',
+      amount: data.amount,
+      to_amount: data.to_amount ?? '',
+      exchange_rate: data.exchange_rate ?? '',
+      description: data.description ?? '',
+      date: data.date,
+      tag_ids: (data.tag_ids ?? []).join(','),
+      created_at: new Date().toISOString(),
+    }
+    await adapter.create('transactions', row)
 
-    getSummary: (filters?: TransactionFilters) => {
-        const searchParams = new URLSearchParams()
-        if (filters?.type) searchParams.set('type', filters.type)
-        if (filters?.account_id) searchParams.set('account_id', String(filters.account_id))
-        if (filters?.category_id) searchParams.set('category_id', String(filters.category_id))
-        if (filters?.start_date) searchParams.set('start_date', filters.start_date)
-        if (filters?.end_date) searchParams.set('end_date', filters.end_date)
-        const query = searchParams.toString()
-        return api.get<TransactionSummary>(`${ENDPOINT}-summary${query ? `?${query}` : ''}`)
-    },
+    if (data.type === 'income') {
+      await accountsApi.updateBalance(String(data.account_id), data.amount)
+    } else if (data.type === 'expense') {
+      await accountsApi.updateBalance(String(data.account_id), -data.amount)
+    } else if (data.type === 'transfer' && data.to_account_id) {
+      await Promise.all([
+        accountsApi.updateBalance(String(data.account_id), -data.amount),
+        accountsApi.updateBalance(String(data.to_account_id), data.to_amount ?? data.amount),
+      ])
+    }
+
+    return transactionsApi.getById(id)
+  },
+
+  update: async (id: string | number, data: Partial<TransactionFormData>): Promise<Transaction> => {
+    const existing = await transactionsApi.getById(id)
+    await adapter.update('transactions', String(id), {
+      ...data,
+      tag_ids: data.tag_ids ? data.tag_ids.join(',') : undefined,
+    } as Record<string, unknown>)
+
+    if (existing.type === 'income') {
+      await accountsApi.updateBalance(existing.account.id, -existing.amount)
+    } else if (existing.type === 'expense') {
+      await accountsApi.updateBalance(existing.account.id, existing.amount)
+    }
+    const updated = await transactionsApi.getById(id)
+    if (updated.type === 'income') {
+      await accountsApi.updateBalance(updated.account.id, updated.amount)
+    } else if (updated.type === 'expense') {
+      await accountsApi.updateBalance(updated.account.id, -updated.amount)
+    }
+    return updated
+  },
+
+  delete: async (id: string | number): Promise<void> => {
+    const existing = await transactionsApi.getById(id)
+    await adapter.delete('transactions', String(id))
+    if (existing.type === 'income') {
+      await accountsApi.updateBalance(existing.account.id, -existing.amount)
+    } else if (existing.type === 'expense') {
+      await accountsApi.updateBalance(existing.account.id, existing.amount)
+    }
+  },
+
+  duplicate: async (id: string | number): Promise<Transaction> => {
+    const existing = await transactionsApi.getById(id)
+    return transactionsApi.create({
+      type: existing.type,
+      account_id: existing.account.id as unknown as string,
+      to_account_id: existing.toAccount?.id as unknown as string | undefined,
+      category_id: existing.category?.id as unknown as string | undefined,
+      amount: existing.amount,
+      to_amount: existing.toAmount,
+      description: existing.description,
+      date: new Date().toISOString().slice(0, 10),
+      tag_ids: existing.tags.map(t => t.id) as unknown as string[],
+    })
+  },
+
+  getSummary: async (filters?: TransactionFilters): Promise<TransactionSummary> => {
+    const res = await transactionsApi.getAll({ ...filters, with_summary: true, per_page: 99999 })
+    return res.summary!
+  },
 }
