@@ -8,7 +8,7 @@ export const budgetSchema = z.object({
     amount: z.coerce.number()
         .min(0.01, 'Amount must be greater than 0'),
 
-    currency_id: z.coerce.number().nullable().optional(),
+    currency_id: z.string().min(1).nullable().optional(),
 
     period: z.enum(['weekly', 'monthly', 'yearly', 'one_time'], {
         message: 'Please select a period',
@@ -26,9 +26,9 @@ export const budgetSchema = z.object({
 
     is_active: z.boolean().default(true),
 
-    category_ids: z.array(z.number()).default([]),
+    category_ids: z.array(z.string().min(1)).default([]),
 
-    tag_ids: z.array(z.number()).default([]),
+    tag_ids: z.array(z.string().min(1)).default([]),
 })
 
 export type BudgetFormData = z.infer<typeof budgetSchema>

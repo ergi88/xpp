@@ -119,7 +119,7 @@ export function BudgetForm({
                             <FormItem>
                                 <FormLabel>Currency</FormLabel>
                                 <Select
-                                    onValueChange={(val) => field.onChange(val ? Number(val) : null)}
+                                    onValueChange={(val) => field.onChange(val || null)}
                                     value={field.value?.toString() ?? ''}
                                 >
                                     <FormControl>

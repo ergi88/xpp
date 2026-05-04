@@ -11,13 +11,13 @@ export const transactionSchema = z.object({
         required_error: 'Please select transaction type',
     }),
 
-    account_id: z.coerce.number({
+    account_id: z.string({
         required_error: 'Please select account',
-    }).positive('Please select account'),
+    }).min(1, 'Please select account'),
 
-    to_account_id: z.coerce.number().positive().optional().nullable(),
+    to_account_id: z.string().min(1).optional().nullable(),
 
-    category_id: z.coerce.number().positive().optional().nullable(),
+    category_id: z.string().min(1).optional().nullable(),
 
     amount: z.coerce.number({
         required_error: 'Amount is required',
@@ -36,7 +36,7 @@ export const transactionSchema = z.object({
 
     items: z.array(transactionItemSchema).optional(),
 
-    tag_ids: z.array(z.number()).optional(),
+    tag_ids: z.array(z.string().min(1)).optional(),
 }).superRefine((data, ctx) => {
     // Transfer requires to_account_id
     if (data.type === 'transfer' && !data.to_account_id) {

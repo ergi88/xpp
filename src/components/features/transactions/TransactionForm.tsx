@@ -88,7 +88,7 @@ export function TransactionForm({
         const today = new Date().toISOString().split("T")[0];
         return {
             type: defaultValues?.type ?? ("expense" as const),
-            account_id: defaultValues?.account_id ?? 0,
+            account_id: defaultValues?.account_id ?? '',
             to_account_id: defaultValues?.to_account_id ?? null,
             category_id: defaultValues?.category_id ?? null,
             amount: defaultValues?.amount ?? 0,
@@ -244,9 +244,9 @@ export function TransactionForm({
         [addItem, remove, fields.length],
     );
 
-    const selectedAccount = accounts?.find((a) => a.id === Number(accountId));
+    const selectedAccount = accounts?.find((a) => a.id === accountId);
     const selectedToAccount = accounts?.find(
-        (a) => a.id === Number(toAccountId),
+        (a) => a.id === toAccountId,
     );
 
     // Calculate balance preview
@@ -364,7 +364,7 @@ export function TransactionForm({
                                         <AccountSelect
                                             value={field.value}
                                             onChange={field.onChange}
-                                            excludeId={Number(accountId)}
+                                            excludeId={accountId}
                                         />
                                         <FormMessage />
                                     </FormItem>

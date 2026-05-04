@@ -31,7 +31,7 @@ const mappingSchema = z.object({
     currency: z.number().nullable(),
     dateFormat: z.string(),
     amountFormat: z.string(),
-    defaultAccountId: z.number({ required_error: 'Account is required' }),
+    defaultAccountId: z.string({ required_error: 'Account is required' }),
     defaultType: z.enum(['income', 'expense']),
 })
 

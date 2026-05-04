@@ -5,13 +5,13 @@ export const recurringSchema = z.object({
         message: 'Please select a type',
     }),
 
-    account_id: z.coerce.number({
+    account_id: z.string({
         message: 'Please select an account',
     }).min(1, 'Please select an account'),
 
-    to_account_id: z.coerce.number().nullable().optional(),
+    to_account_id: z.string().min(1).nullable().optional(),
 
-    category_id: z.coerce.number().nullable().optional(),
+    category_id: z.string().min(1).nullable().optional(),
 
     amount: z.coerce.number()
         .min(0.01, 'Amount must be greater than 0'),
@@ -41,7 +41,7 @@ export const recurringSchema = z.object({
 
     is_active: z.boolean().default(true),
 
-    tag_ids: z.array(z.number()).default([]),
+    tag_ids: z.array(z.string().min(1)).default([]),
 }).superRefine((data, ctx) => {
     // Require category for income/expense
     if ((data.type === 'income' || data.type === 'expense') && !data.category_id) {

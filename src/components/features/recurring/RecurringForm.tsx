@@ -75,7 +75,7 @@ export function RecurringForm({
         resolver: zodResolver(recurringSchema),
         defaultValues: {
             type: 'expense',
-            account_id: 0,
+            account_id: '',
             to_account_id: null,
             category_id: null,
             amount: 0,

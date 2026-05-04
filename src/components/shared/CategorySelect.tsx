@@ -10,8 +10,8 @@ import { FormControl } from '@/components/ui/form'
 import { useCategories } from '@/hooks'
 
 interface CategorySelectProps {
-    value?: number | null
-    onChange: (value: number) => void
+    value?: string | null
+    onChange: (value: string) => void
     type: 'income' | 'expense'
     placeholder?: string
     disabled?: boolean
@@ -38,7 +38,7 @@ export function CategorySelect({
 
     return (
         <Select
-            onValueChange={(val) => onChange(Number(val))}
+            onValueChange={(val) => onChange(val)}
             value={value ? value.toString() : undefined}
             disabled={disabled}
         >

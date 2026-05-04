@@ -13,9 +13,9 @@ import { Wallet } from 'lucide-react'
 import type { AccountType } from '@/types'
 
 interface AccountSelectProps {
-    value?: number | null
-    onChange: (value: number) => void
-    excludeId?: number | null
+    value?: string | null
+    onChange: (value: string) => void
+    excludeId?: string | null
     excludeDebts?: boolean
     activeOnly?: boolean
     placeholder?: string
@@ -40,7 +40,7 @@ export function AccountSelect({
 
     return (
         <Select
-            onValueChange={(val) => onChange(Number(val))}
+            onValueChange={(val) => onChange(val)}
             value={value ? value.toString() : undefined}
             disabled={disabled}
         >
