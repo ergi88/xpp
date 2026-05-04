@@ -1,21 +1,38 @@
-import { api } from './client'
-import { Tag, TagFormData } from '@/types'
+import { adapter } from './client'
+import type { Tag, TagFormData } from '@/types'
 
-const ENDPOINT = '/tags'
+function toTag(r: Record<string, unknown>): Tag {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    createdAt: r.created_at as string | undefined,
+  }
+}
 
 export const tagsApi = {
-    getAll: () =>
-        api.get<Tag[]>(ENDPOINT),
+  getAll: async (): Promise<Tag[]> =>
+    (await adapter.getAll('tags')).map(toTag),
 
-    getById: (id: number | string) =>
-        api.get<Tag>(`${ENDPOINT}/${id}`),
+  getById: async (id: string | number): Promise<Tag> => {
+    const r = await adapter.getById('tags', String(id))
+    if (!r) throw new Error('Tag not found')
+    return toTag(r)
+  },
 
-    create: (data: TagFormData) =>
-        api.post<Tag, TagFormData>(ENDPOINT, data),
+  create: async (data: TagFormData): Promise<Tag> => {
+    const r = await adapter.create('tags', {
+      id: crypto.randomUUID(),
+      name: data.name,
+      created_at: new Date().toISOString(),
+    })
+    return toTag(r)
+  },
 
-    update: (id: number | string, data: Partial<TagFormData>) =>
-        api.patch<Tag, Partial<TagFormData>>(`${ENDPOINT}/${id}`, data),
+  update: async (id: string | number, data: Partial<TagFormData>): Promise<Tag> => {
+    const r = await adapter.update('tags', String(id), data as Record<string, unknown>)
+    return toTag(r)
+  },
 
-    delete: (id: number | string) =>
-        api.delete<void>(`${ENDPOINT}/${id}`),
+  delete: (id: string | number): Promise<void> =>
+    adapter.delete('tags', String(id)),
 }

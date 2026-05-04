@@ -1,37 +1,58 @@
-import { api, apiClient } from './client'
-import { Category, CategoryFormData, CategorySummaryResponse } from '@/types'
+import { adapter } from './client'
+import type { Category, CategoryFormData, CategorySummaryResponse } from '@/types'
 
-const ENDPOINT = '/categories'
+function toCategory(r: Record<string, unknown>): Category {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    type: r.type as Category['type'],
+    icon: r.icon as string,
+    color: r.color as string,
+    createdAt: r.created_at as string | undefined,
+  }
+}
 
 export const categoriesApi = {
-    getAll: () =>
-        api.get<Category[]>(ENDPOINT),
+  getAll: async (): Promise<Category[]> =>
+    (await adapter.getAll('categories')).map(toCategory),
 
-    getById: (id: number | string) =>
-        api.get<Category>(`${ENDPOINT}/${id}`),
+  getById: async (id: string | number): Promise<Category> => {
+    const r = await adapter.getById('categories', String(id))
+    if (!r) throw new Error('Category not found')
+    return toCategory(r)
+  },
 
-    create: (data: CategoryFormData) =>
-        api.post<Category, CategoryFormData>(ENDPOINT, data),
+  create: async (data: CategoryFormData): Promise<Category> => {
+    const r = await adapter.create('categories', {
+      id: crypto.randomUUID(),
+      name: data.name,
+      type: data.type,
+      icon: data.icon,
+      color: data.color,
+      created_at: new Date().toISOString(),
+    })
+    return toCategory(r)
+  },
 
-    update: (id: number | string, data: Partial<CategoryFormData>) =>
-        api.patch<Category, Partial<CategoryFormData>>(`${ENDPOINT}/${id}`, data),
+  update: async (id: string | number, data: Partial<CategoryFormData>): Promise<Category> => {
+    const r = await adapter.update('categories', String(id), data as Record<string, unknown>)
+    return toCategory(r)
+  },
 
-    delete: (id: number | string) =>
-        api.delete<void>(`${ENDPOINT}/${id}`),
+  delete: (id: string | number): Promise<void> =>
+    adapter.delete('categories', String(id)),
 
-    getByType: (type: 'income' | 'expense') =>
-        api.get<Category[]>(`${ENDPOINT}?type=${type}`),
+  getByType: async (type: 'income' | 'expense'): Promise<Category[]> => {
+    const all = await categoriesApi.getAll()
+    return all.filter(c => c.type === type)
+  },
 
-    getSummary: async (params: {
-        type: 'income' | 'expense'
-        start_date?: string
-        end_date?: string
-    }): Promise<CategorySummaryResponse> => {
-        const searchParams = new URLSearchParams()
-        searchParams.set('type', params.type)
-        if (params.start_date) searchParams.set('start_date', params.start_date)
-        if (params.end_date) searchParams.set('end_date', params.end_date)
-        const response = await apiClient.get(`${ENDPOINT}-summary?${searchParams.toString()}`)
-        return response.data
-    },
+  getSummary: async (params: {
+    type: 'income' | 'expense'
+    start_date?: string
+    end_date?: string
+  }): Promise<CategorySummaryResponse> => {
+    const categories = await categoriesApi.getByType(params.type)
+    return { data: categories, total: 0, currency: 'USD' }
+  },
 }
