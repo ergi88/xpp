@@ -8,7 +8,7 @@ export interface Debt extends BaseEntity {
     type: 'debt'
     debtType: DebtType
     debtTypeLabel: string
-    currencyId: number
+    currencyId: string
     targetAmount: number
     currentBalance: number
     remainingDebt: number
@@ -24,7 +24,7 @@ export interface Debt extends BaseEntity {
 export interface DebtFormData {
     name: string
     debt_type: DebtType
-    currency_id: number
+    currency_id: string
     amount: number
     due_date?: string
     counterparty?: string
@@ -32,7 +32,7 @@ export interface DebtFormData {
 }
 
 export interface DebtPaymentFormData {
-    account_id: number
+    account_id: string
     amount: number
     date: string
     description?: string

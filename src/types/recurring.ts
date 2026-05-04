@@ -8,9 +8,9 @@ export type TransactionType = 'income' | 'expense' | 'transfer'
 
 export interface RecurringTransaction extends BaseEntity {
     type: TransactionType
-    accountId: number
-    toAccountId?: number
-    categoryId?: number
+    accountId: string
+    toAccountId?: string
+    categoryId?: string
     amount: number
     toAmount?: number
     description?: string
@@ -32,9 +32,9 @@ export interface RecurringTransaction extends BaseEntity {
 
 export interface RecurringFormData {
     type: TransactionType
-    account_id: number
-    to_account_id?: number | null
-    category_id?: number | null
+    account_id: string
+    to_account_id?: string | null
+    category_id?: string | null
     amount: number
     to_amount?: number | null
     description?: string
@@ -45,5 +45,5 @@ export interface RecurringFormData {
     start_date: string
     end_date?: string | null
     is_active: boolean
-    tag_ids?: number[]
+    tag_ids?: string[]
 }

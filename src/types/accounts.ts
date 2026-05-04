@@ -10,7 +10,7 @@ export type RegularAccountType = 'bank' | 'crypto' | 'cash'
 export interface Account extends BaseEntity {
     name: string
     type: AccountType
-    currencyId: number
+    currencyId: string
     initialBalance: number
     currentBalance: number
     isActive: boolean
@@ -20,7 +20,7 @@ export interface Account extends BaseEntity {
 export interface AccountFormData {
     name: string
     type: RegularAccountType
-    currency_id: number
+    currency_id: string
     initial_balance?: number
     is_active?: boolean
 }

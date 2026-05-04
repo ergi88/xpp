@@ -17,7 +17,7 @@ export interface BudgetProgress {
 export interface Budget extends BaseEntity {
     name: string
     amount: number
-    currencyId: number | null
+    currencyId: string | null
     currency?: Currency
     period: BudgetPeriod
     periodLabel: string
@@ -34,13 +34,13 @@ export interface Budget extends BaseEntity {
 export interface BudgetFormData {
     name: string
     amount: number
-    currency_id?: number | null
+    currency_id?: string | null
     period: BudgetPeriod
     start_date?: string | null
     end_date?: string | null
     is_global: boolean
     notify_at_percent?: number | null
     is_active: boolean
-    category_ids: number[]
-    tag_ids?: number[]
+    category_ids: string[]
+    tag_ids?: string[]
 }

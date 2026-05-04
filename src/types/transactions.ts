@@ -6,7 +6,7 @@ import { Tag } from './tags'
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'debt_payment' | 'debt_collection'
 
 export interface TransactionItem {
-    id?: number
+    id?: string
     name: string
     quantity: number
     pricePerUnit: number
@@ -36,24 +36,24 @@ export interface TransactionItemFormData {
 
 export interface TransactionFormData {
     type: TransactionType
-    account_id: number
-    to_account_id?: number
-    category_id?: number
+    account_id: string
+    to_account_id?: string
+    category_id?: string
     amount: number
     to_amount?: number
     exchange_rate?: number
     description?: string
     date: string
     items?: TransactionItemFormData[]
-    tag_ids?: number[]
+    tag_ids?: string[]
 }
 
 export interface TransactionFilters {
     type?: TransactionType
-    account_id?: number
-    category_id?: number
-    category_ids?: number[]
-    tag_ids?: number[]
+    account_id?: string
+    category_id?: string
+    category_ids?: string[]
+    tag_ids?: string[]
     start_date?: string
     end_date?: string
     sort_by?: 'date' | 'amount' | 'created_at'
