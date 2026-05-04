@@ -6,12 +6,18 @@ function toBudget(r: Record<string, unknown>): Budget {
     id: r.id as string,
     name: r.name as string,
     amount: Number(r.amount),
-    categoryId: r.category_id as string,
+    currencyId: (r.currency_id as string) ?? null,
     period: r.period as Budget['period'],
-    startDate: r.start_date as string,
-    endDate: r.end_date as string | undefined,
+    periodLabel: r.period as string,
+    startDate: (r.start_date as string) ?? null,
+    endDate: (r.end_date as string) ?? null,
+    isGlobal: r.is_global === 'true' || r.is_global === true,
+    notifyAtPercent: r.notify_at_percent ? Number(r.notify_at_percent) : null,
+    isActive: r.is_active === 'true' || r.is_active === true || r.is_active === undefined,
+    categories: [],
+    tags: [],
     createdAt: r.created_at as string | undefined,
-  } as Budget
+  } as unknown as Budget
 }
 
 export const budgetsApi = {
@@ -29,10 +35,15 @@ export const budgetsApi = {
       id: crypto.randomUUID(),
       name: data.name,
       amount: data.amount,
-      category_id: data.category_id,
+      currency_id: data.currency_id ?? '',
+      category_ids: (data.category_ids ?? []).join(','),
+      tag_ids: (data.tag_ids ?? []).join(','),
       period: data.period,
-      start_date: data.start_date,
+      start_date: data.start_date ?? '',
       end_date: data.end_date ?? '',
+      is_global: String(data.is_global ?? false),
+      notify_at_percent: data.notify_at_percent ?? '',
+      is_active: String(data.is_active ?? true),
       created_at: new Date().toISOString(),
     })
     return toBudget(r)
