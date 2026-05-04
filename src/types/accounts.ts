@@ -24,3 +24,36 @@ export interface AccountFormData {
     initial_balance?: number
     is_active?: boolean
 }
+
+export interface AccountsSummary {
+  total_balance: number
+  currency: string
+  currency_code: string
+  decimals: number
+  accounts_count: number
+}
+
+export interface AccountsResponse {
+  data: Account[]
+  summary?: AccountsSummary
+}
+
+export interface BalanceHistorySeries {
+  name: string
+  type: string
+  data: number[]
+}
+
+export interface BalanceHistoryResponse {
+  dates: string[]
+  series: BalanceHistorySeries[]
+  currency: string
+  decimals: number
+}
+
+export interface BalanceComparisonResponse {
+  current: number
+  previous: number | null
+  currency: string
+  decimals: number
+}
