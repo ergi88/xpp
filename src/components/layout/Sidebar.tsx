@@ -12,13 +12,9 @@ import {
     Hash,
     BarChart3,
     HandCoins,
-    Users,
     Cog,
     Repeat,
-    Zap,
-    Shield,
     Upload,
-    Database,
     LucideIcon,
     Github,
     ExternalLink,
@@ -65,7 +61,6 @@ const mainItems: MenuItem[] = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/transactions", icon: Receipt, label: "Transactions" },
     { to: "/recurring", icon: Repeat, label: "Recurring" },
-    { to: "/automation", icon: Zap, label: "Automation" },
     { to: "/budgets", icon: PiggyBank, label: "Budgets" },
     { to: "/debts", icon: HandCoins, label: "Debts" },
     { to: "/reports", icon: BarChart3, label: "Reports" },
@@ -80,10 +75,7 @@ const organizationItems: MenuItem[] = [
 
 const settingsItems: MenuItem[] = [
     { to: "/settings/system", icon: Cog, label: "System" },
-    { to: "/settings/security", icon: Shield, label: "Security" },
     { to: "/settings/import", icon: Upload, label: "Import" },
-    { to: "/settings/backups", icon: Database, label: "Backups" },
-    { to: "/users", icon: Users, label: "Users" },
 ];
 
 export function AppSidebar() {
