@@ -2,13 +2,12 @@ import { useMemo, useState } from "react";
 import { ListPage } from "@/components/shared";
 import { createCategoryColumns } from "@/components/features/categories";
 import { useCategories, useDeleteCategory } from "@/hooks";
-import { useReadOnly } from "@/components/providers/ReadOnlyProvider";
 
 export default function CategoriesPage() {
     const [search, setSearch] = useState("");
     const { data: categories, isLoading } = useCategories();
     const deleteCategory = useDeleteCategory();
-    const isReadOnly = useReadOnly();
+    const isReadOnly = false;
 
     const typeCounts = useMemo(
         () => ({

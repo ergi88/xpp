@@ -2,14 +2,13 @@ import { useMemo, useState } from "react";
 import { ListPage } from "@/components/shared";
 import { createRecurringColumns } from "@/components/features/recurring";
 import { useRecurring, useDeleteRecurring, useSkipRecurring } from "@/hooks";
-import { useReadOnly } from "@/components/providers/ReadOnlyProvider";
 
 export default function RecurringPage() {
     const [search, setSearch] = useState("");
     const { data: recurring, isLoading } = useRecurring();
     const deleteRecurring = useDeleteRecurring();
     const skipRecurring = useSkipRecurring();
-    const isReadOnly = useReadOnly();
+    const isReadOnly = false;
 
     const columns = createRecurringColumns({
         onDelete: (id) => deleteRecurring.mutate(id),

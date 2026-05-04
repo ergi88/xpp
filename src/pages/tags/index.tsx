@@ -2,13 +2,12 @@ import { useMemo, useState } from "react";
 import { ListPage } from "@/components/shared";
 import { createTagColumns } from "@/components/features/tags";
 import { useTags, useDeleteTag } from "@/hooks";
-import { useReadOnly } from "@/components/providers/ReadOnlyProvider";
 
 export default function TagsPage() {
     const [search, setSearch] = useState("");
     const { data: tags, isLoading } = useTags();
     const deleteTag = useDeleteTag();
-    const isReadOnly = useReadOnly();
+    const isReadOnly = false;
 
     const columns = createTagColumns((id) => deleteTag.mutate(id), isReadOnly);
 

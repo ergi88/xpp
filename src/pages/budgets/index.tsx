@@ -2,13 +2,12 @@ import { useMemo, useState } from "react";
 import { ListPage } from "@/components/shared";
 import { createBudgetColumns } from "@/components/features/budgets";
 import { useBudgets, useDeleteBudget } from "@/hooks";
-import { useReadOnly } from "@/components/providers/ReadOnlyProvider";
 
 export default function BudgetsPage() {
     const [search, setSearch] = useState("");
     const { data: budgets, isLoading } = useBudgets();
     const deleteBudget = useDeleteBudget();
-    const isReadOnly = useReadOnly();
+    const isReadOnly = false;
 
     const filteredBudgets = useMemo(() => {
         const q = search.trim().toLowerCase();

@@ -2,14 +2,13 @@ import { useMemo, useState } from "react";
 import { ListPage } from "@/components/shared";
 import { createCurrencyColumns } from "@/components/features/currencies";
 import { useCurrencies, useDeleteCurrency, useSetBaseCurrency } from "@/hooks";
-import { useReadOnly } from "@/components/providers/ReadOnlyProvider";
 
 export default function CurrenciesPage() {
     const [search, setSearch] = useState("");
     const { data: currencies, isLoading } = useCurrencies();
     const deleteCurrency = useDeleteCurrency();
     const setBaseCurrency = useSetBaseCurrency();
-    const isReadOnly = useReadOnly();
+    const isReadOnly = false;
 
     const columns = createCurrencyColumns({
         onDelete: (id) => deleteCurrency.mutate(id),

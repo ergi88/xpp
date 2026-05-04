@@ -1,4 +1,3 @@
-import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 import { cn } from '@/lib/utils'
 
 interface FormWrapperProps {
@@ -7,7 +6,7 @@ interface FormWrapperProps {
 }
 
 export function FormWrapper({ children, className }: FormWrapperProps) {
-    const isReadOnly = useReadOnly()
+    const isReadOnly = false
 
     if (!isReadOnly) {
         return <>{children}</>

@@ -1,11 +1,10 @@
 import { Page, PageHeader } from '@/components/shared'
 import { CsvImportWizard } from '@/components/features/import/CsvImportWizard'
-import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 import { Card, CardContent } from '@/components/ui/card'
 import { ShieldAlert } from 'lucide-react'
 
 export default function ImportSettingsPage() {
-    const isReadOnly = useReadOnly()
+    const isReadOnly = false
 
     return (
         <Page title="Import Transactions">

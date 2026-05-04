@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label'
 import { DataTable } from '@/components/shared'
 import { createDebtColumns, DebtPaymentDialog } from '@/components/features/debts'
 import { useDebtsWithSummary, useDeleteDebt, useDebtPayment, useDebtCollection, useReopenDebt } from '@/hooks'
-import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 import { Debt, DebtPaymentFormData } from '@/types'
 
 export default function DebtsPage() {
@@ -24,7 +23,7 @@ export default function DebtsPage() {
 
     const debts = data?.data ?? []
     const summary = data?.summary
-    const isReadOnly = useReadOnly()
+    const isReadOnly = false
 
     const handlePayment = (debt: Debt) => {
         setSelectedDebt(debt)

@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/collapsible'
 import { createTransactionColumns } from '@/components/features/transactions'
 import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags } from '@/hooks'
-import { useReadOnly } from '@/components/providers/ReadOnlyProvider'
 import { TransactionType, Transaction } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -103,7 +102,7 @@ export default function TransactionsPage() {
     const duplicateTransaction = useDuplicateTransaction()
     const { data: categories } = useCategories()
     const { data: tags } = useTags()
-    const isReadOnly = useReadOnly()
+    const isReadOnly = false
 
     const columns = createTransactionColumns(
         (id) => deleteTransaction.mutate(id),
