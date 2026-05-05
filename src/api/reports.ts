@@ -1,274 +1,316 @@
-import { api } from './client'
+import { transactionsApi } from './transactions'
+import { accountsApi } from './accounts'
+import { categoriesApi } from './categories'
 import type { ReportFilters } from '@/pages/reports/types'
+import type { CashFlowGroupBy, TransactionType } from './reports-types'
+import {
+  getDateRange, getPrevDateRange, filterTxns,
+  computeOverview, computeMoneyFlow, computeCashFlow,
+  computeActivityHeatmap, computeTransactionSummary, computeByCategory,
+  computeTopTransactions, computeNetWorth, computeNetWorthHistory,
+  computeDynamics, computeExpensePace,
+} from '@/lib/sheets/report-engine'
+
+export type { CashFlowGroupBy, TransactionType }
+
+// ── Keep interface types so existing imports in api/index.ts & hooks stay valid ──
 
 export interface MetricData {
-    value: number
-    previous: number | null
-    sparkline: number[]
+  value: number
+  previous: number | null
+  sparkline: number[]
 }
 
 export interface OverviewMetrics {
-    income: MetricData
-    expenses: MetricData
-    netCashFlow: MetricData
-    savingsRate: MetricData
-    currency: string
+  income: MetricData
+  expenses: MetricData
+  netCashFlow: MetricData
+  savingsRate: MetricData
+  currency: string
 }
 
 export interface SankeyNode {
-    name: string
-    itemStyle: { color: string }
+  name: string
+  itemStyle: { color: string }
 }
 
 export interface SankeyLink {
-    source: string
-    target: string
-    value: number
+  source: string
+  target: string
+  value: number
 }
 
 export interface MoneyFlowData {
-    nodes: SankeyNode[]
-    links: SankeyLink[]
-    totals: {
-        income: number
-        expenses: number
-        savings: number
-    }
-    currency: string
+  nodes: SankeyNode[]
+  links: SankeyLink[]
+  totals: {
+    income: number
+    expenses: number
+    savings: number
+  }
+  currency: string
 }
 
 export interface ExpensePaceMonth {
-    label: string
-    budget: number | null
-    dailyExpenses: number[]
-    currentDay: number | null
-    daysInMonth: number
-    totalSpent: number
-    monthStart: string
-    monthEnd: string
+  label: string
+  budget: number | null
+  dailyExpenses: number[]
+  currentDay: number | null
+  daysInMonth: number
+  totalSpent: number
+  monthStart: string
+  monthEnd: string
 }
 
 export interface ExpensePaceData {
-    months: ExpensePaceMonth[]
-    currency: string
+  months: ExpensePaceMonth[]
+  currency: string
 }
 
 export interface CategoryExpense {
-    id: number
-    name: string
-    icon: string
-    color: string
-    current: number
-    previous: number
+  id: string
+  name: string
+  icon: string
+  color: string
+  current: number
+  previous: number
 }
 
 export interface ExpensesByCategoryData {
-    categories: CategoryExpense[]
-    currency: string
+  categories: CategoryExpense[]
+  currency: string
 }
 
 export interface CashFlowDataPoint {
-    label: string
-    income: number
-    expenses: number
-    balance: number
-    prevIncome?: number
-    prevExpenses?: number
-    prevBalance?: number
+  label: string
+  income: number
+  expenses: number
+  balance: number
+  prevIncome?: number
+  prevExpenses?: number
+  prevBalance?: number
 }
 
 export interface CashFlowOverTimeData {
-    items: CashFlowDataPoint[]
-    currency: string
+  items: CashFlowDataPoint[]
+  currency: string
 }
 
-export type CashFlowGroupBy = 'day' | 'week' | 'month'
-
 export interface HeatmapDataPoint {
-    date: string
-    value: number
-    count: number
+  date: string
+  value: number
+  count: number
 }
 
 export interface ActivityHeatmapData {
-    items: HeatmapDataPoint[]
-    max: number
-    currency: string
+  items: HeatmapDataPoint[]
+  max: number
+  currency: string
 }
 
-// Transaction Reports (Expenses/Income)
-export type TransactionType = 'expense' | 'income'
-
 export interface TransactionSummaryData {
-    total: number
-    previous: number | null
-    avgPerDay: number
-    avgPerWeek: number
-    prevAvgPerDay: number | null
-    prevAvgPerWeek: number | null
-    daysInPeriod: number
-    currency: string
+  total: number
+  previous: number | null
+  avgPerDay: number
+  avgPerWeek: number
+  prevAvgPerDay: number | null
+  prevAvgPerWeek: number | null
+  daysInPeriod: number
+  currency: string
 }
 
 export interface TransactionCategoryItem {
-    id: number
-    name: string
-    icon: string
-    color: string
-    value: number
-    percentage: number
+  id: string
+  name: string
+  icon: string
+  color: string
+  value: number
+  percentage: number
 }
 
 export interface TransactionsByCategoryData {
-    items: TransactionCategoryItem[]
-    total: number
-    currency: string
+  items: TransactionCategoryItem[]
+  total: number
+  currency: string
 }
 
 export interface TransactionDynamicsDataset {
-    id: number
-    name: string
-    color: string
-    data: number[]
+  id: string
+  name: string
+  color: string
+  data: number[]
 }
 
 export interface TransactionDynamicsData {
-    labels: string[]
-    datasets: TransactionDynamicsDataset[]
-    currency: string
+  labels: string[]
+  datasets: TransactionDynamicsDataset[]
+  currency: string
 }
 
 export interface TopTransactionItem {
-    id: number
-    description: string
-    amount: number
-    date: string
-    category: {
-        id: number
-        name: string
-        icon: string
-        color: string
-    }
-    account: {
-        id: number
-        name: string
-    }
+  id: string
+  description: string
+  amount: number
+  date: string
+  category: {
+    id: string
+    name: string
+    icon: string
+    color: string
+  }
+  account: {
+    id: string
+    name: string
+  }
 }
 
 export interface TopTransactionsData {
-    items: TopTransactionItem[]
-    currency: string
+  items: TopTransactionItem[]
+  currency: string
 }
 
-// Net Worth
 export interface NetWorthAccount {
-    id: number
-    name: string
-    type: string
-    balance: number
-    percentage: number
+  id: string
+  name: string
+  type: string
+  balance: number
+  percentage: number
 }
 
 export interface NetWorthData {
-    current: number
-    previous: number | null
-    change: number
-    changePercent: number
-    accounts: NetWorthAccount[]
-    currency: string
+  current: number
+  previous: number | null
+  change: number
+  changePercent: number
+  accounts: NetWorthAccount[]
+  currency: string
 }
 
 export interface NetWorthHistoryData {
-    labels: string[]
-    values: number[]
-    currency: string
+  labels: string[]
+  values: number[]
+  currency: string
 }
 
-function buildParams(filters: ReportFilters): Record<string, string | string[]> {
-    const params: Record<string, string | string[]> = {
-        period_type: filters.periodType,
-        compare_with: filters.compareWith,
-    }
+// ── Data loader ──
 
-    // Set period value based on period type
-    switch (filters.periodType) {
-        case 'month':
-            params.period_value = filters.selectedMonth
-            break
-        case 'quarter':
-            params.period_value = filters.selectedQuarter
-            break
-        case 'year':
-            params.period_value = filters.selectedYear
-            break
-        case 'custom':
-            params.start_date = filters.customStartDate
-            params.end_date = filters.customEndDate
-            break
-    }
-
-    // Array filters
-    if (filters.accountIds.length > 0) {
-        params['account_ids[]'] = filters.accountIds.map(String)
-    }
-    if (filters.categoryIds.length > 0) {
-        params['category_ids[]'] = filters.categoryIds.map(String)
-    }
-    if (filters.tagIds.length > 0) {
-        params['tag_ids[]'] = filters.tagIds.map(String)
-    }
-
-    return params
+async function loadAll() {
+  const [txnRes, accounts, categories] = await Promise.all([
+    transactionsApi.getAll({ per_page: 99999 }),
+    accountsApi.getAll(),
+    categoriesApi.getAll(),
+  ])
+  return { txns: txnRes.data, accounts, categories }
 }
+
+// ── API ──
 
 export const reportsApi = {
-    getOverview: (filters: ReportFilters) =>
-        api.get<OverviewMetrics>('/reports/overview', { params: buildParams(filters) }),
+  getOverview: async (filters: ReportFilters): Promise<OverviewMetrics> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    const prevRange = getPrevDateRange(filters)
+    const curr = filterTxns(txns, start, end, filters)
+    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
+    return computeOverview(curr, prev, start, end)
+  },
 
-    getMoneyFlow: (filters: ReportFilters) =>
-        api.get<MoneyFlowData>('/reports/money-flow', { params: buildParams(filters) }),
+  getMoneyFlow: async (filters: ReportFilters): Promise<MoneyFlowData> => {
+    const { txns, categories } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeMoneyFlow(filterTxns(txns, start, end, filters), categories)
+  },
 
-    getExpensePace: (filters: ReportFilters) =>
-        api.get<ExpensePaceData>('/reports/expense-pace', { params: buildParams(filters) }),
+  getExpensePace: async (filters: ReportFilters): Promise<ExpensePaceData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeExpensePace(filterTxns(txns, start, end, filters), start, end)
+  },
 
-    getExpensesByCategory: (filters: ReportFilters) =>
-        api.get<ExpensesByCategoryData>('/reports/expenses-by-category', { params: buildParams(filters) }),
+  // Returns the old { categories, currency } shape expected by ExpensesByCategory component
+  getExpensesByCategory: async (filters: ReportFilters): Promise<ExpensesByCategoryData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    const prevRange = getPrevDateRange(filters)
+    const curr = filterTxns(txns, start, end, filters)
+    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
+    const result = computeByCategory(curr, prev, 'expense')
+    return {
+      categories: result.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        icon: item.icon,
+        color: item.color,
+        current: item.value,
+        previous: item.previous,
+      })),
+      currency: result.currency,
+    }
+  },
 
-    getCashFlowOverTime: (filters: ReportFilters, groupBy: CashFlowGroupBy = 'day') =>
-        api.get<CashFlowOverTimeData>('/reports/cash-flow-over-time', {
-            params: { ...buildParams(filters), group_by: groupBy }
-        }),
+  getCashFlowOverTime: async (filters: ReportFilters, groupBy: CashFlowGroupBy = 'day'): Promise<CashFlowOverTimeData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeCashFlow(filterTxns(txns, start, end, filters), groupBy, start, end)
+  },
 
-    getActivityHeatmap: (filters: ReportFilters) =>
-        api.get<ActivityHeatmapData>('/reports/activity-heatmap', { params: buildParams(filters) }),
+  getActivityHeatmap: async (filters: ReportFilters): Promise<ActivityHeatmapData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeActivityHeatmap(filterTxns(txns, start, end, filters), start, end)
+  },
 
-    // Transaction Reports (Expenses/Income)
-    getTransactionSummary: (filters: ReportFilters, type: TransactionType) =>
-        api.get<TransactionSummaryData>('/reports/transactions/summary', {
-            params: { ...buildParams(filters), type }
-        }),
+  getTransactionSummary: async (filters: ReportFilters, type: TransactionType): Promise<TransactionSummaryData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    const prevRange = getPrevDateRange(filters)
+    const curr = filterTxns(txns, start, end, filters)
+    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
+    return computeTransactionSummary(curr, prev, type, start, end)
+  },
 
-    getTransactionsByCategory: (filters: ReportFilters, type: TransactionType) =>
-        api.get<TransactionsByCategoryData>('/reports/transactions/by-category', {
-            params: { ...buildParams(filters), type }
-        }),
+  // Returns the { items, total, currency } shape expected by ExpensesStructureChart component
+  getTransactionsByCategory: async (filters: ReportFilters, type: TransactionType): Promise<TransactionsByCategoryData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    const prevRange = getPrevDateRange(filters)
+    const curr = filterTxns(txns, start, end, filters)
+    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
+    const result = computeByCategory(curr, prev, type)
+    return {
+      items: result.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        icon: item.icon,
+        color: item.color,
+        value: item.value,
+        percentage: item.percentage,
+      })),
+      total: result.total,
+      currency: result.currency,
+    }
+  },
 
-    getTransactionDynamics: (filters: ReportFilters, type: TransactionType, groupBy: CashFlowGroupBy = 'day') =>
-        api.get<TransactionDynamicsData>('/reports/transactions/dynamics', {
-            params: { ...buildParams(filters), type, group_by: groupBy }
-        }),
+  getTransactionDynamics: async (filters: ReportFilters, type: TransactionType, groupBy: CashFlowGroupBy = 'day'): Promise<TransactionDynamicsData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeDynamics(filterTxns(txns, start, end, filters), type, groupBy, start, end)
+  },
 
-    getTopTransactions: (filters: ReportFilters, type: TransactionType, limit: number = 10) =>
-        api.get<TopTransactionsData>('/reports/transactions/top', {
-            params: { ...buildParams(filters), type, limit }
-        }),
+  getTopTransactions: async (filters: ReportFilters, type: TransactionType, limit = 10): Promise<TopTransactionsData> => {
+    const { txns } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeTopTransactions(filterTxns(txns, start, end, filters), type, limit)
+  },
 
-    // Net Worth
-    getNetWorth: (filters: ReportFilters) =>
-        api.get<NetWorthData>('/reports/net-worth', { params: buildParams(filters) }),
+  getNetWorth: async (_filters: ReportFilters): Promise<NetWorthData> => {
+    const { accounts } = await loadAll()
+    return computeNetWorth(accounts)
+  },
 
-    getNetWorthHistory: (filters: ReportFilters, groupBy: CashFlowGroupBy = 'day') =>
-        api.get<NetWorthHistoryData>('/reports/net-worth-history', {
-            params: { ...buildParams(filters), group_by: groupBy }
-        }),
+  getNetWorthHistory: async (filters: ReportFilters, groupBy: CashFlowGroupBy = 'month'): Promise<NetWorthHistoryData> => {
+    const { txns, accounts } = await loadAll()
+    const [start, end] = getDateRange(filters)
+    return computeNetWorthHistory(txns, accounts, groupBy, start, end)
+  },
 }
