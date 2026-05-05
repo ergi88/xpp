@@ -1,22 +1,21 @@
 import { BaseEntity } from './api'
 import { Currency } from './currencies'
 
-// All account types including debt
-export type AccountType = 'bank' | 'crypto' | 'cash' | 'debt'
-
-// Regular account types (excluding debt) - for account creation
-export type RegularAccountType = 'bank' | 'crypto' | 'cash'
+export type AccountType = 'bank' | 'crypto' | 'cash' | 'debt' | 'credit'
+export type RegularAccountType = 'bank' | 'crypto' | 'cash' | 'credit'
 
 export interface Account extends BaseEntity {
-    name: string
-    type: AccountType
-    currencyId: string
-    initialBalance: number
-    currentBalance: number
-    isActive: boolean
-    currency?: Currency
+  name: string
+  type: AccountType
+  currencyId: string
+  initialBalance: number
+  currentBalance: number
+  isActive: boolean
+  currency?: Currency
+  cardLastDigits?: string
+  cardExpiry?: string
+  creditLimit?: number
 }
-
 
 export interface AccountsSummary {
   total_balance: number

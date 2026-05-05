@@ -1,4 +1,4 @@
-import { Landmark, Wallet, Bitcoin, HandCoins } from 'lucide-react'
+import { Landmark, Wallet, Bitcoin, HandCoins, CreditCard } from 'lucide-react'
 import type { AccountType, RegularAccountType } from '@/types'
 
 export interface AccountTypeConfig {
@@ -39,13 +39,21 @@ export const ACCOUNT_TYPE_CONFIG: Record<AccountType, AccountTypeConfig> = {
         bgColor: 'bg-purple-100',
         textColor: 'text-purple-600',
     },
+    credit: {
+        icon: CreditCard,
+        label: 'Credit',
+        color: 'bg-red-100 text-red-700',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-600',
+    },
 }
 
 // Regular account types (excluding debt) - for account creation/selection
-export const REGULAR_ACCOUNT_TYPES: RegularAccountType[] = ['bank', 'cash', 'crypto']
+export const REGULAR_ACCOUNT_TYPES: RegularAccountType[] = ['bank', 'cash', 'crypto', 'credit']
 
 export const REGULAR_ACCOUNT_TYPE_CONFIG: Record<RegularAccountType, AccountTypeConfig> = {
     bank: ACCOUNT_TYPE_CONFIG.bank,
     cash: ACCOUNT_TYPE_CONFIG.cash,
     crypto: ACCOUNT_TYPE_CONFIG.crypto,
+    credit: ACCOUNT_TYPE_CONFIG.credit,
 }
