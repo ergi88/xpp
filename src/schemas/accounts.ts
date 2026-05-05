@@ -39,7 +39,7 @@ export const accountSchema = z.object({
     .optional()
     .nullable(),
 }).superRefine((data, ctx) => {
-  if (data.type === 'credit' && !data.credit_limit) {
+  if (data.type === 'credit' && data.credit_limit == null) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Credit limit is required for credit accounts',

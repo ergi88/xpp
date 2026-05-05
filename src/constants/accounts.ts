@@ -42,9 +42,9 @@ export const ACCOUNT_TYPE_CONFIG: Record<AccountType, AccountTypeConfig> = {
     credit: {
         icon: CreditCard,
         label: 'Credit',
-        color: 'bg-red-100 text-red-700',
-        bgColor: 'bg-red-100',
-        textColor: 'text-red-600',
+        color: 'bg-rose-100 text-rose-700',
+        bgColor: 'bg-rose-100',
+        textColor: 'text-rose-600',
     },
 }
 
