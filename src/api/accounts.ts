@@ -1,5 +1,6 @@
 import { adapter } from './client'
-import type { Account, AccountFormData } from '@/types'
+import type { Account } from '@/types'
+import type { AccountFormData } from '@/schemas'
 import type { AccountsResponse, AccountsSummary, BalanceHistoryResponse, BalanceComparisonResponse } from '@/types'
 
 export type { AccountsResponse, AccountsSummary, BalanceHistoryResponse, BalanceComparisonResponse }

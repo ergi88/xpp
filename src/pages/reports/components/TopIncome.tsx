@@ -35,7 +35,7 @@ export function TopIncome({ filters, limit = 10 }: TopIncomeProps) {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }
 
-    const handleTransactionClick = (id: number) => {
+    const handleTransactionClick = (id: string) => {
         navigate(`/transactions?id=${id}`)
     }
 

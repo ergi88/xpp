@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import React, { lazy, Suspense } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
@@ -33,7 +33,7 @@ const SystemSettingsPage = lazy(() => import('@/pages/settings/system'))
 const ImportSettingsPage = lazy(() => import('@/pages/settings/import'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
-const withSuspense = (Component: React.LazyExoticComponent<() => JSX.Element>) => (
+const withSuspense = (Component: React.LazyExoticComponent<() => React.ReactElement>) => (
   <ErrorBoundary>
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[200px]">

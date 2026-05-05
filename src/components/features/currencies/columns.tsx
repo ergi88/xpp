@@ -25,8 +25,8 @@ import {
 import { Currency } from '@/types'
 
 interface ColumnOptions {
-    onDelete: (id: number) => void
-    onSetBase: (id: number) => void
+    onDelete: (id: string) => void
+    onSetBase: (id: string) => void
     isSettingBase?: boolean
     currencyCount: number
     isReadOnly?: boolean

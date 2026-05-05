@@ -35,7 +35,7 @@ interface DebtPaymentDialogProps {
     debt: Debt | null
     open: boolean
     onOpenChange: (open: boolean) => void
-    onSubmit: (debtId: number, data: DebtPaymentFormData) => void
+    onSubmit: (debtId: string, data: DebtPaymentFormData) => void
     isSubmitting?: boolean
     mode: 'payment' | 'collection'
 }

@@ -12,7 +12,7 @@ export default function DebtEditPage() {
         ? {
               name: debt.name,
               debt_type: debt.debtType,
-              currency_id: debt.currencyId,
+              currency_id: Number(debt.currencyId),
               amount: debt.targetAmount,
               due_date: debt.dueDate ?? '',
               counterparty: debt.counterparty ?? '',

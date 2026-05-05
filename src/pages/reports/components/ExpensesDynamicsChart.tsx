@@ -19,7 +19,7 @@ import type { CashFlowGroupBy } from '@/api/reports'
 type ChartType = 'line' | 'bar'
 
 interface CategoryConfig {
-    id: number
+    id: string
     name: string
     color: string
     enabled: boolean
@@ -48,7 +48,7 @@ export function ExpensesDynamicsChart({ filters }: ExpensesDynamicsChartProps) {
         }
     }, [data?.datasets])
 
-    const toggleCategory = (id: number) => {
+    const toggleCategory = (id: string) => {
         setCategories(cats => cats.map(cat =>
             cat.id === id ? { ...cat, enabled: !cat.enabled } : cat
         ))

@@ -40,7 +40,7 @@ export interface ColumnMapping {
 export interface ImportOptions {
     dateFormat: DateFormat
     amountFormat: AmountFormat
-    defaultAccountId: number
+    defaultAccountId: string
     defaultType: 'income' | 'expense'
     skipFirstRow: boolean
     createMissingCurrencies: boolean

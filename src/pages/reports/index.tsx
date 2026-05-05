@@ -15,7 +15,7 @@ export default function ReportsPage() {
         setFilters(f => ({ ...f, [key]: value }))
     }
 
-    const toggleArrayFilter = (key: 'accountIds' | 'categoryIds' | 'tagIds', id: number) => {
+    const toggleArrayFilter = (key: 'accountIds' | 'categoryIds' | 'tagIds', id: string) => {
         setFilters(f => {
             const current = f[key]
             const newIds = current.includes(id)

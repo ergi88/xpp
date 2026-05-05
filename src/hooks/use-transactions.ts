@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { transactionsApi } from '@/api'
-import { TransactionFormData, TransactionFilters } from '@/types'
+import type { TransactionFilters } from '@/types'
+import type { TransactionFormValues } from '@/schemas'
+type TransactionFormData = TransactionFormValues
 import { toast } from 'sonner'
 
 const QUERY_KEY = ['transactions']

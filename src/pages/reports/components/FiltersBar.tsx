@@ -33,7 +33,7 @@ import { getMonthOptions, getQuarterOptions, getYearOptions } from '../utils'
 interface FiltersBarProps {
     filters: ReportFilters
     onFilterChange: <K extends keyof ReportFilters>(key: K, value: ReportFilters[K]) => void
-    onToggleArrayFilter: (key: 'accountIds' | 'categoryIds' | 'tagIds', id: number) => void
+    onToggleArrayFilter: (key: 'accountIds' | 'categoryIds' | 'tagIds', id: string) => void
     onReset: () => void
 }
 

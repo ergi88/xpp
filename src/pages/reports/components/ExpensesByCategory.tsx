@@ -24,7 +24,7 @@ export function ExpensesByCategory({ filters }: ExpensesByCategoryProps) {
         return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
     }
 
-    const handleCategoryClick = (categoryId: number) => {
+    const handleCategoryClick = (categoryId: string) => {
         navigate(`/transactions?category_ids=${categoryId}`)
     }
 

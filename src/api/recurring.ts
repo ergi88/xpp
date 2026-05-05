@@ -1,5 +1,6 @@
 import { adapter } from './client'
-import type { RecurringTransaction, RecurringFormData } from '@/types'
+import type { RecurringTransaction } from '@/types'
+import type { RecurringFormData } from '@/schemas'
 import { accountsApi } from './accounts'
 import { categoriesApi } from './categories'
 import { tagsApi } from './tags'

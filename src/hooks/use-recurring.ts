@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { recurringApi } from '@/api'
-import { RecurringFormData } from '@/types'
+import { RecurringFormData } from '@/schemas'
 import { toast } from 'sonner'
 
 const QUERY_KEY = ['recurring']

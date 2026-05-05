@@ -32,7 +32,7 @@ const periodLabels: Record<string, string> = {
 }
 
 export const createBudgetColumns = (
-    onDelete: (id: number) => void,
+    onDelete: (id: string) => void,
     isReadOnly?: boolean
 ): ColumnDef<Budget>[] => [
     {

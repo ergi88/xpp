@@ -6,11 +6,11 @@ export const accountSchema = z.object({
         .max(255, 'Maximum 255 characters'),
 
     type: z.enum(['bank', 'crypto', 'cash'], {
-        required_error: 'Please select account type',
+        error: 'Please select account type',
     }),
 
     currency_id: z.coerce.number({
-        required_error: 'Please select currency',
+        error: 'Please select currency',
     }).positive('Please select currency'),
 
     initial_balance: z.coerce.number()

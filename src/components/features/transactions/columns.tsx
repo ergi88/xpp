@@ -32,8 +32,8 @@ const TYPE_CONFIG = {
 }
 
 export function createTransactionColumns(
-    onDelete: (id: number) => void,
-    onDuplicate: (id: number) => void,
+    onDelete: (id: string) => void,
+    onDuplicate: (id: string) => void,
     isReadOnly?: boolean
 ): ColumnDef<Transaction>[] {
     return [

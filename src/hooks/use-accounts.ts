@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { accountsApi } from '@/api'
-import { AccountFormData } from '@/types'
+import { AccountFormData } from '@/schemas'
 import { toast } from 'sonner'
 
 const QUERY_KEY = ['accounts']

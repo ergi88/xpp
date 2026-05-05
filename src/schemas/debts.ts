@@ -6,11 +6,11 @@ export const debtSchema = z.object({
         .max(255, 'Maximum 255 characters'),
 
     debt_type: z.enum(['i_owe', 'owed_to_me'], {
-        required_error: 'Please select debt type',
+        error: 'Please select debt type',
     }),
 
     currency_id: z.coerce.number({
-        required_error: 'Please select currency',
+        error: 'Please select currency',
     }).positive('Please select currency'),
 
     amount: z.coerce.number()
@@ -27,7 +27,7 @@ export type DebtFormData = z.infer<typeof debtSchema>
 
 export const debtPaymentSchema = z.object({
     account_id: z.coerce.number({
-        required_error: 'Please select account',
+        error: 'Please select account',
     }).positive('Please select account'),
 
     amount: z.coerce.number()

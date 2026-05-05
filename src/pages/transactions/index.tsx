@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryStates, parseAsInteger, parseAsString, parseAsArrayOf, parseAsStringLiteral } from 'nuqs'
+// Note: categoryIds/tagIds use string IDs in this app
 import { Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Filter, ArrowUpDown, X } from 'lucide-react'
 import { Row } from '@tanstack/react-table'
 import { Page, PageHeader, DataTable, ServerPagination } from '@/components/shared'
@@ -25,7 +26,7 @@ import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCate
 import { TransactionType, Transaction } from '@/types'
 import { cn } from '@/lib/utils'
 
-const TYPE_FILTERS: { value: TransactionType | null; label: string; icon?: typeof ArrowDownLeft }[] = [
+const TYPE_FILTERS: { value: 'income' | 'expense' | 'transfer' | null; label: string; icon?: typeof ArrowDownLeft }[] = [
     { value: null, label: 'All' },
     { value: 'income', label: 'Income', icon: ArrowDownLeft },
     { value: 'expense', label: 'Expense', icon: ArrowUpRight },
@@ -75,8 +76,8 @@ const transactionSearchParams = {
     sortBy: parseAsStringLiteral(['date', 'amount'] as const).withDefault('date'),
     sortDir: parseAsStringLiteral(['asc', 'desc'] as const).withDefault('desc'),
     page: parseAsInteger.withDefault(1),
-    categoryIds: parseAsArrayOf(parseAsInteger).withDefault([]),
-    tagIds: parseAsArrayOf(parseAsInteger).withDefault([]),
+    categoryIds: parseAsArrayOf(parseAsString).withDefault([]),
+    tagIds: parseAsArrayOf(parseAsString).withDefault([]),
     startDate: parseAsString,
     endDate: parseAsString,
 }
@@ -130,7 +131,7 @@ export default function TransactionsPage() {
         })
     }
 
-    const toggleCategory = (id: number) => {
+    const toggleCategory = (id: string) => {
         const current = params.categoryIds
         const newIds = current.includes(id)
             ? current.filter(c => c !== id)
@@ -138,7 +139,7 @@ export default function TransactionsPage() {
         setParams({ categoryIds: newIds.length ? newIds : null, page: 1 })
     }
 
-    const toggleTag = (id: number) => {
+    const toggleTag = (id: string) => {
         const current = params.tagIds
         const newIds = current.includes(id)
             ? current.filter(t => t !== id)

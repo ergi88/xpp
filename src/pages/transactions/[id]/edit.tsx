@@ -3,7 +3,7 @@ import { useQueryState, parseAsStringLiteral } from 'nuqs'
 import { FormPage } from '@/components/shared'
 import { TransactionForm } from '@/components/features/transactions'
 import { useTransaction, useUpdateTransaction } from '@/hooks'
-import { TransactionType } from '@/types'
+import { TransactionFormValues } from '@/schemas'
 
 export default function TransactionEditPage() {
     const { id } = useParams<{ id: string }>()
@@ -16,7 +16,7 @@ export default function TransactionEditPage() {
 
     const defaultValues = transaction
         ? {
-              type: (type ?? transaction.type) as TransactionType,
+              type: (type ?? transaction.type) as TransactionFormValues['type'],
               account_id: transaction.account.id,
               to_account_id: transaction.toAccount?.id ?? null,
               category_id: transaction.category?.id ?? null,

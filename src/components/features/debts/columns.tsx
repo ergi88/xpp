@@ -45,10 +45,10 @@ function formatAmount(amount: number, currency?: { symbol: string; decimals: num
 }
 
 interface ColumnActions {
-    onDelete: (id: number) => void
+    onDelete: (id: string) => void
     onPayment: (debt: Debt) => void
     onCollect: (debt: Debt) => void
-    onReopen: (id: number) => void
+    onReopen: (id: string) => void
     isReadOnly?: boolean
 }
 

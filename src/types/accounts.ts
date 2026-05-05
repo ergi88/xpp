@@ -17,13 +17,6 @@ export interface Account extends BaseEntity {
     currency?: Currency
 }
 
-export interface AccountFormData {
-    name: string
-    type: RegularAccountType
-    currency_id: string
-    initial_balance?: number
-    is_active?: boolean
-}
 
 export interface AccountsSummary {
   total_balance: number

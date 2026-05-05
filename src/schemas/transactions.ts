@@ -8,11 +8,11 @@ export const transactionItemSchema = z.object({
 
 export const transactionSchema = z.object({
     type: z.enum(['income', 'expense', 'transfer'], {
-        required_error: 'Please select transaction type',
+        error: 'Please select transaction type',
     }),
 
     account_id: z.string({
-        required_error: 'Please select account',
+        error: 'Please select account',
     }).min(1, 'Please select account'),
 
     to_account_id: z.string().min(1).optional().nullable(),
@@ -20,7 +20,7 @@ export const transactionSchema = z.object({
     category_id: z.string().min(1).optional().nullable(),
 
     amount: z.coerce.number({
-        required_error: 'Amount is required',
+        error: 'Amount is required',
     }).positive('Amount must be positive'),
 
     to_amount: z.coerce.number().positive().optional().nullable(),

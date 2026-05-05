@@ -38,8 +38,8 @@ const frequencyLabels: Record<string, string> = {
 }
 
 interface ColumnsOptions {
-    onDelete: (id: number) => void
-    onSkip: (id: number) => void
+    onDelete: (id: string) => void
+    onSkip: (id: string) => void
     isReadOnly?: boolean
 }
 
@@ -52,7 +52,7 @@ export const createRecurringColumns = ({
         accessorKey: 'description',
         header: 'Transaction',
         cell: ({ row }) => {
-            const config = typeConfig[row.original.type]
+            const config = typeConfig[row.original.type as keyof typeof typeConfig] ?? typeConfig.expense
             const Icon = config.icon
             return (
                 <div className="flex items-center gap-3">

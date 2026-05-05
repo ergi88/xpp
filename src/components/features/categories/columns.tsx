@@ -24,7 +24,7 @@ import {
 import { Category } from '@/types'
 
 export const createCategoryColumns = (
-    onDelete: (id: number) => void,
+    onDelete: (id: string) => void,
     typeCounts: { income: number; expense: number },
     isReadOnly?: boolean
 ): ColumnDef<Category>[] => [

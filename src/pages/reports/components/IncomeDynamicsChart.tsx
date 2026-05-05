@@ -19,7 +19,7 @@ import type { CashFlowGroupBy } from '@/api/reports'
 type ChartType = 'line' | 'bar'
 
 interface SourceConfig {
-    id: number
+    id: string
     name: string
     color: string
     enabled: boolean
@@ -48,7 +48,7 @@ export function IncomeDynamicsChart({ filters }: IncomeDynamicsChartProps) {
         }
     }, [data?.datasets])
 
-    const toggleSource = (id: number) => {
+    const toggleSource = (id: string) => {
         setSources(srcs => srcs.map(src =>
             src.id === id ? { ...src, enabled: !src.enabled } : src
         ))

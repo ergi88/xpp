@@ -30,7 +30,7 @@ function formatBalance(amount: number, currency?: { symbol: string; decimals: nu
 }
 
 export const createAccountColumns = (
-    onDelete: (id: number) => void,
+    onDelete: (id: string) => void,
     isReadOnly?: boolean
 ): ColumnDef<Account>[] => [
     {

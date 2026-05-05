@@ -11,8 +11,8 @@ export default function AccountEditPage() {
     const defaultValues = account
         ? {
               name: account.name,
-              type: account.type,
-              currency_id: account.currencyId,
+              type: account.type as 'bank' | 'crypto' | 'cash',
+              currency_id: Number(account.currencyId),
               initial_balance: account.initialBalance,
               is_active: account.isActive,
           }

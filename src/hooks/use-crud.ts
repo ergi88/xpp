@@ -1,29 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/api/client'
+import { adapter } from '@/api/client'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import type { SheetName } from '@/lib/sheets/adapter'
 
 interface UseCrudOptions<T> {
-    endpoint: string
+    endpoint: SheetName
     queryKey: string[]
     redirectTo?: string
 }
 
-export function useCrud<T extends { id: number | string }>({
-                                                               endpoint,
-                                                               queryKey,
-                                                               redirectTo
-                                                           }: UseCrudOptions<T>) {
+export function useCrud<T extends { id: string }>({
+    endpoint,
+    queryKey,
+    redirectTo
+}: UseCrudOptions<T>) {
     const qc = useQueryClient()
     const navigate = useNavigate()
 
     const list = useQuery({
         queryKey,
-        queryFn: () => api.get<T[]>(endpoint),
+        queryFn: () => adapter.getAll(endpoint) as Promise<T[]>,
     })
 
     const create = useMutation({
-        mutationFn: (data: Partial<T>) => api.post<T, Partial<T>>(endpoint, data),
+        mutationFn: (data: Partial<T>) => adapter.create(endpoint, data as Record<string, unknown>) as Promise<T>,
         onSuccess: () => {
             toast.success('Created successfully')
             qc.invalidateQueries({ queryKey })
@@ -32,8 +33,8 @@ export function useCrud<T extends { id: number | string }>({
     })
 
     const update = useMutation({
-        mutationFn: ({ id, data }: { id: string | number; data: Partial<T> }) =>
-            api.patch<T, Partial<T>>(`${endpoint}/${id}`, data),
+        mutationFn: ({ id, data }: { id: string; data: Partial<T> }) =>
+            adapter.update(endpoint, id, data as Record<string, unknown>) as Promise<T>,
         onSuccess: () => {
             toast.success('Updated successfully')
             qc.invalidateQueries({ queryKey })
@@ -42,7 +43,7 @@ export function useCrud<T extends { id: number | string }>({
     })
 
     const remove = useMutation({
-        mutationFn: (id: string | number) => api.delete<void>(`${endpoint}/${id}`),
+        mutationFn: (id: string) => adapter.delete(endpoint, id),
         onSuccess: () => {
             toast.success('Deleted successfully')
             qc.invalidateQueries({ queryKey })
@@ -53,10 +54,10 @@ export function useCrud<T extends { id: number | string }>({
 }
 
 // Separate hook for fetching single item (avoids conditional hook call)
-export function useCrudItem<T>(endpoint: string, queryKey: string[], id: string | number) {
+export function useCrudItem<T>(endpoint: SheetName, queryKey: string[], id: string) {
     return useQuery({
         queryKey: [...queryKey, id],
-        queryFn: () => api.get<T>(`${endpoint}/${id}`),
+        queryFn: () => adapter.getById(endpoint, id) as Promise<T | null>,
         enabled: !!id,
     })
 }

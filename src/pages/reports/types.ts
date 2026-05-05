@@ -10,9 +10,9 @@ export interface ReportFilters {
     customStartDate: string
     customEndDate: string
     compareWith: CompareType
-    accountIds: number[]
-    categoryIds: number[]
-    tagIds: number[]
+    accountIds: string[]
+    categoryIds: string[]
+    tagIds: string[]
 }
 
 // Helper to format date as YYYY-MM-DD (timezone-safe)

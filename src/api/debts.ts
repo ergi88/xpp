@@ -1,6 +1,7 @@
 import { adapter } from './client'
 import { transactionsApi } from './transactions'
-import type { Debt, DebtFormData, DebtPaymentFormData, DebtSummary, DebtsResponse, Transaction } from '@/types'
+import type { Debt, DebtSummary, DebtsResponse, Transaction } from '@/types'
+import type { DebtFormData, DebtPaymentFormData } from '@/schemas'
 
 function toDebt(r: Record<string, unknown>): Debt {
   const targetAmount = Number(r.target_amount ?? r.amount ?? 0)
@@ -84,7 +85,7 @@ export const debtsApi = {
     await adapter.update('debts', String(debtId), { paid_amount: newPaid })
     return transactionsApi.create({
       type: 'expense',
-      account_id: data.account_id,
+      account_id: String(data.account_id),
       amount: data.amount,
       date: data.date,
       description: data.description ?? `Payment for ${debt.name}`,
@@ -97,7 +98,7 @@ export const debtsApi = {
     await adapter.update('debts', String(debtId), { paid_amount: newPaid })
     return transactionsApi.create({
       type: 'income',
-      account_id: data.account_id,
+      account_id: String(data.account_id),
       amount: data.amount,
       date: data.date,
       description: data.description ?? `Collection for ${debt.name}`,

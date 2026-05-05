@@ -2,7 +2,8 @@ import { adapter } from './client'
 import { accountsApi } from './accounts'
 import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
-import type { Transaction, TransactionFormData, TransactionFilters, TransactionSummary } from '@/types'
+import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
+import type { TransactionFormValues as TransactionFormData } from '@/schemas'
 
 export interface TransactionsResponse {
   data: Transaction[]
@@ -192,7 +193,7 @@ export const transactionsApi = {
   duplicate: async (id: string | number): Promise<Transaction> => {
     const existing = await transactionsApi.getById(id)
     return transactionsApi.create({
-      type: existing.type,
+      type: existing.type as 'income' | 'expense' | 'transfer',
       account_id: existing.account.id as unknown as string,
       to_account_id: existing.toAccount?.id as unknown as string | undefined,
       category_id: existing.category?.id as unknown as string | undefined,

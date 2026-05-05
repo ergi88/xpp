@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label'
 import { DataTable } from '@/components/shared'
 import { createDebtColumns, DebtPaymentDialog } from '@/components/features/debts'
 import { useDebtsWithSummary, useDeleteDebt, useDebtPayment, useDebtCollection, useReopenDebt } from '@/hooks'
-import { Debt, DebtPaymentFormData } from '@/types'
+import { Debt } from '@/types'
+import { DebtPaymentFormData } from '@/schemas'
 
 export default function DebtsPage() {
     const [includeCompleted, setIncludeCompleted] = useState(false)
@@ -37,7 +38,7 @@ export default function DebtsPage() {
         setPaymentDialogOpen(true)
     }
 
-    const handlePaymentSubmit = (debtId: number, formData: DebtPaymentFormData) => {
+    const handlePaymentSubmit = (debtId: string, formData: DebtPaymentFormData) => {
         if (paymentMode === 'payment') {
             debtPayment.mutate(
                 { debtId, data: formData },
@@ -141,8 +142,6 @@ export default function DebtsPage() {
                 columns={columns}
                 data={debts}
                 isLoading={isLoading}
-                searchColumn="name"
-                searchPlaceholder="Search debts..."
             />
 
             <DebtPaymentDialog
