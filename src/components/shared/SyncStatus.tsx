@@ -44,6 +44,7 @@ export function SyncStatus() {
           onClick={sync}
           disabled={isSyncing || !isOnline}
           title={title}
+          aria-label={title}
         >
           {!isOnline ? (
             <WifiOff className="size-4" />
@@ -70,7 +71,7 @@ export function SyncStatus() {
           ) : (
             <Wifi className="size-3 shrink-0" />
           )}
-          <span className="truncate">
+          <span aria-live="polite" aria-atomic="true" className="truncate">
             {!isOnline ? 'Offline' : isSyncing ? 'Syncing…' : `Synced ${relativeTime(lastSyncTime)}`}
           </span>
           {queuedCount > 0 && (
@@ -98,6 +99,7 @@ export function SyncStatus() {
             </p>
           ))}
           <button
+            type="button"
             onClick={clearErrors}
             className="text-[10px] underline text-muted-foreground hover:text-foreground"
           >

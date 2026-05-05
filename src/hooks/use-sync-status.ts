@@ -1,5 +1,5 @@
 // src/hooks/use-sync-status.ts
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   syncAll,
   flushMutationQueue,
@@ -17,26 +17,36 @@ export function useSyncStatus() {
   const [queuedCount, setQueuedCount] = useState(0)
   const [errors, setErrors] = useState<SyncError[]>(getSyncErrors)
 
+  const syncingRef = useRef(false)
+  const isOnlineRef = useRef(navigator.onLine)
+
   useEffect(() => {
     getQueue().then((q) => setQueuedCount(q.length))
   }, [])
 
   useEffect(() => {
     const onOnline = async () => {
+      isOnlineRef.current = true
       setIsOnline(true)
+      syncingRef.current = true
       setIsSyncing(true)
       try {
         await flushMutationQueue()
-        setQueuedCount(0)
+        const remaining = await getQueue()
+        setQueuedCount(remaining.length)
         setLastSyncedAt(getLastSyncTime())
-        setErrors([])
+        setErrors(getSyncErrors())
       } catch {
         setErrors(getSyncErrors())
       } finally {
+        syncingRef.current = false
         setIsSyncing(false)
       }
     }
-    const onOffline = () => setIsOnline(false)
+    const onOffline = () => {
+      isOnlineRef.current = false
+      setIsOnline(false)
+    }
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
     return () => {
@@ -46,18 +56,22 @@ export function useSyncStatus() {
   }, [])
 
   const sync = useCallback(async () => {
-    if (isSyncing || !isOnline) return
+    if (syncingRef.current || !isOnlineRef.current) return
+    syncingRef.current = true
     setIsSyncing(true)
     try {
       await syncAll()
       setLastSyncedAt(getLastSyncTime())
-      setErrors([])
+      setErrors(getSyncErrors())
+      const remaining = await getQueue()
+      setQueuedCount(remaining.length)
     } catch {
       setErrors(getSyncErrors())
     } finally {
+      syncingRef.current = false
       setIsSyncing(false)
     }
-  }, [isSyncing, isOnline])
+  }, [])
 
   const handleClearErrors = useCallback(() => {
     clearSyncErrors()
