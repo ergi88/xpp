@@ -170,12 +170,22 @@ export const transactionsApi = {
       await accountsApi.updateBalance(existing.account.id, -existing.amount)
     } else if (existing.type === 'expense') {
       await accountsApi.updateBalance(existing.account.id, existing.amount)
+    } else if (existing.type === 'transfer') {
+      await Promise.all([
+        accountsApi.updateBalance(existing.account.id, existing.amount),
+        existing.toAccount && accountsApi.updateBalance(existing.toAccount.id, -(existing.toAmount ?? existing.amount)),
+      ].filter(Boolean) as Promise<unknown>[])
     }
     const updated = await transactionsApi.getById(id)
     if (updated.type === 'income') {
       await accountsApi.updateBalance(updated.account.id, updated.amount)
     } else if (updated.type === 'expense') {
       await accountsApi.updateBalance(updated.account.id, -updated.amount)
+    } else if (updated.type === 'transfer') {
+      await Promise.all([
+        accountsApi.updateBalance(updated.account.id, -updated.amount),
+        updated.toAccount && accountsApi.updateBalance(updated.toAccount.id, updated.toAmount ?? updated.amount),
+      ].filter(Boolean) as Promise<unknown>[])
     }
     return updated
   },
@@ -187,6 +197,11 @@ export const transactionsApi = {
       await accountsApi.updateBalance(existing.account.id, -existing.amount)
     } else if (existing.type === 'expense') {
       await accountsApi.updateBalance(existing.account.id, existing.amount)
+    } else if (existing.type === 'transfer') {
+      await Promise.all([
+        accountsApi.updateBalance(existing.account.id, existing.amount),
+        existing.toAccount && accountsApi.updateBalance(existing.toAccount.id, -(existing.toAmount ?? existing.amount)),
+      ].filter(Boolean) as Promise<unknown>[])
     }
   },
 
