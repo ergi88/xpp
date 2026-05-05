@@ -196,7 +196,10 @@ export function AccountForm({
                         placeholder="1234"
                         maxLength={4}
                         value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value || null)}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\D/g, "")
+                          field.onChange(v || null)
+                        }}
                       />
                     </FormControl>
                     <FormDescription>Last 4 digits of the card number</FormDescription>
