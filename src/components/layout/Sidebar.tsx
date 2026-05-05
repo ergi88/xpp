@@ -18,7 +18,10 @@ import {
     LucideIcon,
     Github,
     ExternalLink,
+    Download,
 } from "lucide-react";
+import { SyncStatus } from '@/components/shared/SyncStatus'
+import { usePWAInstall } from '@/hooks/use-pwa-install'
 import { Logo } from "@/components/shared/Logo";
 import {
     Sidebar,
@@ -83,6 +86,7 @@ export function AppSidebar() {
     const [organizationOpen, setOrganizationOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const { setOpenMobile } = useSidebar();
+    const { canInstall, install } = usePWAInstall()
 
     // Close mobile sidebar when navigating to a new page
     useEffect(() => {
@@ -235,6 +239,23 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                <SyncStatus />
+
+                {canInstall && (
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                onClick={install}
+                                tooltip="Install app"
+                                className="text-xs text-muted-foreground"
+                            >
+                                <Download />
+                                <span>Install app</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                )}
+
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <DropdownMenu>
