@@ -50,6 +50,7 @@ export async function syncAll(): Promise<void> {
 
 export async function flushMutationQueue(): Promise<void> {
   const queue = await getQueue()
+  let fullyDrained = true
   for (const mutation of queue) {
     try {
       if (mutation.action === 'create') {
@@ -64,9 +65,13 @@ export async function flushMutationQueue(): Promise<void> {
         await gasAdapter.delete(mutation.sheet as SheetName, mutation.resourceId!)
       }
       await dequeue(mutation.id)
-    } catch {
+    } catch (err) {
+      addSyncError(err instanceof Error ? err.message : String(err))
+      fullyDrained = false
       break
     }
   }
-  await syncAll()
+  if (fullyDrained) {
+    await syncAll()
+  }
 }
