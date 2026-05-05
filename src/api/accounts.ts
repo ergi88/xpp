@@ -15,6 +15,9 @@ function toAccount(r: Record<string, unknown>): Account {
     currentBalance: Number(r.balance ?? 0),
     isActive: r.is_active === 'true' || r.is_active === true,
     createdAt: r.created_at as string | undefined,
+    cardLastDigits: r.card_last_digits != null ? (r.card_last_digits as string) : undefined,
+    cardExpiry: r.card_expiry != null ? (r.card_expiry as string) : undefined,
+    creditLimit: r.credit_limit != null ? Number(r.credit_limit) : undefined,
   }
 }
 
@@ -46,21 +49,33 @@ export const accountsApi = {
   },
 
   create: async (data: AccountFormData): Promise<Account> => {
+    // Credit accounts store balance as negative (debt owed)
+    const initialBal = data.type === 'credit'
+      ? -(data.initial_balance ?? 0)
+      : (data.initial_balance ?? 0)
     const r = await adapter.create('accounts', {
       id: crypto.randomUUID(),
       name: data.name,
       type: data.type,
       currency_id: data.currency_id,
-      initial_balance: data.initial_balance ?? 0,
-      balance: data.initial_balance ?? 0,
+      initial_balance: initialBal,
+      balance: initialBal,
       is_active: String(data.is_active ?? true),
       created_at: new Date().toISOString(),
+      card_last_digits: data.card_last_digits ?? null,
+      card_expiry: data.card_expiry ?? null,
+      credit_limit: data.credit_limit ?? null,
     })
     return toAccount(r)
   },
 
   update: async (id: string | number, data: Partial<AccountFormData>): Promise<Account> => {
-    const r = await adapter.update('accounts', String(id), data as Record<string, unknown>)
+    const r = await adapter.update('accounts', String(id), {
+      ...data,
+      card_last_digits: data.card_last_digits ?? null,
+      card_expiry: data.card_expiry ?? null,
+      credit_limit: data.credit_limit ?? null,
+    } as Record<string, unknown>)
     return toAccount(r)
   },
 
