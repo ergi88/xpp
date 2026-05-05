@@ -41,7 +41,10 @@ export const createAccountColumns = (
             const Icon = config.icon
 
             return (
-                <div className="flex items-center gap-3">
+                <Link
+                    to={`/accounts/${row.original.id}`}
+                    className="flex items-center gap-3 hover:opacity-75 transition-opacity"
+                >
                     <div className={`p-2 rounded-lg ${config.color}`}>
                         <Icon className="size-5" />
                     </div>
@@ -51,7 +54,7 @@ export const createAccountColumns = (
                             {row.original.currency?.code ?? 'N/A'}
                         </p>
                     </div>
-                </div>
+                </Link>
             )
         },
     },

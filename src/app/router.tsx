@@ -9,6 +9,7 @@ const TransactionCreatePage = lazy(() => import('@/pages/transactions/create'))
 const TransactionEditPage = lazy(() => import('@/pages/transactions/[id]/edit'))
 const AccountsPage = lazy(() => import('@/pages/accounts'))
 const AccountCreatePage = lazy(() => import('@/pages/accounts/create'))
+const AccountViewPage = lazy(() => import('@/pages/accounts/[id]/index'))
 const AccountEditPage = lazy(() => import('@/pages/accounts/[id]/edit'))
 const CategoriesPage = lazy(() => import('@/pages/categories'))
 const CategoryCreatePage = lazy(() => import('@/pages/categories/create'))
@@ -56,6 +57,7 @@ export const router = createBrowserRouter([
       { path: 'transactions/:id/edit', element: withSuspense(TransactionEditPage) },
       { path: 'accounts', element: withSuspense(AccountsPage) },
       { path: 'accounts/create', element: withSuspense(AccountCreatePage) },
+      { path: 'accounts/:id', element: withSuspense(AccountViewPage) },
       { path: 'accounts/:id/edit', element: withSuspense(AccountEditPage) },
       { path: 'categories', element: withSuspense(CategoriesPage) },
       { path: 'categories/create', element: withSuspense(CategoryCreatePage) },
