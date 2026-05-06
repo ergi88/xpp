@@ -3,8 +3,8 @@ import type { DataAdapter, SheetName } from './adapter'
 import { enqueue } from '@/lib/mutation-queue'
 
 const url = () => {
-  const u = import.meta.env.VITE_GAS_URL as string
-  if (!u) throw new Error('VITE_GAS_URL is not set')
+  const u = localStorage.getItem('xpp_gas_url') || (import.meta.env.VITE_GAS_URL as string)
+  if (!u) throw new Error('GAS URL not configured. Complete setup first.')
   return u
 }
 
