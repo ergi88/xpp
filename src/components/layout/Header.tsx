@@ -10,6 +10,7 @@ import {
 import {
   Eye,
   EyeOff,
+  Lock,
   Wallet,
   Plus,
   ArrowDownLeft,
@@ -25,10 +26,12 @@ import {
   useUpdateSettings,
 } from "@/hooks";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from '@/auth/AuthContext';
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import type { AccountType } from "@/types";
 
 export function Header() {
+  const { lock } = useAuth()
   const hideAmounts = useHideAmounts();
   const updateSettings = useUpdateSettings();
   const { data: balance } = useTotalBalance();
@@ -142,6 +145,15 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={lock}
+            aria-label="Lock app"
+          >
+            <Lock className="h-5 w-5" />
+          </Button>
 
           <Button
             variant="ghost"
