@@ -72,6 +72,18 @@ function getRowById(resource, id) {
   return null;
 }
 
+function ensureColumns(sheet, headers, data) {
+  var added = false;
+  Object.keys(data).forEach(function(key) {
+    if (headers.indexOf(key) === -1) {
+      headers.push(key);
+      sheet.getRange(1, headers.length).setValue(key);
+      added = true;
+    }
+  });
+  return added;
+}
+
 function createRow(resource, data) {
   var sheet = getSheet(resource);
   var existing = sheet.getDataRange().getValues();
@@ -81,6 +93,7 @@ function createRow(resource, data) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   } else {
     headers = existing[0];
+    ensureColumns(sheet, headers, data);
   }
   var row = headers.map(function(h) { return data[h] !== undefined ? data[h] : ''; });
   sheet.appendRow(row);
@@ -91,6 +104,7 @@ function updateRow(resource, id, data) {
   var sheet = getSheet(resource);
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
+  ensureColumns(sheet, headers, data);
   var idCol = headers.indexOf('id');
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(id)) {
