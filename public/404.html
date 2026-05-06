@@ -3,10 +3,12 @@
 <head>
   <script>
     var l = window.location;
+    var base = '/xpp/';
+    var rel = l.pathname.slice(base.length - 1) || '/';
     l.replace(
-      l.protocol + '//' + l.host + '/xpp/' +
-      '?p=/' + l.pathname.slice(1).replace(/&/g, '~and~') +
-      (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.protocol + '//' + l.host + base +
+      '?/' + rel.slice(1).replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
       l.hash
     );
   </script>
