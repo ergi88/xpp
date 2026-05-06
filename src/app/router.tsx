@@ -46,6 +46,7 @@ const withSuspense = (Component: React.LazyExoticComponent<() => React.ReactElem
   </ErrorBoundary>
 )
 
+const BASE = import.meta.env.BASE_URL
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -83,4 +84,4 @@ export const router = createBrowserRouter([
     ],
   },
   { path: '*', element: withSuspense(NotFoundPage) },
-])
+], { basename: BASE })
