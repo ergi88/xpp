@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -120,6 +121,39 @@ export default function SystemSettingsPage() {
                   />
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+              <CardDescription>
+                Configure auto-lock behavior
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="lockTimeout" className="text-base font-medium">
+                    Auto-lock timeout
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Lock the app after this many minutes of inactivity (1–60).
+                  </p>
+                </div>
+                <Input
+                  id="lockTimeout"
+                  type="number"
+                  min={1}
+                  max={60}
+                  className="w-24"
+                  defaultValue={settings?.lock_timeout_minutes ?? 5}
+                  onBlur={e => {
+                    const val = Math.min(60, Math.max(1, Number(e.target.value)))
+                    updateSettings.mutate({ lock_timeout_minutes: val })
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
 
