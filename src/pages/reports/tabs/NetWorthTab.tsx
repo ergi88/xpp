@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
@@ -16,10 +17,6 @@ export function NetWorthTab({ filters }: NetWorthTabProps) {
     const { data, isLoading } = useNetWorth(filters)
 
     const isPositive = (data?.change ?? 0) >= 0
-
-    const formatCurrency = (val: number, currency: string = '$') => {
-        return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    }
 
     return (
         <div className="space-y-6">
@@ -50,7 +47,11 @@ export function NetWorthTab({ filters }: NetWorthTabProps) {
                                 'text-6xl font-bold tracking-tight mb-4',
                                 data.current >= 0 ? 'text-blue-600' : 'text-red-600'
                             )}>
-                                {formatCurrency(data.current, data.currency)}
+                                <AmountText
+                                    value={data.current}
+                                    decimals={0}
+                                    currency={data.currency}
+                                />
                             </p>
 
                             {/* Change indicators */}
@@ -74,7 +75,12 @@ export function NetWorthTab({ filters }: NetWorthTabProps) {
                                         'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium',
                                         isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                     )}>
-                                        {isPositive ? '+' : ''}{formatCurrency(data.change, data.currency)}
+                                        <AmountText
+                                            value={data.change}
+                                            decimals={0}
+                                            currency={data.currency}
+                                            signDisplay="always"
+                                        />
                                     </div>
 
                                     <span className="text-sm text-muted-foreground">
@@ -140,7 +146,11 @@ export function NetWorthTab({ filters }: NetWorthTabProps) {
                                     {/* Balance and percentage */}
                                     <div className="text-right">
                                         <p className="font-semibold">
-                                            {formatCurrency(account.balance, data.currency)}
+                                            <AmountText
+                                                value={account.balance}
+                                                decimals={0}
+                                                currency={data.currency}
+                                            />
                                         </p>
                                         <p className="text-xs text-muted-foreground">
                                             {account.percentage}%

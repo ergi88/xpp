@@ -12,6 +12,11 @@ export function useSettings() {
     })
 }
 
+export function useHideAmounts() {
+    const { data } = useSettings()
+    return data?.hide_amounts ?? false
+}
+
 export function useUpdateSettings() {
     const queryClient = useQueryClient()
 

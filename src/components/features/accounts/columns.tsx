@@ -21,13 +21,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { AmountText } from '@/components/shared/AmountText'
 import { Account } from '@/types'
 import { ACCOUNT_TYPE_CONFIG } from '@/constants'
-
-function formatBalance(amount: number, currency?: { symbol: string; decimals: number }) {
-    if (!currency) return amount.toFixed(2)
-    return `${currency.symbol}${amount.toFixed(currency.decimals)}`
-}
 
 export const createAccountColumns = (
     onDelete: (id: string) => void,
@@ -76,11 +72,20 @@ export const createAccountColumns = (
         cell: ({ row }) => (
             <div className="font-mono text-right">
                 <p className={row.original.currentBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {formatBalance(row.original.currentBalance, row.original.currency)}
+                    <AmountText
+                        value={row.original.currentBalance}
+                        decimals={row.original.currency?.decimals ?? 2}
+                        currency={row.original.currency?.symbol}
+                    />
                 </p>
                 {row.original.initialBalance !== row.original.currentBalance && (
                     <p className="text-xs text-muted-foreground">
-                        Initial: {formatBalance(row.original.initialBalance, row.original.currency)}
+                        Initial:{' '}
+                        <AmountText
+                            value={row.original.initialBalance}
+                            decimals={row.original.currency?.decimals ?? 2}
+                            currency={row.original.currency?.symbol}
+                        />
                     </p>
                 )}
             </div>

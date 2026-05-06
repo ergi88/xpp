@@ -4,6 +4,7 @@ const KEY = 'xpp_settings'
 
 const defaults: Settings = {
   auto_update_currencies: false,
+  hide_amounts: false,
 }
 
 export const settingsApi = {

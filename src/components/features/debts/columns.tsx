@@ -22,6 +22,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { AmountText } from '@/components/shared/AmountText'
 import { Debt } from '@/types'
 
 const DEBT_TYPE_CONFIG = {
@@ -37,11 +38,6 @@ const DEBT_TYPE_CONFIG = {
         textColor: 'text-green-600',
         label: 'Owed to Me'
     },
-}
-
-function formatAmount(amount: number, currency?: { symbol: string; decimals: number }) {
-    if (!currency) return amount.toFixed(2)
-    return `${currency.symbol}${amount.toFixed(currency.decimals)}`
 }
 
 interface ColumnActions {
@@ -102,7 +98,13 @@ export const createDebtColumns = (
                 <div className="w-32">
                     <Progress value={progress} className="h-2" />
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>{formatAmount(debt.currentBalance, debt.currency)}</span>
+                        <span>
+                            <AmountText
+                                value={debt.currentBalance}
+                                decimals={debt.currency?.decimals ?? 2}
+                                currency={debt.currency?.symbol}
+                            />
+                        </span>
                         <span>{progress.toFixed(0)}%</span>
                     </div>
                 </div>
@@ -114,7 +116,11 @@ export const createDebtColumns = (
         header: 'Total',
         cell: ({ row }) => (
             <div className="font-mono text-right">
-                {formatAmount(row.original.targetAmount, row.original.currency)}
+                <AmountText
+                    value={row.original.targetAmount}
+                    decimals={row.original.currency?.decimals ?? 2}
+                    currency={row.original.currency?.symbol}
+                />
             </div>
         ),
     },
@@ -125,7 +131,13 @@ export const createDebtColumns = (
             <div className={`font-mono text-right ${row.original.isPaidOff ? 'text-green-600' : 'text-orange-600'}`}>
                 {row.original.isPaidOff
                     ? 'Paid Off'
-                    : formatAmount(row.original.remainingDebt, row.original.currency)
+                    : (
+                        <AmountText
+                            value={row.original.remainingDebt}
+                            decimals={row.original.currency?.decimals ?? 2}
+                            currency={row.original.currency?.symbol}
+                        />
+                    )
                 }
             </div>
         ),

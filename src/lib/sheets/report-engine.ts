@@ -95,6 +95,7 @@ export function computeOverview(
   prevTxns: Transaction[],
   start: string,
   end: string,
+  currency: string,
 ) {
   const curr = sumIO(filterTxns(txns, start, end, { accountIds: [], categoryIds: [], tagIds: [] }))
   const prev = sumIO(prevTxns)
@@ -106,11 +107,11 @@ export function computeOverview(
     expenses: { value: curr.expense, previous: prev.expense, sparkline: spark },
     netCashFlow: { value: curr.income - curr.expense, previous: prev.income - prev.expense, sparkline: [] },
     savingsRate: { value: savingsRate, previous: prevSavingsRate, sparkline: [] },
-    currency: 'USD',
+    currency,
   }
 }
 
-export function computeMoneyFlow(txns: Transaction[], categories: Category[]) {
+export function computeMoneyFlow(txns: Transaction[], _categories: Category[], currency: string) {
   const nodes: { name: string; itemStyle: { color: string } }[] = []
   const links: { source: string; target: string; value: number }[] = []
   const seen = new Set<string>()
@@ -134,10 +135,10 @@ export function computeMoneyFlow(txns: Transaction[], categories: Category[]) {
     links.push({ source: 'Expenses', target: catName, value: t.amount })
   }
 
-  return { nodes, links, totals: { income: totalIncome, expenses: totalExpense, savings: totalIncome - totalExpense }, currency: 'USD' }
+  return { nodes, links, totals: { income: totalIncome, expenses: totalExpense, savings: totalIncome - totalExpense }, currency }
 }
 
-export function computeCashFlow(txns: Transaction[], gb: 'day' | 'week' | 'month', start: string, end: string) {
+export function computeCashFlow(txns: Transaction[], gb: 'day' | 'week' | 'month', start: string, end: string, currency: string) {
   const grouped = groupBy(txns, gb, start, end)
   const labels = Array.from(grouped.keys()).sort()
   let runningBalance = 0
@@ -147,10 +148,10 @@ export function computeCashFlow(txns: Transaction[], gb: 'day' | 'week' | 'month
     runningBalance += income - expense
     return { label, income, expenses: expense, balance: runningBalance }
   })
-  return { items, currency: 'USD' }
+  return { items, currency }
 }
 
-export function computeActivityHeatmap(txns: Transaction[], start: string, end: string) {
+export function computeActivityHeatmap(txns: Transaction[], start: string, end: string, currency: string) {
   const map = new Map<string, { value: number; count: number }>()
   for (const t of txns.filter(tx => tx.date >= start && tx.date <= end && tx.type === 'expense')) {
     const e = map.get(t.date) ?? { value: 0, count: 0 }
@@ -159,10 +160,10 @@ export function computeActivityHeatmap(txns: Transaction[], start: string, end: 
   }
   const items = Array.from(map.entries()).map(([date, { value, count }]) => ({ date, value, count }))
   const max = items.reduce((m, i) => Math.max(m, i.value), 0)
-  return { items, max, currency: 'USD' }
+  return { items, max, currency }
 }
 
-export function computeTransactionSummary(txns: Transaction[], prevTxns: Transaction[], type: 'income' | 'expense', start: string, end: string) {
+export function computeTransactionSummary(txns: Transaction[], prevTxns: Transaction[], type: 'income' | 'expense', start: string, end: string, currency: string) {
   const curr = txns.filter(t => t.type === type)
   const prev = prevTxns.filter(t => t.type === type)
   const total = curr.reduce((s, t) => s + t.amount, 0)
@@ -172,11 +173,11 @@ export function computeTransactionSummary(txns: Transaction[], prevTxns: Transac
     total, previous: prevTotal,
     avgPerDay: total / days, avgPerWeek: total / (days / 7),
     prevAvgPerDay: prevTotal / days, prevAvgPerWeek: prevTotal / (days / 7),
-    daysInPeriod: days, currency: 'USD',
+    daysInPeriod: days, currency,
   }
 }
 
-export function computeByCategory(txns: Transaction[], prevTxns: Transaction[], type: 'income' | 'expense') {
+export function computeByCategory(txns: Transaction[], prevTxns: Transaction[], type: 'income' | 'expense', currency: string) {
   const curr = txns.filter(t => t.type === type)
   const prev = prevTxns.filter(t => t.type === type)
   const total = curr.reduce((s, t) => s + t.amount, 0)
@@ -198,10 +199,10 @@ export function computeByCategory(txns: Transaction[], prevTxns: Transaction[], 
     percentage: total > 0 ? (current / total) * 100 : 0,
     current, // also expose current for backward-compat with ExpensesByCategory
   })).sort((a, b) => b.value - a.value)
-  return { items, total, currency: 'USD' }
+  return { items, total, currency }
 }
 
-export function computeTopTransactions(txns: Transaction[], type: 'income' | 'expense', limit: number) {
+export function computeTopTransactions(txns: Transaction[], type: 'income' | 'expense', limit: number, currency: string) {
   const items = txns
     .filter(t => t.type === type)
     .sort((a, b) => b.amount - a.amount)
@@ -211,25 +212,24 @@ export function computeTopTransactions(txns: Transaction[], type: 'income' | 'ex
       category: { id: t.category?.id ?? '', name: t.category?.name ?? '', icon: t.category?.icon ?? '', color: t.category?.color ?? '' },
       account: { id: t.account?.id ?? '', name: t.account?.name ?? '' },
     }))
-  return { items, currency: 'USD' }
+  return { items, currency }
 }
 
-export function computeNetWorth(accounts: Account[]) {
-  const active = accounts.filter(a => a.isActive && a.type !== 'debt')
-  const current = active.reduce((s, a) => s + a.currentBalance, 0)
-  const total = active.reduce((s, a) => s + Math.abs(a.currentBalance), 0)
+export function computeNetWorth(accounts: Account[], currency: string) {
+  const current = accounts.reduce((s, a) => s + a.currentBalance, 0)
+  const total = accounts.reduce((s, a) => s + Math.abs(a.currentBalance), 0)
   return {
     current, previous: null, change: 0, changePercent: 0,
-    accounts: active.map(a => ({
+    accounts: accounts.map(a => ({
       id: a.id, name: a.name, type: a.type, balance: a.currentBalance,
       percentage: total > 0 ? (Math.abs(a.currentBalance) / total) * 100 : 0,
     })),
-    currency: 'USD',
+    currency,
   }
 }
 
-export function computeNetWorthHistory(txns: Transaction[], accounts: Account[], gb: 'day' | 'week' | 'month', start: string, end: string) {
-  const baseBalance = accounts.filter(a => a.isActive && a.type !== 'debt').reduce((s, a) => s + a.initialBalance, 0)
+export function computeNetWorthHistory(txns: Transaction[], accounts: Account[], gb: 'day' | 'week' | 'month', start: string, end: string, currency: string) {
+  const baseBalance = accounts.reduce((s, a) => s + a.initialBalance, 0)
   const allTxnsSorted = [...txns].sort((a, b) => a.date.localeCompare(b.date))
   const grouped = groupBy(allTxnsSorted, gb, start, end)
   const labels = Array.from(grouped.keys()).sort()
@@ -240,10 +240,10 @@ export function computeNetWorthHistory(txns: Transaction[], accounts: Account[],
     running += income - expense
     return running
   })
-  return { labels, values, currency: 'USD' }
+  return { labels, values, currency }
 }
 
-export function computeDynamics(txns: Transaction[], type: 'income' | 'expense', gb: 'day' | 'week' | 'month', start: string, end: string) {
+export function computeDynamics(txns: Transaction[], type: 'income' | 'expense', gb: 'day' | 'week' | 'month', start: string, end: string, currency: string) {
   const filtered = txns.filter(t => t.type === type && t.date >= start && t.date <= end)
   const grouped = groupBy(filtered, gb, start, end)
   const labels = Array.from(grouped.keys()).sort()
@@ -260,10 +260,10 @@ export function computeDynamics(txns: Transaction[], type: 'income' | 'expense',
     id: cat?.id ?? 'uncategorized', name: cat?.name ?? 'Uncategorized', color: cat?.color ?? '#6366f1',
     data: labels.map(l => byLabel.get(l) ?? 0),
   }))
-  return { labels, datasets, currency: 'USD' }
+  return { labels, datasets, currency }
 }
 
-export function computeExpensePace(txns: Transaction[], start: string, end: string) {
+export function computeExpensePace(txns: Transaction[], start: string, end: string, currency: string) {
   const months: {
     label: string; budget: null; dailyExpenses: number[]; currentDay: number | null
     daysInMonth: number; totalSpent: number; monthStart: string; monthEnd: string
@@ -286,5 +286,5 @@ export function computeExpensePace(txns: Transaction[], start: string, end: stri
     months.push({ label, budget: null, dailyExpenses, currentDay, daysInMonth, totalSpent: monthTxns.reduce((s, t) => s + t.amount, 0), monthStart, monthEnd })
     cur.setMonth(cur.getMonth() + 1)
   }
-  return { months, currency: 'USD' }
+  return { months, currency }
 }

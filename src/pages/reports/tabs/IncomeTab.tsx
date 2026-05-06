@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Calendar, CalendarDays } from 'lucide-react'
@@ -20,10 +21,6 @@ export function IncomeTab({ filters }: IncomeTabProps) {
         : 0
     const absoluteChange = data ? data.total - (data.previous || 0) : 0
     const isIncrease = percentChange > 0
-
-    const formatCurrency = (val: number, currency: string = '$') => {
-        return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    }
 
     return (
         <div className="space-y-6">
@@ -50,7 +47,11 @@ export function IncomeTab({ filters }: IncomeTabProps) {
                                     Total Income
                                 </p>
                                 <p className="text-5xl font-bold text-green-600 tracking-tight">
-                                    {formatCurrency(data.total, data.currency)}
+                                    <AmountText
+                                        value={data.total}
+                                        decimals={0}
+                                        currency={data.currency}
+                                    />
                                 </p>
 
                                 {/* Comparison */}
@@ -68,7 +69,13 @@ export function IncomeTab({ filters }: IncomeTabProps) {
                                             {Math.abs(percentChange).toFixed(1)}%
                                         </span>
                                         <span className="text-sm text-muted-foreground">
-                                            {isIncrease ? '+' : ''}{formatCurrency(absoluteChange, data.currency)} vs previous period
+                                            <AmountText
+                                                value={absoluteChange}
+                                                decimals={0}
+                                                currency={data.currency}
+                                                signDisplay="always"
+                                            />{' '}
+                                            vs previous period
                                         </span>
                                     </div>
                                 )}
@@ -83,10 +90,21 @@ export function IncomeTab({ filters }: IncomeTabProps) {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Avg. per day</p>
-                                        <p className="text-xl font-semibold">{formatCurrency(data.avgPerDay, data.currency)}</p>
+                                        <p className="text-xl font-semibold">
+                                            <AmountText
+                                                value={data.avgPerDay}
+                                                decimals={0}
+                                                currency={data.currency}
+                                            />
+                                        </p>
                                         {filters.compareWith !== 'none' && data.prevAvgPerDay !== null && (
                                             <p className="text-xs text-muted-foreground">
-                                                vs {formatCurrency(data.prevAvgPerDay, data.currency)}
+                                                vs{' '}
+                                                <AmountText
+                                                    value={data.prevAvgPerDay}
+                                                    decimals={0}
+                                                    currency={data.currency}
+                                                />
                                             </p>
                                         )}
                                     </div>
@@ -99,10 +117,21 @@ export function IncomeTab({ filters }: IncomeTabProps) {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Avg. per week</p>
-                                        <p className="text-xl font-semibold">{formatCurrency(data.avgPerWeek, data.currency)}</p>
+                                        <p className="text-xl font-semibold">
+                                            <AmountText
+                                                value={data.avgPerWeek}
+                                                decimals={0}
+                                                currency={data.currency}
+                                            />
+                                        </p>
                                         {filters.compareWith !== 'none' && data.prevAvgPerWeek !== null && (
                                             <p className="text-xs text-muted-foreground">
-                                                vs {formatCurrency(data.prevAvgPerWeek, data.currency)}
+                                                vs{' '}
+                                                <AmountText
+                                                    value={data.prevAvgPerWeek}
+                                                    decimals={0}
+                                                    currency={data.currency}
+                                                />
                                             </p>
                                         )}
                                     </div>

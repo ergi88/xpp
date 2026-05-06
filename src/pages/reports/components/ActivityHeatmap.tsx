@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
+import { formatMoney } from '@/lib/money'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -100,10 +102,6 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
         return 'bg-red-500 dark:bg-red-500/70'
     }
 
-    const formatCurrency = (val: number, currency: string) => {
-        return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    }
-
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     if (error) {
@@ -201,7 +199,7 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
                                                         </p>
                                                         {day.value > 0 ? (
                                                             <>
-                                                                <p className="text-amber-300">{formatCurrency(day.value, heatmapData.currency)}</p>
+                                                                <p className="text-amber-300">{formatMoney({ value: day.value, decimals: 0, currency: heatmapData.currency })}</p>
                                                                 <p className="opacity-70">{day.count} transaction{day.count !== 1 ? 's' : ''}</p>
                                                             </>
                                                         ) : (
@@ -221,7 +219,12 @@ export function ActivityHeatmap({ filters }: ActivityHeatmapProps) {
                         {/* Summary */}
                         {heatmapData.max > 0 && (
                             <div className="pt-2 text-xs text-muted-foreground text-center">
-                                Peak day: {formatCurrency(heatmapData.max, heatmapData.currency)}
+                                Peak day:{' '}
+                                <AmountText
+                                    value={heatmapData.max}
+                                    decimals={0}
+                                    currency={heatmapData.currency}
+                                />
                             </div>
                         )}
                     </div>

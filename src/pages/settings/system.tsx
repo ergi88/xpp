@@ -10,15 +10,48 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useSettings, useUpdateSettings } from "@/hooks";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  useCurrencies,
+  useSetBaseCurrency,
+  useSettings,
+  useUpdateSettings,
+} from "@/hooks";
+import { useTheme } from "@/hooks/use-theme";
 import { ExternalLink } from "lucide-react";
 
 export default function SystemSettingsPage() {
   const { data: settings, isLoading } = useSettings();
+  const { data: currencies, isLoading: currenciesLoading } = useCurrencies();
   const updateSettings = useUpdateSettings();
+  const setBaseCurrency = useSetBaseCurrency();
+  const { theme, setTheme } = useTheme();
 
   const handleAutoUpdateChange = (checked: boolean) => {
     updateSettings.mutate({ auto_update_currencies: checked });
+  };
+
+  const handleHideAmountsChange = (checked: boolean) => {
+    updateSettings.mutate({ hide_amounts: checked });
+  };
+
+  const handleThemeChange = (value: string) => {
+    if (value === "light" || value === "dark") {
+      setTheme(value);
+    }
+  };
+
+  const baseCurrencyId = currencies?.find((currency) => currency.isBase)?.id;
+
+  const handleBaseCurrencyChange = (currencyId: string) => {
+    if (currencyId === baseCurrencyId) return;
+    setBaseCurrency.mutate(currencyId);
   };
 
   const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${import.meta.env.APP_SPREADSHEET_ID}`;
@@ -29,6 +62,124 @@ export default function SystemSettingsPage() {
 
       <FormWrapper>
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>
+                Control how the app looks and how sensitive values are shown
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="theme" className="text-base font-medium">
+                    Theme
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Choose between the light and dark application themes.
+                  </p>
+                </div>
+                <Select value={theme} onValueChange={handleThemeChange}>
+                  <SelectTrigger id="theme" className="w-full sm:w-44">
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="dark">Dark</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isLoading ? (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-72" />
+                  </div>
+                  <Skeleton className="h-5 w-8" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="hide-amounts"
+                      className="text-base font-medium"
+                    >
+                      Hide amounts
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Blur balances and other hideable totals throughout the
+                      app.
+                    </p>
+                  </div>
+                  <Switch
+                    id="hide-amounts"
+                    checked={settings?.hide_amounts ?? false}
+                    onCheckedChange={handleHideAmountsChange}
+                    disabled={updateSettings.isPending}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Base Currency</CardTitle>
+              <CardDescription>
+                Change the primary currency used across the app without storing
+                a duplicate settings value
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {currenciesLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-10 w-full sm:w-60" />
+                </div>
+              ) : currencies && currencies.length > 0 ? (
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="base-currency"
+                      className="text-base font-medium"
+                    >
+                      Base currency
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      This uses the same base-currency switch as the Currencies
+                      page.
+                    </p>
+                  </div>
+                  <Select
+                    value={baseCurrencyId}
+                    onValueChange={handleBaseCurrencyChange}
+                    disabled={setBaseCurrency.isPending}
+                  >
+                    <SelectTrigger
+                      id="base-currency"
+                      className="w-full sm:w-60"
+                    >
+                      <SelectValue placeholder="Select base currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currencies.map((currency) => (
+                        <SelectItem key={currency.id} value={String(currency.id)}>
+                          {currency.code} · {currency.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No currencies are available yet. Add one from the Currencies
+                  page first.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Currency Rates</CardTitle>

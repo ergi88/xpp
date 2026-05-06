@@ -21,6 +21,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { AmountText } from '@/components/shared/AmountText'
 import { RecurringTransaction } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -83,8 +84,11 @@ export const createRecurringColumns = ({
                 row.original.type === 'income' && 'text-green-600',
                 row.original.type === 'expense' && 'text-red-600'
             )}>
-                {row.original.type === 'expense' && '-'}
-                {row.original.amount.toLocaleString()} {row.original.account.currency?.symbol}
+                <AmountText
+                    value={row.original.type === 'expense' ? -row.original.amount : row.original.amount}
+                    decimals={row.original.account.currency?.decimals ?? 2}
+                    currency={row.original.account.currency?.symbol}
+                />
             </span>
         ),
     },

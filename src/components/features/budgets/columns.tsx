@@ -22,6 +22,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { AmountText } from '@/components/shared/AmountText'
 import { Budget } from '@/types'
 
 const periodLabels: Record<string, string> = {
@@ -54,7 +55,11 @@ export const createBudgetColumns = (
         header: 'Limit',
         cell: ({ row }) => (
             <span className="font-mono font-medium">
-                {row.original.amount.toLocaleString()} {row.original.currency?.symbol ?? ''}
+                <AmountText
+                    value={row.original.amount}
+                    decimals={row.original.currency?.decimals ?? 2}
+                    currency={row.original.currency?.symbol}
+                />
             </span>
         ),
     },
@@ -81,7 +86,14 @@ export const createBudgetColumns = (
             return (
                 <div className="w-44 space-y-1">
                     <div className="flex justify-between text-xs">
-                        <span>{progress.spent.toLocaleString()} {symbol} spent</span>
+                        <span>
+                            <AmountText
+                                value={progress.spent}
+                                decimals={row.original.currency?.decimals ?? 2}
+                                currency={symbol}
+                            />{' '}
+                            spent
+                        </span>
                         <span className={isExceeded ? 'text-red-600 font-medium' : ''}>
                             {progress.percent.toFixed(0)}%
                         </span>
@@ -92,8 +104,26 @@ export const createBudgetColumns = (
                     />
                     <p className="text-xs text-muted-foreground">
                         {isExceeded
-                            ? `Exceeded by ${(progress.spent - row.original.amount).toLocaleString()} ${symbol}`
-                            : `${progress.remaining.toLocaleString()} ${symbol} remaining`}
+                            ? (
+                                <>
+                                    Exceeded by{' '}
+                                    <AmountText
+                                        value={progress.spent - row.original.amount}
+                                        decimals={row.original.currency?.decimals ?? 2}
+                                        currency={symbol}
+                                    />
+                                </>
+                            )
+                            : (
+                                <>
+                                    <AmountText
+                                        value={progress.remaining}
+                                        decimals={row.original.currency?.decimals ?? 2}
+                                        currency={symbol}
+                                    />{' '}
+                                    remaining
+                                </>
+                            )}
                     </p>
                 </div>
             )

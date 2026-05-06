@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
@@ -253,10 +254,6 @@ export function ExpensePaceChart({ filters }: ExpensePaceChartProps) {
         return buildChartOption(currentMonthData, data.currency)
     }, [currentMonthData, data])
 
-    const formatCurrency = (val: number) => {
-        return `${data?.currency ?? '$'}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    }
-
     if (error) {
         return (
             <Card>
@@ -291,10 +288,15 @@ export function ExpensePaceChart({ filters }: ExpensePaceChartProps) {
                                     ? (currentMonthData.budgetRemaining >= 0 ? 'text-green-600' : 'text-red-600')
                                     : 'text-slate-700'
                             )}>
-                                {currentMonthData.hasBudget
-                                    ? formatCurrency(currentMonthData.budgetRemaining)
-                                    : formatCurrency(currentMonthData.currentActual)
-                                }
+                                <AmountText
+                                    value={
+                                        currentMonthData.hasBudget
+                                            ? currentMonthData.budgetRemaining
+                                            : currentMonthData.currentActual
+                                    }
+                                    decimals={0}
+                                    currency={data?.currency ?? 'USD'}
+                                />
                             </p>
                         </div>
                     )}
@@ -341,7 +343,11 @@ export function ExpensePaceChart({ filters }: ExpensePaceChartProps) {
                                             {currentMonthData.currentDay ? 'Projected by end of month' : 'Total spent'}
                                         </p>
                                         <p className="text-lg font-semibold">
-                                            {currentMonthData.currentDay ? formatCurrency(currentMonthData.forecastTotal) : formatCurrency(currentMonthData.totalSpent)}
+                                            <AmountText
+                                                value={currentMonthData.currentDay ? currentMonthData.forecastTotal : currentMonthData.totalSpent}
+                                                decimals={0}
+                                                currency={data?.currency ?? 'USD'}
+                                            />
                                         </p>
                                     </div>
                                     {currentMonthData.hasBudget && (
@@ -351,18 +357,47 @@ export function ExpensePaceChart({ filters }: ExpensePaceChartProps) {
                                         )}>
                                             {currentMonthData.isOverBudget ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
                                             <span className="text-sm font-medium">
-                                                {currentMonthData.isOverBudget ? '+' : ''}{formatCurrency(Math.abs(currentMonthData.forecastDiff))} {currentMonthData.isOverBudget ? 'over' : 'under'} budget
+                                                <AmountText
+                                                    value={currentMonthData.forecastDiff}
+                                                    absolute
+                                                    decimals={0}
+                                                    currency={data?.currency ?? 'USD'}
+                                                    signDisplay={currentMonthData.isOverBudget ? 'always' : 'never'}
+                                                />{' '}
+                                                {currentMonthData.isOverBudget ? 'over' : 'under'} budget
                                             </span>
                                         </div>
                                     )}
                                 </div>
                                 {currentMonthData.currentDay ? (
                                     <p className="text-xs text-muted-foreground mt-2">
-                                        {formatCurrency(currentMonthData.currentActual)} spent in {currentMonthData.currentDay} days = {formatCurrency(currentMonthData.dailyAverage)}/day avg × {currentMonthData.daysInMonth} days
+                                        <AmountText
+                                            value={currentMonthData.currentActual}
+                                            decimals={0}
+                                            currency={data?.currency ?? 'USD'}
+                                        />{' '}
+                                        spent in {currentMonthData.currentDay} days ={' '}
+                                        <AmountText
+                                            value={currentMonthData.dailyAverage}
+                                            decimals={0}
+                                            currency={data?.currency ?? 'USD'}
+                                        />
+                                        /day avg × {currentMonthData.daysInMonth} days
                                     </p>
                                 ) : (
                                     <p className="text-xs text-muted-foreground mt-2">
-                                        {formatCurrency(currentMonthData.totalSpent)} spent over {currentMonthData.daysInMonth} days = {formatCurrency(currentMonthData.dailyAverage)}/day avg
+                                        <AmountText
+                                            value={currentMonthData.totalSpent}
+                                            decimals={0}
+                                            currency={data?.currency ?? 'USD'}
+                                        />{' '}
+                                        spent over {currentMonthData.daysInMonth} days ={' '}
+                                        <AmountText
+                                            value={currentMonthData.dailyAverage}
+                                            decimals={0}
+                                            currency={data?.currency ?? 'USD'}
+                                        />
+                                        /day avg
                                     </p>
                                 )}
                             </div>

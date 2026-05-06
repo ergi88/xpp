@@ -1,5 +1,9 @@
 import { adapter } from './client'
-import { accountsApi } from './accounts'
+import {
+  accountsApi,
+  getBaseCurrencyMeta,
+  isAccountIncludedInBaseAggregates,
+} from './accounts'
 import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
@@ -77,6 +81,16 @@ function applyFilters(txns: Transaction[], filters: TransactionFilters): Transac
   return result
 }
 
+function isTransactionIncludedInBaseAggregates(
+  transaction: Transaction,
+  baseCurrencyId?: string,
+): boolean {
+  return !!(
+    transaction.account &&
+    isAccountIncludedInBaseAggregates(transaction.account, baseCurrencyId ? { id: baseCurrencyId } : undefined)
+  )
+}
+
 export const transactionsApi = {
   getAll: async (filters?: TransactionFilters & { with_summary?: boolean; per_page?: number; page?: number }): Promise<TransactionsResponse> => {
     const [rows, lookups] = await Promise.all([
@@ -94,12 +108,16 @@ export const transactionsApi = {
 
     let summary: TransactionSummary | undefined
     if (filters?.with_summary) {
+      const { baseCurrency, currency } = await getBaseCurrencyMeta()
+      const aggregateTxns = txns.filter((transaction) =>
+        isTransactionIncludedInBaseAggregates(transaction, baseCurrency?.id),
+      )
       summary = {
-        income: txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
-        expense: txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+        income: aggregateTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+        expense: aggregateTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
         balance: 0,
-        transactions_count: total,
-        currency: 'USD',
+        transactions_count: aggregateTxns.length,
+        currency,
       }
       summary.balance = summary.income - summary.expense
     }

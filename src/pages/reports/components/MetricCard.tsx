@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
 import { Sparkline } from '@/components/ui/sparkline'
 import { cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown } from 'lucide-react'
@@ -29,28 +30,6 @@ export function MetricCard({ title, value, previousValue, sparklineData, type, c
 
     const sparklineColor = type === 'income' ? 'success' : type === 'expense' ? 'danger' : 'default'
 
-    const formatCurrency = (val: number) => {
-        const formatted = new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(Math.abs(val))
-        return `${val < 0 ? '-' : ''}${currency}${formatted}`
-    }
-
-    const formatValue = (val: number) => {
-        if (type === 'percent') {
-            return `${val.toFixed(1)}%`
-        }
-        return formatCurrency(val)
-    }
-
-    const formatChangeValue = (val: number) => {
-        if (type === 'percent') {
-            return `${val > 0 ? '+' : ''}${val.toFixed(1)}pp`
-        }
-        return `${val > 0 ? '+' : ''}${formatCurrency(val)}`
-    }
-
     return (
         <Card>
             <CardContent className="pt-5 pb-4">
@@ -62,7 +41,18 @@ export function MetricCard({ title, value, previousValue, sparklineData, type, c
                             type === 'income' && 'text-green-600',
                             type === 'expense' && 'text-red-600',
                         )}>
-                            {formatValue(value)}{suffix}
+                            {type === 'percent' ? (
+                                `${value.toFixed(1)}%${suffix ?? ''}`
+                            ) : (
+                                <>
+                                    <AmountText
+                                        value={value}
+                                        decimals={0}
+                                        currency={currency}
+                                    />
+                                    {suffix}
+                                </>
+                            )}
                         </p>
                         {compareWith !== 'none' && percentChange !== null && (
                             <div className="flex items-center gap-2 text-xs">
@@ -79,7 +69,20 @@ export function MetricCard({ title, value, previousValue, sparklineData, type, c
                                 </span>
                                 {absoluteChange !== null && (
                                     <span className="text-muted-foreground">
-                                        ({formatChangeValue(absoluteChange)})
+                                        {type === 'percent' ? (
+                                            `(${absoluteChange > 0 ? '+' : ''}${absoluteChange.toFixed(1)}pp)`
+                                        ) : (
+                                            <>
+                                                (
+                                                <AmountText
+                                                    value={absoluteChange}
+                                                    decimals={0}
+                                                    currency={currency}
+                                                    signDisplay="always"
+                                                />
+                                                )
+                                            </>
+                                        )}
                                     </span>
                                 )}
                             </div>

@@ -27,6 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { AmountText } from '@/components/shared/AmountText'
 import { debtPaymentSchema, DebtPaymentFormData } from '@/schemas'
 import { useAccounts } from '@/hooks'
 import { Debt } from '@/types'
@@ -66,11 +67,6 @@ export function DebtPaymentDialog({
         }
     }
 
-    const formatAmount = (amount: number) => {
-        if (!debt?.currency) return amount.toFixed(2)
-        return `${debt.currency.symbol}${amount.toFixed(debt.currency.decimals)}`
-    }
-
     const title = mode === 'payment' ? 'Make Payment' : 'Collect Payment'
     const description = mode === 'payment'
         ? 'Record a payment towards this debt'
@@ -92,7 +88,7 @@ export function DebtPaymentDialog({
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Remaining</span>
-                            <span className="font-mono">{formatAmount(debt.remainingDebt)}</span>
+                            <span className="font-mono"><AmountText value={debt.remainingDebt} decimals={debt.currency?.decimals ?? 2} currency={debt.currency?.symbol} /></span>
                         </div>
                         {debt.counterparty && (
                             <div className="flex justify-between text-sm">
@@ -132,7 +128,7 @@ export function DebtPaymentDialog({
                                                     <div className="flex items-center justify-between gap-4">
                                                         <span>{account.name}</span>
                                                         <span className="text-muted-foreground text-xs font-mono">
-                                                            {account.currency?.symbol}{account.currentBalance.toFixed(account.currency?.decimals ?? 2)}
+                                                            <AmountText value={account.currentBalance} decimals={account.currency?.decimals ?? 2} currency={account.currency?.symbol} />
                                                         </span>
                                                     </div>
                                                 </SelectItem>

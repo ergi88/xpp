@@ -1,9 +1,21 @@
 import { adapter } from "./client";
+import { currenciesApi } from "./currencies";
+import { getCurrencyMap } from "@/lib/currency";
+import { getBaseCurrencyMeta } from "./accounts";
 import { transactionsApi } from "./transactions";
-import type { Debt, DebtSummary, DebtsResponse, Transaction } from "@/types";
+import type {
+  Currency,
+  Debt,
+  DebtSummary,
+  DebtsResponse,
+  Transaction,
+} from "@/types";
 import type { DebtFormData, DebtPaymentFormData } from "@/schemas";
 
-function toDebt(r: Record<string, unknown>): Debt {
+function toDebt(
+  r: Record<string, unknown>,
+  currencyMap?: Map<string, Currency>,
+): Debt {
   const targetAmount = Number(r.target_amount ?? r.amount ?? 0);
   const paidAmount = Number(r.paid_amount ?? 0);
   const remainingDebt = Math.max(0, targetAmount - paidAmount);
@@ -24,55 +36,75 @@ function toDebt(r: Record<string, unknown>): Debt {
     isPaidOff: remainingDebt <= 0,
     isActive: remainingDebt > 0,
     createdAt: r.created_at as string | undefined,
+    currency: currencyMap?.get(r.currency_id as string),
   };
+}
+
+async function loadCurrencyMap(): Promise<Map<string, Currency>> {
+  return getCurrencyMap(await currenciesApi.getAll());
 }
 
 export const debtsApi = {
   getAll: async (params?: { include_completed?: boolean }): Promise<Debt[]> => {
-    const rows = await adapter.getAll("debts");
-    const debts = rows.map(toDebt);
+    const [rows, currencyMap] = await Promise.all([
+      adapter.getAll("debts"),
+      loadCurrencyMap(),
+    ]);
+    const debts = rows.map((row) => toDebt(row, currencyMap));
     return params?.include_completed ? debts : debts.filter((d) => d.isActive);
   },
 
   getAllWithSummary: async (params?: {
     include_completed?: boolean;
   }): Promise<DebtsResponse> => {
-    const data = await debtsApi.getAll(params);
-    const iOwe = data.filter((d) => d.debtType === "i_owe");
-    const owedToMe = data.filter((d) => d.debtType === "owed_to_me");
+    const [{ baseCurrency, currency, decimals }, data] = await Promise.all([
+      getBaseCurrencyMeta(),
+      debtsApi.getAll(params),
+    ]);
+    const aggregateDebts = data.filter(
+      (debt) => !!baseCurrency && debt.currencyId === baseCurrency.id,
+    );
+    const iOwe = aggregateDebts.filter((d) => d.debtType === "i_owe");
+    const owedToMe = aggregateDebts.filter((d) => d.debtType === "owed_to_me");
     const summary: DebtSummary = {
       total_i_owe: iOwe.reduce((s, d) => s + d.remainingDebt, 0),
       total_owed_to_me: owedToMe.reduce((s, d) => s + d.remainingDebt, 0),
       net_debt:
         iOwe.reduce((s, d) => s + d.remainingDebt, 0) -
         owedToMe.reduce((s, d) => s + d.remainingDebt, 0),
-      debts_count: data.length,
-      currency: "USD",
-      decimals: 2,
+      debts_count: aggregateDebts.length,
+      currency,
+      decimals,
     };
     return { data, summary };
   },
 
   getById: async (id: string | number): Promise<Debt> => {
-    const r = await adapter.getById("debts", String(id));
+    const [r, currencyMap] = await Promise.all([
+      adapter.getById("debts", String(id)),
+      loadCurrencyMap(),
+    ]);
     if (!r) throw new Error("Debt not found");
-    return toDebt(r);
+    return toDebt(r, currencyMap);
   },
 
   create: async (data: DebtFormData): Promise<Debt> => {
-    const r = await adapter.create("debts", {
-      id: crypto.randomUUID(),
-      name: data.name,
-      debt_type: data.debt_type,
-      currency_id: data.currency_id,
-      target_amount: data.amount,
-      paid_amount: 0,
-      due_date: data.due_date ?? "",
-      counterparty: data.counterparty ?? "",
-      description: data.description ?? "",
-      created_at: new Date().toISOString(),
-    });
-    return toDebt(r);
+    const [r, currencyMap] = await Promise.all([
+      adapter.create("debts", {
+        id: crypto.randomUUID(),
+        name: data.name,
+        debt_type: data.debt_type,
+        currency_id: data.currency_id,
+        target_amount: data.amount,
+        paid_amount: 0,
+        due_date: data.due_date ?? "",
+        counterparty: data.counterparty ?? "",
+        description: data.description ?? "",
+        created_at: new Date().toISOString(),
+      }),
+      loadCurrencyMap(),
+    ]);
+    return toDebt(r, currencyMap);
   },
 
   update: async (
@@ -92,8 +124,11 @@ export const debtsApi = {
       payload.due_date = data.due_date;
     }
 
-    const r = await adapter.update("debts", String(id), payload);
-    return toDebt(r);
+    const [r, currencyMap] = await Promise.all([
+      adapter.update("debts", String(id), payload),
+      loadCurrencyMap(),
+    ]);
+    return toDebt(r, currencyMap);
   },
 
   delete: (id: string | number): Promise<void> =>
@@ -132,8 +167,11 @@ export const debtsApi = {
   },
 
   reopen: async (id: string | number): Promise<Debt> => {
-    const r = await adapter.update("debts", String(id), { paid_amount: 0 });
-    return toDebt(r);
+    const [r, currencyMap] = await Promise.all([
+      adapter.update("debts", String(id), { paid_amount: 0 }),
+      loadCurrencyMap(),
+    ]);
+    return toDebt(r, currencyMap);
   },
 
   getSummary: async (): Promise<DebtSummary> => {

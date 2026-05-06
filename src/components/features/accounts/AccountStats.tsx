@@ -1,15 +1,11 @@
 import { Account } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { AmountText } from '@/components/shared/AmountText'
 import { cn } from '@/lib/utils'
 
 interface AccountStatsProps {
   account: Account
-}
-
-function fmt(amount: number, currency?: { symbol: string; decimals: number }) {
-  if (!currency) return Math.abs(amount).toFixed(2)
-  return `${currency.symbol}${Math.abs(amount).toFixed(currency.decimals)}`
 }
 
 export function AccountStats({ account }: AccountStatsProps) {
@@ -28,7 +24,11 @@ export function AccountStats({ account }: AccountStatsProps) {
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Used</p>
               <p className="text-2xl font-semibold text-rose-600">
-                {fmt(used, account.currency)}
+                <AmountText
+                  value={used}
+                  decimals={account.currency?.decimals ?? 2}
+                  currency={account.currency?.symbol}
+                />
               </p>
             </CardContent>
           </Card>
@@ -36,7 +36,11 @@ export function AccountStats({ account }: AccountStatsProps) {
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Available</p>
               <p className="text-2xl font-semibold text-green-600">
-                {fmt(available, account.currency)}
+                <AmountText
+                  value={available}
+                  decimals={account.currency?.decimals ?? 2}
+                  currency={account.currency?.symbol}
+                />
               </p>
             </CardContent>
           </Card>
@@ -44,7 +48,11 @@ export function AccountStats({ account }: AccountStatsProps) {
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Limit</p>
               <p className="text-2xl font-semibold">
-                {fmt(limit, account.currency)}
+                <AmountText
+                  value={limit}
+                  decimals={account.currency?.decimals ?? 2}
+                  currency={account.currency?.symbol}
+                />
               </p>
             </CardContent>
           </Card>
@@ -74,8 +82,11 @@ export function AccountStats({ account }: AccountStatsProps) {
               account.currentBalance >= 0 ? 'text-green-600' : 'text-red-600'
             )}
           >
-            {account.currency?.symbol ?? ''}
-            {account.currentBalance.toFixed(account.currency?.decimals ?? 2)}
+            <AmountText
+              value={account.currentBalance}
+              decimals={account.currency?.decimals ?? 2}
+              currency={account.currency?.symbol}
+            />
           </p>
         </CardContent>
       </Card>
@@ -83,7 +94,11 @@ export function AccountStats({ account }: AccountStatsProps) {
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">Initial Balance</p>
           <p className="text-2xl font-semibold text-muted-foreground">
-            {fmt(account.initialBalance, account.currency)}
+            <AmountText
+              value={account.initialBalance}
+              decimals={account.currency?.decimals ?? 2}
+              currency={account.currency?.symbol}
+            />
           </p>
         </CardContent>
       </Card>

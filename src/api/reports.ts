@@ -1,8 +1,13 @@
 import { transactionsApi } from './transactions'
-import { accountsApi } from './accounts'
+import {
+  accountsApi,
+  getBaseCurrencyMeta,
+  isAccountIncludedInBaseAggregates,
+} from './accounts'
 import { categoriesApi } from './categories'
 import type { ReportFilters } from '@/pages/reports/types'
 import type { CashFlowGroupBy, TransactionType } from './reports-types'
+import type { Account, Transaction } from '@/types'
 import {
   getDateRange, getPrevDateRange, filterTxns,
   computeOverview, computeMoneyFlow, computeCashFlow,
@@ -192,49 +197,105 @@ export interface NetWorthHistoryData {
   currency: string
 }
 
+function filterAggregateAccounts(accounts: Account[], baseCurrencyId?: string) {
+  return accounts.filter((account) =>
+    isAccountIncludedInBaseAggregates(
+      account,
+      baseCurrencyId ? { id: baseCurrencyId } : undefined,
+    ),
+  )
+}
+
+function filterAggregateTransactions(
+  txns: Transaction[],
+  baseCurrencyId?: string,
+) {
+  return txns.filter(
+    (transaction) =>
+      !!transaction.account &&
+      isAccountIncludedInBaseAggregates(
+        transaction.account,
+        baseCurrencyId ? { id: baseCurrencyId } : undefined,
+      ),
+  )
+}
+
 // ── Data loader ──
 
 async function loadAll() {
-  const [txnRes, accounts, categories] = await Promise.all([
-    transactionsApi.getAll({ per_page: 99999 }),
-    accountsApi.getAll(),
-    categoriesApi.getAll(),
-  ])
-  return { txns: txnRes.data, accounts, categories }
+  const [txnRes, accounts, categories, { baseCurrency, currency }] =
+    await Promise.all([
+      transactionsApi.getAll({ per_page: 99999 }),
+      accountsApi.getAll(),
+      categoriesApi.getAll(),
+      getBaseCurrencyMeta(),
+    ])
+  return {
+    txns: txnRes.data,
+    accounts,
+    categories,
+    baseCurrency,
+    currency,
+  }
 }
 
 // ── API ──
 
 export const reportsApi = {
   getOverview: async (filters: ReportFilters): Promise<OverviewMetrics> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     const prevRange = getPrevDateRange(filters)
-    const curr = filterTxns(txns, start, end, filters)
-    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
-    return computeOverview(curr, prev, start, end)
+    const curr = filterAggregateTransactions(
+      filterTxns(txns, start, end, filters),
+      baseCurrency?.id,
+    )
+    const prev = prevRange
+      ? filterAggregateTransactions(
+          filterTxns(txns, prevRange[0], prevRange[1], filters),
+          baseCurrency?.id,
+        )
+      : []
+    return computeOverview(curr, prev, start, end, currency)
   },
 
   getMoneyFlow: async (filters: ReportFilters): Promise<MoneyFlowData> => {
-    const { txns, categories } = await loadAll()
+    const { txns, categories, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeMoneyFlow(filterTxns(txns, start, end, filters), categories)
+    return computeMoneyFlow(
+      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      categories,
+      currency,
+    )
   },
 
   getExpensePace: async (filters: ReportFilters): Promise<ExpensePaceData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeExpensePace(filterTxns(txns, start, end, filters), start, end)
+    return computeExpensePace(
+      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      start,
+      end,
+      currency,
+    )
   },
 
   // Returns the old { categories, currency } shape expected by ExpensesByCategory component
   getExpensesByCategory: async (filters: ReportFilters): Promise<ExpensesByCategoryData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     const prevRange = getPrevDateRange(filters)
-    const curr = filterTxns(txns, start, end, filters)
-    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
-    const result = computeByCategory(curr, prev, 'expense')
+    const curr = filterAggregateTransactions(
+      filterTxns(txns, start, end, filters),
+      baseCurrency?.id,
+    )
+    const prev = prevRange
+      ? filterAggregateTransactions(
+          filterTxns(txns, prevRange[0], prevRange[1], filters),
+          baseCurrency?.id,
+        )
+      : []
+    const result = computeByCategory(curr, prev, 'expense', currency)
     return {
       categories: result.items.map(item => ({
         id: item.id,
@@ -249,34 +310,61 @@ export const reportsApi = {
   },
 
   getCashFlowOverTime: async (filters: ReportFilters, groupBy: CashFlowGroupBy = 'day'): Promise<CashFlowOverTimeData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeCashFlow(filterTxns(txns, start, end, filters), groupBy, start, end)
+    return computeCashFlow(
+      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      groupBy,
+      start,
+      end,
+      currency,
+    )
   },
 
   getActivityHeatmap: async (filters: ReportFilters): Promise<ActivityHeatmapData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeActivityHeatmap(filterTxns(txns, start, end, filters), start, end)
+    return computeActivityHeatmap(
+      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      start,
+      end,
+      currency,
+    )
   },
 
   getTransactionSummary: async (filters: ReportFilters, type: TransactionType): Promise<TransactionSummaryData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     const prevRange = getPrevDateRange(filters)
-    const curr = filterTxns(txns, start, end, filters)
-    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
-    return computeTransactionSummary(curr, prev, type, start, end)
+    const curr = filterAggregateTransactions(
+      filterTxns(txns, start, end, filters),
+      baseCurrency?.id,
+    )
+    const prev = prevRange
+      ? filterAggregateTransactions(
+          filterTxns(txns, prevRange[0], prevRange[1], filters),
+          baseCurrency?.id,
+        )
+      : []
+    return computeTransactionSummary(curr, prev, type, start, end, currency)
   },
 
   // Returns the { items, total, currency } shape expected by ExpensesStructureChart component
   getTransactionsByCategory: async (filters: ReportFilters, type: TransactionType): Promise<TransactionsByCategoryData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     const prevRange = getPrevDateRange(filters)
-    const curr = filterTxns(txns, start, end, filters)
-    const prev = prevRange ? filterTxns(txns, prevRange[0], prevRange[1], filters) : []
-    const result = computeByCategory(curr, prev, type)
+    const curr = filterAggregateTransactions(
+      filterTxns(txns, start, end, filters),
+      baseCurrency?.id,
+    )
+    const prev = prevRange
+      ? filterAggregateTransactions(
+          filterTxns(txns, prevRange[0], prevRange[1], filters),
+          baseCurrency?.id,
+        )
+      : []
+    const result = computeByCategory(curr, prev, type, currency)
     return {
       items: result.items.map(item => ({
         id: item.id,
@@ -292,25 +380,47 @@ export const reportsApi = {
   },
 
   getTransactionDynamics: async (filters: ReportFilters, type: TransactionType, groupBy: CashFlowGroupBy = 'day'): Promise<TransactionDynamicsData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeDynamics(filterTxns(txns, start, end, filters), type, groupBy, start, end)
+    return computeDynamics(
+      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      type,
+      groupBy,
+      start,
+      end,
+      currency,
+    )
   },
 
   getTopTransactions: async (filters: ReportFilters, type: TransactionType, limit = 10): Promise<TopTransactionsData> => {
-    const { txns } = await loadAll()
+    const { txns, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeTopTransactions(filterTxns(txns, start, end, filters), type, limit)
+    return computeTopTransactions(
+      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      type,
+      limit,
+      currency,
+    )
   },
 
   getNetWorth: async (_filters: ReportFilters): Promise<NetWorthData> => {
-    const { accounts } = await loadAll()
-    return computeNetWorth(accounts)
+    const { accounts, baseCurrency, currency } = await loadAll()
+    return computeNetWorth(
+      filterAggregateAccounts(accounts, baseCurrency?.id),
+      currency,
+    )
   },
 
   getNetWorthHistory: async (filters: ReportFilters, groupBy: CashFlowGroupBy = 'month'): Promise<NetWorthHistoryData> => {
-    const { txns, accounts } = await loadAll()
+    const { txns, accounts, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
-    return computeNetWorthHistory(txns, accounts, groupBy, start, end)
+    return computeNetWorthHistory(
+      filterAggregateTransactions(txns, baseCurrency?.id),
+      filterAggregateAccounts(accounts, baseCurrency?.id),
+      groupBy,
+      start,
+      end,
+      currency,
+    )
   },
 }

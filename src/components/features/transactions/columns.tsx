@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { MoreHorizontal, Pencil, Trash2, Copy, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ChevronRight, Banknote, HandCoins } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { AmountText } from '@/components/shared/AmountText'
 import { cn } from '@/lib/utils'
 
 const TYPE_CONFIG = {
@@ -155,11 +156,22 @@ export function createTransactionColumns(
                             'font-mono font-semibold',
                             isIncoming ? 'text-green-600' : isTransfer ? 'text-blue-600' : isDebtPayment ? 'text-orange-600' : 'text-red-600'
                         )}>
-                            {isIncoming ? '+' : '-'}{amount.toFixed(account.currency?.decimals ?? 2)} {account.currency?.symbol}
+                            <AmountText
+                                value={isIncoming ? amount : -amount}
+                                decimals={account.currency?.decimals ?? 2}
+                                currency={account.currency?.symbol}
+                                signDisplay="always"
+                            />
                         </div>
                         {isTransfer && toAmount && toAccount && (
                             <div className="text-xs text-muted-foreground font-mono">
-                                → +{toAmount.toFixed(toAccount.currency?.decimals ?? 2)} {toAccount.currency?.symbol}
+                                →{' '}
+                                <AmountText
+                                    value={toAmount}
+                                    decimals={toAccount.currency?.decimals ?? 2}
+                                    currency={toAccount.currency?.symbol}
+                                    signDisplay="always"
+                                />
                             </div>
                         )}
                     </div>

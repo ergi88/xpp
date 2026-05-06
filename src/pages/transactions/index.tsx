@@ -22,6 +22,7 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { createTransactionColumns } from '@/components/features/transactions'
+import { AmountText } from '@/components/shared/AmountText'
 import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags } from '@/hooks'
 import { TransactionType, Transaction } from '@/types'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,7 @@ const TYPE_FILTERS: { value: 'income' | 'expense' | 'transfer' | null; label: st
 function TransactionItems({ row }: { row: Row<Transaction> }) {
     const items = row.original.items
     const decimals = row.original.account.currency?.decimals ?? 2
+    const symbol = row.original.account.currency?.symbol
     if (!items || items.length === 0) return null
 
     return (
@@ -54,8 +56,20 @@ function TransactionItems({ row }: { row: Row<Transaction> }) {
                         <tr key={item.id ?? idx} className="border-t border-border/50">
                             <td className="py-1.5">{item.name}</td>
                             <td className="py-1.5 text-right font-mono">{item.quantity}</td>
-                            <td className="py-1.5 text-right font-mono">{item.pricePerUnit.toFixed(decimals)}</td>
-                            <td className="py-1.5 text-right font-mono font-medium">{item.totalPrice.toFixed(decimals)}</td>
+                            <td className="py-1.5 text-right font-mono">
+                                <AmountText
+                                    value={item.pricePerUnit}
+                                    decimals={decimals}
+                                    currency={symbol}
+                                />
+                            </td>
+                            <td className="py-1.5 text-right font-mono font-medium">
+                                <AmountText
+                                    value={item.totalPrice}
+                                    decimals={decimals}
+                                    currency={symbol}
+                                />
+                            </td>
                         </tr>
                     ))}
                 </tbody>

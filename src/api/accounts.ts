@@ -1,5 +1,11 @@
 import { adapter } from "./client";
-import type { Account } from "@/types";
+import { currenciesApi } from "./currencies";
+import {
+  getBaseCurrency,
+  getCurrencyMap,
+  isBaseCurrencyAccount,
+} from "@/lib/currency";
+import type { Account, Currency } from "@/types";
 import type { AccountFormData } from "@/schemas";
 import type {
   AccountsResponse,
@@ -14,6 +20,11 @@ export type {
   BalanceHistoryResponse,
   BalanceComparisonResponse,
 };
+
+const EXCLUDED_BASE_AGGREGATE_ACCOUNT_TYPES = new Set<Account["type"]>([
+  "credit",
+  "debt",
+]);
 
 function normalizeCardLastDigits(value: unknown): string | undefined {
   if (value == null || value === "") return undefined;
@@ -91,41 +102,115 @@ function toAccount(r: Record<string, unknown>): Account {
   };
 }
 
+async function loadCurrencyContext(): Promise<{
+  currencyMap: Map<string, Currency>;
+  baseCurrency?: Currency;
+}> {
+  const currencies = await currenciesApi.getAll();
+  return {
+    currencyMap: getCurrencyMap(currencies),
+    baseCurrency: getBaseCurrency(currencies),
+  };
+}
+
+function enrichAccount(
+  account: Account,
+  currencyMap: Map<string, Currency>,
+): Account {
+  return {
+    ...account,
+    currency: currencyMap.get(account.currencyId),
+  };
+}
+
+function toAggregateCurrencyMeta(baseCurrency?: Currency) {
+  return {
+    currency: baseCurrency?.symbol ?? "",
+    currency_code: baseCurrency?.code ?? "",
+    decimals: baseCurrency?.decimals ?? 2,
+  };
+}
+
+async function loadRawAccounts(params?: {
+  active?: boolean;
+  exclude_debts?: boolean;
+}): Promise<Account[]> {
+  let rows = await adapter.getAll("accounts");
+  if (params?.active)
+    rows = rows.filter((r) => r.is_active === "true" || r.is_active === true);
+  if (params?.exclude_debts) rows = rows.filter((r) => r.type !== "debt");
+  return rows.map(toAccount);
+}
+
+export async function getBaseCurrencyMeta(): Promise<{
+  baseCurrency?: Currency;
+  currency: string;
+  currency_code: string;
+  decimals: number;
+}> {
+  const { baseCurrency } = await loadCurrencyContext();
+  return {
+    baseCurrency,
+    ...toAggregateCurrencyMeta(baseCurrency),
+  };
+}
+
+export function isAccountIncludedInBaseAggregates(
+  account: Pick<Account, "isActive" | "type" | "currencyId">,
+  baseCurrency?: Pick<Currency, "id">,
+): boolean {
+  return (
+    account.isActive &&
+    !EXCLUDED_BASE_AGGREGATE_ACCOUNT_TYPES.has(account.type) &&
+    isBaseCurrencyAccount(account, baseCurrency)
+  );
+}
+
 export const accountsApi = {
   getAll: async (params?: {
     active?: boolean;
     exclude_debts?: boolean;
   }): Promise<Account[]> => {
-    let rows = await adapter.getAll("accounts");
-    if (params?.active)
-      rows = rows.filter((r) => r.is_active === "true" || r.is_active === true);
-    if (params?.exclude_debts) rows = rows.filter((r) => r.type !== "debt");
-    return rows.map(toAccount);
+    const [accounts, { currencyMap }] = await Promise.all([
+      loadRawAccounts(params),
+      loadCurrencyContext(),
+    ]);
+    return accounts.map((account) => enrichAccount(account, currencyMap));
   },
 
   getAllWithSummary: async (params?: {
     active?: boolean;
     exclude_debts?: boolean;
   }): Promise<AccountsResponse> => {
-    const accounts = await accountsApi.getAll(params);
-    const total_balance = accounts.reduce(
+    const [accounts, { baseCurrency, currencyMap }] = await Promise.all([
+      loadRawAccounts(params),
+      loadCurrencyContext(),
+    ]);
+    const enrichedAccounts = accounts.map((account) =>
+      enrichAccount(account, currencyMap),
+    );
+    const aggregateAccounts = enrichedAccounts.filter((account) =>
+      isAccountIncludedInBaseAggregates(account, baseCurrency),
+    );
+    const total_balance = aggregateAccounts.reduce(
       (sum, a) => sum + a.currentBalance,
       0,
     );
     const summary: AccountsSummary = {
       total_balance,
-      currency: "USD",
-      currency_code: "USD",
-      decimals: 2,
-      accounts_count: accounts.length,
+      ...toAggregateCurrencyMeta(baseCurrency),
+      accounts_count: aggregateAccounts.length,
     };
-    return { data: accounts, summary };
+    return { data: enrichedAccounts, summary };
   },
 
   getById: async (id: string | number): Promise<Account> => {
-    const r = await adapter.getById("accounts", String(id));
+    const [r, { currencyMap }] = await Promise.all([
+      adapter.getById("accounts", String(id)),
+      loadCurrencyContext(),
+    ]);
     if (!r) throw new Error("Account not found");
-    return toAccount(r);
+    return enrichAccount(toAccount(r), currencyMap);
   },
 
   create: async (data: AccountFormData): Promise<Account> => {
@@ -134,33 +219,39 @@ export const accountsApi = {
       data.type === "credit"
         ? -(data.initial_balance ?? 0)
         : (data.initial_balance ?? 0);
-    const r = await adapter.create("accounts", {
-      id: crypto.randomUUID(),
-      name: data.name,
-      type: data.type,
-      currency_id: data.currency_id,
-      initial_balance: initialBal,
-      balance: initialBal,
-      is_active: String(data.is_active ?? true),
-      created_at: new Date().toISOString(),
-      card_last_digits: data.card_last_digits ?? null,
-      card_expiry: data.card_expiry ?? null,
-      credit_limit: data.credit_limit ?? null,
-    });
-    return toAccount(r);
+    const [r, { currencyMap }] = await Promise.all([
+      adapter.create("accounts", {
+        id: crypto.randomUUID(),
+        name: data.name,
+        type: data.type,
+        currency_id: data.currency_id,
+        initial_balance: initialBal,
+        balance: initialBal,
+        is_active: String(data.is_active ?? true),
+        created_at: new Date().toISOString(),
+        card_last_digits: data.card_last_digits ?? null,
+        card_expiry: data.card_expiry ?? null,
+        credit_limit: data.credit_limit ?? null,
+      }),
+      loadCurrencyContext(),
+    ]);
+    return enrichAccount(toAccount(r), currencyMap);
   },
 
   update: async (
     id: string | number,
     data: Partial<AccountFormData>,
   ): Promise<Account> => {
-    const r = await adapter.update("accounts", String(id), {
-      ...data,
-      card_last_digits: data.card_last_digits ?? null,
-      card_expiry: data.card_expiry ?? null,
-      credit_limit: data.credit_limit ?? null,
-    } as Record<string, unknown>);
-    return toAccount(r);
+    const [r, { currencyMap }] = await Promise.all([
+      adapter.update("accounts", String(id), {
+        ...data,
+        card_last_digits: data.card_last_digits ?? null,
+        card_expiry: data.card_expiry ?? null,
+        credit_limit: data.credit_limit ?? null,
+      } as Record<string, unknown>),
+      loadCurrencyContext(),
+    ]);
+    return enrichAccount(toAccount(r), currencyMap);
   },
 
   delete: (id: string | number): Promise<void> =>
@@ -181,16 +272,21 @@ export const accountsApi = {
     end_date?: string;
   }): Promise<BalanceHistoryResponse> => {
     const { transactionsApi } = await import("./transactions");
-    const [accounts, txns] = await Promise.all([
-      accountsApi.getAll({ active: true }),
-      transactionsApi.getAll(),
-    ]);
+    const [{ baseCurrency, currency, decimals }, accounts, txns] =
+      await Promise.all([
+        getBaseCurrencyMeta(),
+        accountsApi.getAll({ active: true }),
+        transactionsApi.getAll(),
+      ]);
     const start =
       params?.start_date ??
       new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const end = params?.end_date ?? new Date().toISOString().slice(0, 10);
     const dates = eachDay(start, end);
-    const series = accounts.map((acc) => {
+    const aggregateAccounts = accounts.filter((account) =>
+      isAccountIncludedInBaseAggregates(account, baseCurrency),
+    );
+    const series = aggregateAccounts.map((acc) => {
       let balance = acc.initialBalance;
       const data = dates.map((date) => {
         const dayTxns = (txns.data ?? []).filter(
@@ -207,13 +303,20 @@ export const accountsApi = {
       });
       return { name: acc.name, type: "line", data };
     });
-    return { dates, series, currency: "USD", decimals: 2 };
+    return { dates, series, currency, decimals };
   },
 
   getBalanceComparison: async (): Promise<BalanceComparisonResponse> => {
-    const accounts = await accountsApi.getAll({ active: true });
-    const current = accounts.reduce((s, a) => s + a.currentBalance, 0);
-    return { current, previous: null, currency: "USD", decimals: 2 };
+    const [{ baseCurrency, currency, decimals }, accounts] = await Promise.all([
+      getBaseCurrencyMeta(),
+      accountsApi.getAll({ active: true }),
+    ]);
+    const current = accounts
+      .filter((account) =>
+        isAccountIncludedInBaseAggregates(account, baseCurrency),
+      )
+      .reduce((sum, account) => sum + account.currentBalance, 0);
+    return { current, previous: null, currency, decimals };
   },
 };
 

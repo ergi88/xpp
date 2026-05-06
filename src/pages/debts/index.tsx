@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { DataTable } from '@/components/shared'
+import { AmountText } from '@/components/shared/AmountText'
 import { createDebtColumns, DebtPaymentDialog } from '@/components/features/debts'
 import { useDebtsWithSummary, useDeleteDebt, useDebtPayment, useDebtCollection, useReopenDebt } from '@/hooks'
 import { Debt } from '@/types'
@@ -60,11 +61,6 @@ export default function DebtsPage() {
         isReadOnly,
     })
 
-    const formatCurrency = (amount: number) => {
-        if (!summary?.currency) return amount.toFixed(2)
-        return `${summary.currency} ${amount.toFixed(summary.decimals ?? 2)}`
-    }
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -90,7 +86,11 @@ export default function DebtsPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">I Owe</p>
                                 <p className="text-2xl font-bold text-red-600">
-                                    {formatCurrency(summary.total_i_owe)}
+                                    <AmountText
+                                        value={summary.total_i_owe}
+                                        decimals={summary.decimals ?? 2}
+                                        currency={summary.currency}
+                                    />
                                 </p>
                             </div>
                         </div>
@@ -103,7 +103,11 @@ export default function DebtsPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">Owed to Me</p>
                                 <p className="text-2xl font-bold text-green-600">
-                                    {formatCurrency(summary.total_owed_to_me)}
+                                    <AmountText
+                                        value={summary.total_owed_to_me}
+                                        decimals={summary.decimals ?? 2}
+                                        currency={summary.currency}
+                                    />
                                 </p>
                             </div>
                         </div>
@@ -120,7 +124,13 @@ export default function DebtsPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">Net Position</p>
                                 <p className={`text-2xl font-bold ${summary.net_debt >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(Math.abs(summary.net_debt))}
+                                    <AmountText
+                                        value={summary.net_debt}
+                                        decimals={summary.decimals ?? 2}
+                                        currency={summary.currency}
+                                        absolute
+                                        signDisplay="never"
+                                    />
                                     {summary.net_debt >= 0 ? ' in your favor' : ' you owe'}
                                 </p>
                             </div>

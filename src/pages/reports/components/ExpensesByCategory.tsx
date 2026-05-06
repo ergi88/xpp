@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight } from 'lucide-react'
@@ -19,10 +20,6 @@ export function ExpensesByCategory({ filters }: ExpensesByCategoryProps) {
         if (!data?.categories.length) return 0
         return Math.max(...data.categories.flatMap(c => [c.current, c.previous]))
     }, [data])
-
-    const formatCurrency = (val: number, currency: string) => {
-        return `${currency}${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    }
 
     const handleCategoryClick = (categoryId: string) => {
         navigate(`/transactions?category_ids=${categoryId}`)
@@ -96,12 +93,21 @@ export function ExpensesByCategory({ filters }: ExpensesByCategoryProps) {
                                             </div>
                                             <div className="flex items-center gap-3 text-sm">
                                                 <span className="font-semibold">
-                                                    {formatCurrency(category.current, data.currency)}
+                                                    <AmountText
+                                                        value={category.current}
+                                                        decimals={0}
+                                                        currency={data.currency}
+                                                    />
                                                 </span>
                                                 {filters.compareWith !== 'none' && category.previous > 0 && (
                                                     <>
                                                         <span className="text-muted-foreground">
-                                                            vs {formatCurrency(category.previous, data.currency)}
+                                                            vs{' '}
+                                                            <AmountText
+                                                                value={category.previous}
+                                                                decimals={0}
+                                                                currency={data.currency}
+                                                            />
                                                         </span>
                                                         <span className={cn(
                                                             'flex items-center gap-0.5 text-xs font-medium',

@@ -8,8 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Moon,
-  Sun,
+  Eye,
+  EyeOff,
   Wallet,
   Plus,
   ArrowDownLeft,
@@ -17,16 +17,21 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useTheme } from "@/hooks/use-theme";
-import { useAccounts, useTotalBalance } from "@/hooks";
+import { AmountText } from "@/components/shared";
+import {
+  useAccounts,
+  useHideAmounts,
+  useTotalBalance,
+  useUpdateSettings,
+} from "@/hooks";
 import { useNavigate } from "react-router-dom";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import type { AccountType } from "@/types";
 
 export function Header() {
-  const { theme, toggleTheme } = useTheme();
+  const hideAmounts = useHideAmounts();
+  const updateSettings = useUpdateSettings();
   const { data: balance } = useTotalBalance();
-  console.log("🚀 ~ Header ~ balance:", { balance });
   const { data: accounts } = useAccounts({
     active: true,
   });
@@ -34,6 +39,10 @@ export function Header() {
 
   const handleCreateTransaction = (type: "income" | "expense" | "transfer") => {
     navigate(`/transactions/create?type=${type}`);
+  };
+
+  const handleHideAmountsToggle = () => {
+    updateSettings.mutate({ hide_amounts: !hideAmounts });
   };
 
   return (
@@ -79,12 +88,12 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 px-2">
                   <Wallet className="size-4 text-muted-foreground" />
-                  <span className="font-mono font-medium">
-                    {(balance.total_balance ?? 0).toFixed(
-                      balance.decimals ?? 2,
-                    )}{" "}
-                    {balance.currency}
-                  </span>
+                  <AmountText
+                    value={balance.total_balance ?? 0}
+                    decimals={balance.decimals ?? 2}
+                    currency={balance.currency}
+                    className="font-mono font-medium"
+                  />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -115,14 +124,12 @@ export function Header() {
                           </span>
                         </div>
                         <div className="text-right flex no-wrap items-center gap-1">
-                          <p className="text-sm font-mono font-medium">
-                            {(account.currentBalance ?? 0).toFixed(
-                              account.currency?.decimals ?? 2,
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {account.currency?.symbol ?? ""}
-                          </p>
+                          <AmountText
+                            value={account.currentBalance ?? 0}
+                            decimals={account.currency?.decimals ?? 2}
+                            currency={account.currency?.symbol ?? ""}
+                            className="text-sm font-mono font-medium"
+                          />
                         </div>
                       </DropdownMenuItem>
                     );
@@ -139,13 +146,14 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
+            onClick={handleHideAmountsToggle}
+            aria-label={hideAmounts ? "Show amounts" : "Hide amounts"}
+            disabled={updateSettings.isPending}
           >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
+            {hideAmounts ? (
+              <EyeOff className="h-5 w-5" />
             ) : (
-              <Moon className="h-5 w-5" />
+              <Eye className="h-5 w-5" />
             )}
           </Button>
         </div>

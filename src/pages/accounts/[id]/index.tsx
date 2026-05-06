@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAccount, useTransactions, useCurrencies } from '@/hooks'
 import { AccountCard } from '@/components/features/accounts/AccountCard'
 import { AccountStats } from '@/components/features/accounts/AccountStats'
+import { AmountText } from '@/components/shared/AmountText'
 import { ACCOUNT_TYPE_CONFIG } from '@/constants'
 import { cn } from '@/lib/utils'
 
@@ -108,9 +109,12 @@ export default function AccountViewPage() {
                     t.type === 'income' ? 'text-green-600' : 'text-red-600'
                   )}
                 >
-                  {t.type === 'income' ? '+' : '-'}
-                  {enrichedAccount.currency?.symbol ?? ''}
-                  {t.amount.toFixed(enrichedAccount.currency?.decimals ?? 2)}
+                  <AmountText
+                    value={t.type === 'income' ? t.amount : -t.amount}
+                    decimals={enrichedAccount.currency?.decimals ?? 2}
+                    currency={enrichedAccount.currency?.symbol}
+                    signDisplay="always"
+                  />
                 </p>
               </div>
             ))}

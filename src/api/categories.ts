@@ -1,4 +1,5 @@
 import { adapter } from './client'
+import { getBaseCurrencyMeta } from './accounts'
 import type { Category, CategoryFormData, CategorySummaryResponse } from '@/types'
 
 function toCategory(r: Record<string, unknown>): Category {
@@ -53,6 +54,7 @@ export const categoriesApi = {
     end_date?: string
   }): Promise<CategorySummaryResponse> => {
     const categories = await categoriesApi.getByType(params.type)
-    return { data: categories, total: 0, currency: 'USD' }
+    const { currency } = await getBaseCurrencyMeta()
+    return { data: categories, total: 0, currency }
   },
 }
