@@ -63,7 +63,7 @@ function applyFilters(txns: Transaction[], filters: TransactionFilters): Transac
   let result = txns
   if (filters.type) result = result.filter(t => t.type === filters.type)
   if (filters.account_id) result = result.filter(t => t.account?.id === String(filters.account_id))
-  if (filters.account_ids?.length) result = result.filter(t => filters.account_ids!.includes(t.account?.id))
+  if (filters.account_ids?.length) result = result.filter(t => !!t.account && filters.account_ids!.includes(t.account.id))
   if (filters.category_id) result = result.filter(t => t.category?.id === String(filters.category_id))
   if (filters.category_ids?.length) result = result.filter(t => t.category && filters.category_ids!.map(String).includes(t.category.id))
   if (filters.tag_ids?.length) result = result.filter(t => t.tags.some(tag => filters.tag_ids!.map(String).includes(tag.id)))
@@ -73,10 +73,10 @@ function applyFilters(txns: Transaction[], filters: TransactionFilters): Transac
     const dir = filters.sort_direction === 'asc' ? 1 : -1
     result = [...result].sort((a, b) => {
       const va = filters.sort_by === 'amount' ? a.amount
-               : filters.sort_by === 'created_at' ? (a.createdAt ?? '')
+               : filters.sort_by === 'created_at' ? (a.createdAt ?? a.date)
                : a.date
       const vb = filters.sort_by === 'amount' ? b.amount
-               : filters.sort_by === 'created_at' ? (b.createdAt ?? '')
+               : filters.sort_by === 'created_at' ? (b.createdAt ?? b.date)
                : b.date
       return va < vb ? -dir : va > vb ? dir : 0
     })
