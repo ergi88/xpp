@@ -117,14 +117,17 @@ export const transactionsApi = {
       const aggregateTxns = txns.filter((transaction) =>
         isTransactionIncludedInBaseAggregates(transaction, baseCurrency?.id),
       )
+      const income = aggregateTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      const expense = aggregateTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
       summary = {
-        income: aggregateTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
-        expense: aggregateTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
-        balance: 0,
+        income,
+        expense,
+        transfer: aggregateTxns.filter(t => t.type === 'transfer').reduce((s, t) => s + t.amount, 0),
+        balance: income - expense,
         transactions_count: aggregateTxns.length,
         currency,
+        decimals: baseCurrency?.decimals ?? 2,
       }
-      summary.balance = summary.income - summary.expense
     }
 
     return {
