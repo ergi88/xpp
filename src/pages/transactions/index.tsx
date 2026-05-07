@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryStates, parseAsInteger, parseAsString, parseAsArrayOf, parseAsStringLiteral } from 'nuqs'
-// Note: categoryIds/tagIds use string IDs in this app
 import { Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Filter, ArrowUpDown, X } from 'lucide-react'
 import { Row } from '@tanstack/react-table'
 import { Page, PageHeader, DataTable, ServerPagination } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import {
     Select,
     SelectContent,
@@ -23,9 +21,17 @@ import {
 } from '@/components/ui/collapsible'
 import { createTransactionColumns } from '@/components/features/transactions'
 import { AmountText } from '@/components/shared/AmountText'
-import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags } from '@/hooks'
+import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags, useTransactionSummary } from '@/hooks'
+import { useAccounts } from '@/hooks'
 import { TransactionType, Transaction } from '@/types'
 import { cn } from '@/lib/utils'
+import { DateNavBlock } from './DateNavBlock'
+import {
+    firstDayOfCurrentMonth,
+    getDateRange,
+    stepMonth,
+    stepDay,
+} from './dateNavHelpers'
 
 const TYPE_FILTERS: { value: 'income' | 'expense' | 'transfer' | null; label: string; icon?: typeof ArrowDownLeft }[] = [
     { value: null, label: 'All' },
@@ -83,17 +89,20 @@ const SORT_OPTIONS = [
     { value: 'date:asc', label: 'Date (Oldest)' },
     { value: 'amount:desc', label: 'Amount (High to Low)' },
     { value: 'amount:asc', label: 'Amount (Low to High)' },
+    { value: 'created_at:desc', label: 'Date Added (Newest)' },
+    { value: 'created_at:asc', label: 'Date Added (Oldest)' },
 ]
 
 const transactionSearchParams = {
     type: parseAsStringLiteral(['income', 'expense', 'transfer'] as const),
-    sortBy: parseAsStringLiteral(['date', 'amount'] as const).withDefault('date'),
+    sortBy: parseAsStringLiteral(['date', 'amount', 'created_at'] as const).withDefault('date'),
     sortDir: parseAsStringLiteral(['asc', 'desc'] as const).withDefault('desc'),
     page: parseAsInteger.withDefault(1),
     categoryIds: parseAsArrayOf(parseAsString).withDefault([]),
     tagIds: parseAsArrayOf(parseAsString).withDefault([]),
-    startDate: parseAsString,
-    endDate: parseAsString,
+    navMode: parseAsStringLiteral(['month', 'day'] as const).withDefault('month'),
+    navDate: parseAsString.withDefault(firstDayOfCurrentMonth()),
+    accountIds: parseAsArrayOf(parseAsString).withDefault([]),
 }
 
 export default function TransactionsPage() {
