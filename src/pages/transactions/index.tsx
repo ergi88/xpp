@@ -109,6 +109,8 @@ export default function TransactionsPage() {
     const [params, setParams] = useQueryStates(transactionSearchParams)
     const [filtersOpen, setFiltersOpen] = useState(false)
 
+    const dateRange = getDateRange(params.navMode, params.navDate)
+
     const filters = {
         per_page: 20,
         page: params.page,
@@ -117,15 +119,26 @@ export default function TransactionsPage() {
         sort_direction: params.sortDir,
         category_ids: params.categoryIds.length > 0 ? params.categoryIds : undefined,
         tag_ids: params.tagIds.length > 0 ? params.tagIds : undefined,
-        start_date: params.startDate ?? undefined,
-        end_date: params.endDate ?? undefined,
+        account_ids: params.accountIds.length > 0 ? params.accountIds : undefined,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+    }
+
+    const summaryFilters = {
+        type: params.type ?? undefined,
+        account_ids: params.accountIds.length > 0 ? params.accountIds : undefined,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
     }
 
     const { data, isLoading } = useTransactions(filters)
+    const { data: summary } = useTransactionSummary(summaryFilters)
     const deleteTransaction = useDeleteTransaction()
     const duplicateTransaction = useDuplicateTransaction()
     const { data: categories } = useCategories()
     const { data: tags } = useTags()
+    const { data: accountsData } = useAccounts({ active: true })
+    const accounts = accountsData ?? []
     const isReadOnly = false
 
     const columns = createTransactionColumns(
@@ -140,16 +153,12 @@ export default function TransactionsPage() {
     const activeFiltersCount = [
         params.categoryIds.length > 0,
         params.tagIds.length > 0,
-        params.startDate,
-        params.endDate,
     ].filter(Boolean).length
 
     const clearFilters = () => {
         setParams({
             categoryIds: null,
             tagIds: null,
-            startDate: null,
-            endDate: null,
             page: 1,
         })
     }
@@ -170,7 +179,46 @@ export default function TransactionsPage() {
         setParams({ tagIds: newIds.length ? newIds : null, page: 1 })
     }
 
-    // Filter categories based on selected type
+    const toggleAccount = (id: string) => {
+        const current = params.accountIds
+        const newIds = current.includes(id)
+            ? current.filter(a => a !== id)
+            : [...current, id]
+        setParams({ accountIds: newIds.length ? newIds : null, page: 1 })
+    }
+
+    const handleNavPrev = () => {
+        const newDate = params.navMode === 'month'
+            ? stepMonth(params.navDate, -1)
+            : stepDay(params.navDate, -1)
+        setParams({ navDate: newDate, page: 1 })
+    }
+
+    const handleNavNext = () => {
+        const newDate = params.navMode === 'month'
+            ? stepMonth(params.navDate, 1)
+            : stepDay(params.navDate, 1)
+        setParams({ navDate: newDate, page: 1 })
+    }
+
+    const handleNavToggleMode = () => {
+        if (params.navMode === 'month') {
+            const now = new Date()
+            const navD = new Date(params.navDate + 'T00:00:00')
+            const isCurrentMonth = now.getFullYear() === navD.getFullYear() && now.getMonth() === navD.getMonth()
+            const pad = (n: number) => String(n).padStart(2, '0')
+            const dayDate = isCurrentMonth
+                ? `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+                : params.navDate
+            setParams({ navMode: 'day', navDate: dayDate, page: 1 })
+        } else {
+            const d = new Date(params.navDate + 'T00:00:00')
+            const pad = (n: number) => String(n).padStart(2, '0')
+            const monthDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`
+            setParams({ navMode: 'month', navDate: monthDate, page: 1 })
+        }
+    }
+
     const filteredCategories = categories?.filter(c =>
         !params.type || params.type === 'transfer' || c.type === params.type
     ) ?? []
@@ -184,147 +232,160 @@ export default function TransactionsPage() {
                 createLabel="New Transaction"
             />
 
-            {/* Type Filter & Sort */}
-            <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="flex gap-2">
-                    {TYPE_FILTERS.map(({ value, label, icon: Icon }) => (
+            {/* Date Navigation */}
+            <DateNavBlock
+                navMode={params.navMode}
+                navDate={params.navDate}
+                type={params.type}
+                summary={summary}
+                accountIds={params.accountIds}
+                accounts={accounts}
+                onPrev={handleNavPrev}
+                onNext={handleNavNext}
+                onToggleMode={handleNavToggleMode}
+            />
+
+            {/* Type Filter Row */}
+            <div className="flex flex-wrap gap-2 mb-2">
+                {TYPE_FILTERS.map(({ value, label, icon: Icon }) => (
+                    <Button
+                        key={label}
+                        variant={params.type === value ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setParams({ type: value, page: 1 })}
+                    >
+                        {Icon && <Icon className="size-4 mr-1" />}
+                        {label}
+                    </Button>
+                ))}
+            </div>
+
+            {/* Account Filter Row */}
+            {accounts.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                    <Button
+                        variant={params.accountIds.length === 0 ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setParams({ accountIds: null, page: 1 })}
+                    >
+                        All Accounts
+                    </Button>
+                    {accounts.map((account) => (
                         <Button
-                            key={label}
-                            variant={params.type === value ? 'default' : 'outline'}
+                            key={account.id}
+                            variant={params.accountIds.includes(account.id) ? 'default' : 'outline'}
                             size="sm"
-                            onClick={() => setParams({ type: value, page: 1 })}
+                            onClick={() => toggleAccount(account.id)}
                         >
-                            {Icon && <Icon className="size-4 mr-1" />}
-                            {label}
+                            {account.name}
                         </Button>
                     ))}
                 </div>
-                <div className="flex items-center gap-2">
-                    <Select
-                        value={`${params.sortBy}:${params.sortDir}`}
-                        onValueChange={(val) => {
-                            const [sortBy, sortDir] = val.split(':') as ['date' | 'amount', 'asc' | 'desc']
-                            setParams({ sortBy, sortDir, page: 1 })
-                        }}
-                    >
-                        <SelectTrigger className="w-[180px] h-9">
-                            <ArrowUpDown className="size-4 mr-2" />
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {SORT_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
+            )}
 
-            {/* Advanced Filters */}
-            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen} className="mb-4">
+            {/* Sort + Advanced Filters */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2">
-                    <CollapsibleTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Filter className="size-4 mr-2" />
-                            Filters
+                    <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+                        <div className="flex items-center gap-2">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <Filter className="size-4 mr-2" />
+                                    Filters
+                                    {activeFiltersCount > 0 && (
+                                        <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                                            {activeFiltersCount}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            </CollapsibleTrigger>
                             {activeFiltersCount > 0 && (
-                                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
-                                    {activeFiltersCount}
-                                </Badge>
+                                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                                    <X className="size-4 mr-1" />
+                                    Clear
+                                </Button>
                             )}
-                        </Button>
-                    </CollapsibleTrigger>
-                    {activeFiltersCount > 0 && (
-                        <Button variant="ghost" size="sm" onClick={clearFilters}>
-                            <X className="size-4 mr-1" />
-                            Clear
-                        </Button>
-                    )}
+                        </div>
+                        <CollapsibleContent className="mt-4 space-y-4">
+                            <Card>
+                                <CardContent className="pt-4 space-y-4">
+                                    {/* Categories */}
+                                    {filteredCategories.length > 0 && (
+                                        <div>
+                                            <label className="text-sm font-medium mb-2 block">Categories</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {filteredCategories.map((category) => {
+                                                    const isSelected = params.categoryIds.includes(category.id)
+                                                    return (
+                                                        <Badge
+                                                            key={category.id}
+                                                            variant={isSelected ? 'default' : 'outline'}
+                                                            className={cn(
+                                                                'cursor-pointer transition-colors',
+                                                                isSelected ? 'hover:bg-primary/80' : 'hover:bg-muted'
+                                                            )}
+                                                            onClick={() => toggleCategory(category.id)}
+                                                        >
+                                                            {category.icon} {category.name}
+                                                        </Badge>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Tags */}
+                                    {tags && tags.length > 0 && (
+                                        <div>
+                                            <label className="text-sm font-medium mb-2 block">Tags</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {tags.map((tag) => {
+                                                    const isSelected = params.tagIds.includes(tag.id)
+                                                    return (
+                                                        <Badge
+                                                            key={tag.id}
+                                                            variant={isSelected ? 'default' : 'outline'}
+                                                            className={cn(
+                                                                'cursor-pointer transition-colors',
+                                                                isSelected ? 'hover:bg-primary/80' : 'hover:bg-muted'
+                                                            )}
+                                                            onClick={() => toggleTag(tag.id)}
+                                                        >
+                                                            #{tag.name}
+                                                        </Badge>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </CollapsibleContent>
+                    </Collapsible>
                 </div>
-                <CollapsibleContent className="mt-4 space-y-4">
-                    <Card>
-                        <CardContent className="pt-4 space-y-4">
-                            {/* Date Range */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Date Range</label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        type="date"
-                                        value={params.startDate ?? ''}
-                                        onChange={(e) => setParams({
-                                            startDate: e.target.value || null,
-                                            page: 1
-                                        })}
-                                        className="w-auto"
-                                    />
-                                    <span className="text-muted-foreground">to</span>
-                                    <Input
-                                        type="date"
-                                        value={params.endDate ?? ''}
-                                        onChange={(e) => setParams({
-                                            endDate: e.target.value || null,
-                                            page: 1
-                                        })}
-                                        className="w-auto"
-                                    />
-                                </div>
-                            </div>
 
-                            {/* Categories */}
-                            {filteredCategories.length > 0 && (
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Categories</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {filteredCategories.map((category) => {
-                                            const isSelected = params.categoryIds.includes(category.id)
-                                            return (
-                                                <Badge
-                                                    key={category.id}
-                                                    variant={isSelected ? 'default' : 'outline'}
-                                                    className={cn(
-                                                        'cursor-pointer transition-colors',
-                                                        isSelected ? 'hover:bg-primary/80' : 'hover:bg-muted'
-                                                    )}
-                                                    onClick={() => toggleCategory(category.id)}
-                                                >
-                                                    {category.icon} {category.name}
-                                                </Badge>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Tags */}
-                            {tags && tags.length > 0 && (
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Tags</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {tags.map((tag) => {
-                                            const isSelected = params.tagIds.includes(tag.id)
-                                            return (
-                                                <Badge
-                                                    key={tag.id}
-                                                    variant={isSelected ? 'default' : 'outline'}
-                                                    className={cn(
-                                                        'cursor-pointer transition-colors',
-                                                        isSelected ? 'hover:bg-primary/80' : 'hover:bg-muted'
-                                                    )}
-                                                    onClick={() => toggleTag(tag.id)}
-                                                >
-                                                    #{tag.name}
-                                                </Badge>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </CollapsibleContent>
-            </Collapsible>
+                <Select
+                    value={`${params.sortBy}:${params.sortDir}`}
+                    onValueChange={(val) => {
+                        const parts = val.split(':')
+                        const sortDir = parts[parts.length - 1] as 'asc' | 'desc'
+                        const sortBy = parts.slice(0, -1).join(':') as 'date' | 'amount' | 'created_at'
+                        setParams({ sortBy, sortDir, page: 1 })
+                    }}
+                >
+                    <SelectTrigger className="w-[180px] h-9">
+                        <ArrowUpDown className="size-4 mr-2" />
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {SORT_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
             <DataTable
                 data={transactions}
