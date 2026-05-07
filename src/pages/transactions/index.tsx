@@ -21,9 +21,8 @@ import {
 } from '@/components/ui/collapsible'
 import { createTransactionColumns } from '@/components/features/transactions'
 import { AmountText } from '@/components/shared/AmountText'
-import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags, useTransactionSummary } from '@/hooks'
-import { useAccounts } from '@/hooks'
-import { TransactionType, Transaction } from '@/types'
+import { useTransactions, useDeleteTransaction, useDuplicateTransaction, useCategories, useTags, useTransactionSummary, useAccounts } from '@/hooks'
+import { Transaction } from '@/types'
 import { cn } from '@/lib/utils'
 import { DateNavBlock } from './DateNavBlock'
 import {
@@ -127,6 +126,8 @@ export default function TransactionsPage() {
     const summaryFilters = {
         type: params.type ?? undefined,
         account_ids: params.accountIds.length > 0 ? params.accountIds : undefined,
+        category_ids: params.categoryIds.length > 0 ? params.categoryIds : undefined,
+        tag_ids: params.tagIds.length > 0 ? params.tagIds : undefined,
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
     }
