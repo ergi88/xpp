@@ -32,6 +32,7 @@ export interface Transaction extends BaseEntity {
 export interface TransactionFilters {
     type?: 'income' | 'expense' | 'transfer'
     account_id?: string
+    account_ids?: string[]
     category_id?: string
     category_ids?: string[]
     tag_ids?: string[]
@@ -46,7 +47,9 @@ export interface TransactionFilters {
 export interface TransactionSummary {
     income: number
     expense: number
+    transfer: number
     balance: number
     transactions_count: number
     currency: string
+    decimals: number
 }
