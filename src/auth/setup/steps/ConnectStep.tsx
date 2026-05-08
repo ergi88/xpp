@@ -27,8 +27,7 @@ import { adapter } from "@/lib/sheets";
 import { settingsApi } from "@/api";
 import { currenciesApi } from "@/api/currencies";
 
-const GAS_SCRIPT = `// Replace with your actual spreadsheet ID
-var SPREADSHEET_ID = '';
+const GAS_SCRIPT = `var SPREADSHEET_ID = '';
 
 function doGet(e) {
   try {
@@ -64,53 +63,52 @@ function doPost(e) {
     } else {
       throw new Error('Unknown action: ' + action);
     }
+    clearCache(resource);
     return jsonResponse(result);
   } catch (err) {
     return errorResponse(err.message);
   }
 }
 
-function getSheet(name) {
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-  }
-  return sheet;
-}
-
 function getAllRows(resource) {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'data_' + resource;
+  var cached = cache.get(cacheKey);
+  if (cached != null) return JSON.parse(cached);
+
   var sheet = getSheet(resource);
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-  var headers = data[0];
-  return data.slice(1).map(function(row) { return rowToObj(headers, row); });
+  var values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  var headers = values[0];
+  var result = values.slice(1).map(function(row) { return rowToObj(headers, row); });
+
+  // transactions/accounts can exceed 100KB cache limit — skip silently
+  try { cache.put(cacheKey, JSON.stringify(result), 1200); } catch(e) {}
+  return result;
 }
 
 function getRowById(resource, id) {
   var sheet = getSheet(resource);
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return null;
-  var headers = data[0];
-  var idCol = headers.indexOf('id');
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][idCol]) === String(id)) {
-      return rowToObj(headers, data[i]);
-    }
-  }
-  return null;
+  var rowIdx = findRowIndexById(sheet, id);
+  if (!rowIdx) return null;
+  var headers = getHeaders(sheet);
+  return rowToObj(headers, sheet.getRange(rowIdx, 1, 1, headers.length).getValues()[0]);
 }
 
 function createRow(resource, data) {
   var sheet = getSheet(resource);
-  var existing = sheet.getDataRange().getValues();
-  var headers;
-  if (existing.length === 0 || (existing.length === 1 && existing[0].every(function(c){ return c === ''; }))) {
+  var headers = getHeaders(sheet);
+
+  // app always sends id and created_at — these are fallbacks only
+  data.id = data.id || Utilities.getUuid();
+  data.created_at = data.created_at || new Date().toISOString();
+
+  if (headers.length === 0) {
     headers = Object.keys(data);
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  } else {
-    headers = existing[0];
   }
+
   var row = headers.map(function(h) { return data[h] !== undefined ? data[h] : ''; });
   sheet.appendRow(row);
   return data;
@@ -118,35 +116,48 @@ function createRow(resource, data) {
 
 function updateRow(resource, id, data) {
   var sheet = getSheet(resource);
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0];
-  var idCol = headers.indexOf('id');
-  for (var i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]) === String(id)) {
-      headers.forEach(function(h, j) {
-        if (data[h] !== undefined) {
-          sheet.getRange(i + 1, j + 1).setValue(data[h]);
-        }
-      });
-      var updated = rowToObj(headers, sheet.getRange(i + 1, 1, 1, headers.length).getValues()[0]);
-      return updated;
-    }
-  }
-  throw new Error('Row not found: ' + id);
+  var rowIdx = findRowIndexById(sheet, id);
+  if (!rowIdx) throw new Error('Row not found: ' + id);
+
+  var headers = getHeaders(sheet);
+  var current = sheet.getRange(rowIdx, 1, 1, headers.length).getValues()[0];
+  var updated = current.map(function(val, i) {
+    return data[headers[i]] !== undefined ? data[headers[i]] : val;
+  });
+  sheet.getRange(rowIdx, 1, 1, headers.length).setValues([updated]);
+  return rowToObj(headers, updated);
 }
 
 function deleteRow(resource, id) {
   var sheet = getSheet(resource);
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0];
-  var idCol = headers.indexOf('id');
-  for (var i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]) === String(id)) {
-      sheet.deleteRow(i + 1);
-      return;
-    }
-  }
-  throw new Error('Row not found: ' + id);
+  var rowIdx = findRowIndexById(sheet, id);
+  if (!rowIdx) throw new Error('ID not found: ' + id);
+  sheet.deleteRow(rowIdx);
+}
+
+function getSheet(name) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+function getHeaders(sheet) {
+  var lastCol = sheet.getLastColumn();
+  return lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+}
+
+function findRowIndexById(sheet, id) {
+  var headers = getHeaders(sheet);
+  var idCol = headers.indexOf('id') + 1;
+  if (idCol < 1) return null;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+  var finder = sheet.getRange(2, idCol, lastRow - 1, 1)
+    .createTextFinder(id).matchEntireCell(true).findNext();
+  return finder ? finder.getRow() : null;
+}
+
+function clearCache(resource) {
+  try { CacheService.getScriptCache().remove('data_' + resource); } catch(e) {}
 }
 
 function rowToObj(headers, row) {
@@ -156,16 +167,15 @@ function rowToObj(headers, row) {
 }
 
 function jsonResponse(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
+  return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
 function errorResponse(message) {
-  return ContentService
-    .createTextOutput(JSON.stringify({ error: message }))
+  return ContentService.createTextOutput(JSON.stringify({ error: message }))
     .setMimeType(ContentService.MimeType.JSON);
-}`;
+}
+`;
 
 const schema = z.object({
   gasUrl: z
