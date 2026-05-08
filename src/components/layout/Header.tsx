@@ -26,12 +26,12 @@ import {
   useUpdateSettings,
 } from "@/hooks";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from '@/auth/AuthContext';
+import { useAuth } from "@/auth/AuthContext";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import type { AccountType } from "@/types";
 
 export function Header() {
-  const { lock } = useAuth()
+  const { lock } = useAuth();
   const hideAmounts = useHideAmounts();
   const updateSettings = useUpdateSettings();
   const { data: balance } = useTotalBalance();
@@ -95,7 +95,7 @@ export function Header() {
                     value={balance.total_balance ?? 0}
                     decimals={balance.decimals ?? 2}
                     currency={balance.currency}
-                    className="font-mono font-medium"
+                    className="font-mono font-medium no-wrap"
                   />
                 </Button>
               </DropdownMenuTrigger>
@@ -131,7 +131,7 @@ export function Header() {
                             value={account.currentBalance ?? 0}
                             decimals={account.currency?.decimals ?? 2}
                             currency={account.currency?.symbol ?? ""}
-                            className="text-sm font-mono font-medium"
+                            className="text-sm font-mono font-medium no-wrap"
                           />
                         </div>
                       </DropdownMenuItem>
