@@ -7,43 +7,61 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle2, Loader2, ExternalLink } from 'lucide-react'
+import { CheckCircle2, Loader2, ExternalLink, Info } from 'lucide-react'
 import { STORAGE_KEYS } from '@/lib/auth'
+import { adapter } from '@/lib/sheets'
+import { settingsApi } from '@/api'
+import { currenciesApi } from '@/api/currencies'
 
 const schema = z.object({
-  gasUrl: z.string().url('Must be a valid URL').includes('script.google.com', { message: 'Must be a Google Apps Script URL' }),
+  gasUrl: z.string().url('Must be a valid URL').refine(v => v.includes('script.google.com'), { message: 'Must be a Google Apps Script URL' }),
   spreadsheetId: z.string().min(10, 'Spreadsheet ID is required'),
 })
 type FormData = z.infer<typeof schema>
 
 interface ConnectStepProps {
-  onNext: () => void
+  onNext: (hasExistingData?: boolean) => void
 }
 
 export function ConnectStep({ onNext }: ConnectStepProps) {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
+  const [hasExistingAccounts, setHasExistingAccounts] = useState(false)
+  const [baseCurrencyCode, setBaseCurrencyCode] = useState<string | null>(null)
 
   const { register, getValues, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
-  const handleTest = async () => {
+  const handleValidate = async () => {
     const { gasUrl, spreadsheetId } = getValues()
     if (!gasUrl || !spreadsheetId) return
     setTestState('loading')
     setTestError('')
+    setHasExistingAccounts(false)
+    setBaseCurrencyCode(null)
+
     try {
-      const url = new URL(gasUrl)
-      url.searchParams.set('resource', 'currencies')
-      url.searchParams.set('action', 'getAll')
-      const res = await fetch(url.toString())
-      const json = await res.json()
-      if (json.error) throw new Error(json.error)
       localStorage.setItem(STORAGE_KEYS.GAS_URL, gasUrl)
       localStorage.setItem(STORAGE_KEYS.SPREADSHEET_ID, spreadsheetId)
+
+      const [accountRows, currencies] = await Promise.all([
+        adapter.getAll('accounts'),
+        currenciesApi.getAll(),
+        settingsApi.syncFromSheet(),
+      ])
+
+      const base = currencies.find(c => c.isBase)
+      if (base) setBaseCurrencyCode(base.code)
+
+      if (accountRows.length > 0) {
+        setHasExistingAccounts(true)
+      }
+
       setTestState('success')
     } catch (err) {
+      localStorage.removeItem(STORAGE_KEYS.GAS_URL)
+      localStorage.removeItem(STORAGE_KEYS.SPREADSHEET_ID)
       setTestState('error')
       setTestError(err instanceof Error ? err.message : 'Connection failed')
     }
@@ -82,16 +100,32 @@ export function ConnectStep({ onNext }: ConnectStepProps) {
       {testState === 'success' && (
         <Alert>
           <CheckCircle2 className="size-4" />
-          <AlertDescription>Connection successful!</AlertDescription>
+          <AlertDescription>
+            Connected successfully
+            {baseCurrencyCode && ` · Base currency: ${baseCurrencyCode}`}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {hasExistingAccounts && (
+        <Alert>
+          <Info className="size-4" />
+          <AlertDescription>
+            Existing accounts found — currency and account setup will be skipped.
+          </AlertDescription>
         </Alert>
       )}
 
       <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={handleTest} disabled={testState === 'loading'}>
+        <Button type="button" variant="outline" onClick={handleValidate} disabled={testState === 'loading'}>
           {testState === 'loading' && <Loader2 className="size-4 mr-2 animate-spin" />}
-          Test connection
+          Validate
         </Button>
-        <Button type="button" onClick={onNext} disabled={testState !== 'success'}>
+        <Button
+          type="button"
+          onClick={() => onNext(hasExistingAccounts)}
+          disabled={testState !== 'success'}
+        >
           Continue
         </Button>
       </div>

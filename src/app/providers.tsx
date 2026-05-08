@@ -1,7 +1,7 @@
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { queryClient } from '@/lib/query-client'
-import { persister } from '@/lib/persister'
-import { Toaster } from 'sonner'
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { queryClient } from "@/lib/query-client";
+import { persister } from "@/lib/persister";
+import { Toaster } from "sonner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-      <Toaster position="top-right" richColors />
+      <Toaster position="bottom-center" richColors />
     </PersistQueryClientProvider>
-  )
+  );
 }

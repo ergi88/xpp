@@ -25,6 +25,9 @@ export const currenciesApi = {
   },
 
   create: async (data: CurrencyFormData): Promise<Currency> => {
+    const existing = await currenciesApi.getAll()
+    const found = existing.find(c => c.code === data.code)
+    if (found) return found
     const r = await adapter.create('currencies', {
       id: crypto.randomUUID(),
       code: data.code,

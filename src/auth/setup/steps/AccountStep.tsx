@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { AccountForm } from '@/components/features/accounts/AccountForm'
 import { accountsApi } from '@/api'
-import { STORAGE_KEYS } from '@/lib/auth'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { AccountFormData } from '@/schemas'
 
@@ -19,7 +18,6 @@ export function AccountStep({ onNext }: AccountStepProps) {
     setError('')
     try {
       await accountsApi.create(data)
-      localStorage.setItem(STORAGE_KEYS.SETUP_COMPLETE, 'true')
       onNext()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account')

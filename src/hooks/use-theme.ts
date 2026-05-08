@@ -39,7 +39,7 @@ function getThemeSnapshot(): Theme {
     return currentTheme
 }
 
-function setThemeValue(nextValue: Theme | ((prev: Theme) => Theme)) {
+export function setThemeValue(nextValue: Theme | ((prev: Theme) => Theme)) {
     const previousTheme = getThemeSnapshot()
     const nextTheme =
         typeof nextValue === 'function' ? nextValue(previousTheme) : nextValue

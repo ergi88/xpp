@@ -7,6 +7,7 @@ export type SheetName =
   | 'recurring'
   | 'debts'
   | 'currencies'
+  | 'settings'
 
 export interface DataAdapter {
   getAll(sheet: SheetName): Promise<Record<string, unknown>[]>

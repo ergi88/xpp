@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ISO_CURRENCIES, IsoCurrency } from '@/lib/iso-currencies'
-import { currenciesApi } from '@/api'
+import { currenciesApi, settingsApi } from '@/api'
 import { useTheme } from '@/hooks/use-theme'
 
 interface CurrencyStepProps {
@@ -39,6 +39,7 @@ export function CurrencyStep({ onNext }: CurrencyStepProps) {
         isBase: true,
         rate: 1,
       })
+      settingsApi.syncThemeToSheet(theme)
       onNext()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create currency')

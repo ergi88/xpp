@@ -35,6 +35,16 @@ async function loadLookups() {
   }
 }
 
+function toLocalDateString(raw: unknown): string {
+  if (!raw) return ''
+  const d = new Date(raw as string)
+  if (isNaN(d.getTime())) return String(raw).slice(0, 10)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function toTransaction(
   r: Record<string, unknown>,
   accountMap: Map<string, unknown>,
@@ -49,7 +59,7 @@ function toTransaction(
     toAmount: r.to_amount ? Number(r.to_amount) : undefined,
     exchangeRate: r.exchange_rate ? Number(r.exchange_rate) : undefined,
     description: r.description as string | undefined,
-    date: r.date as string,
+    date: toLocalDateString(r.date),
     account: accountMap.get(r.account_id as string) as Transaction['account'],
     toAccount: r.to_account_id ? accountMap.get(r.to_account_id as string) as Transaction['toAccount'] : undefined,
     category: r.category_id ? categoryMap.get(r.category_id as string) as Transaction['category'] : undefined,
@@ -62,13 +72,14 @@ function toTransaction(
 function applyFilters(txns: Transaction[], filters: TransactionFilters): Transaction[] {
   let result = txns
   if (filters.type) result = result.filter(t => t.type === filters.type)
+  if (filters.types?.length) result = result.filter(t => filters.types!.includes(t.type))
   if (filters.account_id) result = result.filter(t => t.account?.id === String(filters.account_id))
   if (filters.account_ids?.length) result = result.filter(t => !!t.account && filters.account_ids!.includes(t.account.id))
   if (filters.category_id) result = result.filter(t => t.category?.id === String(filters.category_id))
   if (filters.category_ids?.length) result = result.filter(t => t.category && filters.category_ids!.map(String).includes(t.category.id))
   if (filters.tag_ids?.length) result = result.filter(t => t.tags.some(tag => filters.tag_ids!.map(String).includes(tag.id)))
-  if (filters.start_date) result = result.filter(t => t.date >= filters.start_date!)
-  if (filters.end_date) result = result.filter(t => t.date <= filters.end_date!)
+  if (filters.start_date) result = result.filter(t => t.date.slice(0, 10) >= filters.start_date!)
+  if (filters.end_date) result = result.filter(t => t.date.slice(0, 10) <= filters.end_date!)
   if (filters.sort_by) {
     const dir = filters.sort_direction === 'asc' ? 1 : -1
     result = [...result].sort((a, b) => {
