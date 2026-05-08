@@ -16,16 +16,33 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
+function isLockEnabled(): boolean {
+  try {
+    const stored = localStorage.getItem('xpp_settings')
+    if (!stored) return true
+    const parsed = JSON.parse(stored)
+    return parsed.lock_enabled !== false
+  } catch {
+    return true
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLocked, setIsLocked] = useState(true)
 
-  const lock = useCallback(() => setIsLocked(true), [])
+  const lock = useCallback(() => {
+    if (isLockEnabled()) setIsLocked(true)
+  }, [])
   const unlock = useCallback(() => {
     localStorage.setItem(STORAGE_KEYS.LAST_ACTIVITY, String(Date.now()))
     setIsLocked(false)
   }, [])
 
   useEffect(() => {
+    if (!isLockEnabled()) {
+      setIsLocked(false)
+      return
+    }
     const timeout = Number(localStorage.getItem(STORAGE_KEYS.LOCK_TIMEOUT) ?? '5')
     const lastActivity = Number(localStorage.getItem(STORAGE_KEYS.LAST_ACTIVITY) ?? '0')
     const elapsed = (Date.now() - lastActivity) / 60000

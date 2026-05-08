@@ -39,6 +39,10 @@ function getThemeSnapshot(): Theme {
     return currentTheme
 }
 
+export function initTheme() {
+    getThemeSnapshot()
+}
+
 export function setThemeValue(nextValue: Theme | ((prev: Theme) => Theme)) {
     const previousTheme = getThemeSnapshot()
     const nextTheme =

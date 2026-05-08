@@ -59,7 +59,7 @@ export default function SystemSettingsPage() {
 
   return (
     <Page title="System Settings">
-      <PageHeader title="System" description="Configure system settings" />
+      <PageHeader title="System" />
 
       <FormWrapper>
         <div className="space-y-6">
@@ -127,14 +127,47 @@ export default function SystemSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Security</CardTitle>
-              <CardDescription>
-                Configure auto-lock behavior
-              </CardDescription>
+              <CardDescription>Configure auto-lock behavior</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {isLoading ? (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-72" />
+                  </div>
+                  <Skeleton className="h-5 w-8" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="lock-enabled"
+                      className="text-base font-medium"
+                    >
+                      Lock screen
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Require authentication when the app is opened or after
+                      inactivity.
+                    </p>
+                  </div>
+                  <Switch
+                    id="lock-enabled"
+                    checked={settings?.lock_enabled ?? true}
+                    onCheckedChange={(checked) =>
+                      updateSettings.mutate({ lock_enabled: checked })
+                    }
+                    disabled={updateSettings.isPending}
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                  <Label htmlFor="lockTimeout" className="text-base font-medium">
+                  <Label
+                    htmlFor="lockTimeout"
+                    className="text-base font-medium"
+                  >
                     Auto-lock timeout
                   </Label>
                   <p className="text-sm text-muted-foreground">
@@ -148,9 +181,13 @@ export default function SystemSettingsPage() {
                   max={60}
                   className="w-24"
                   defaultValue={settings?.lock_timeout_minutes ?? 5}
-                  onBlur={e => {
-                    const val = Math.min(60, Math.max(1, Number(e.target.value)))
-                    updateSettings.mutate({ lock_timeout_minutes: val })
+                  disabled={!(settings?.lock_enabled ?? true)}
+                  onBlur={(e) => {
+                    const val = Math.min(
+                      60,
+                      Math.max(1, Number(e.target.value)),
+                    );
+                    updateSettings.mutate({ lock_timeout_minutes: val });
                   }}
                 />
               </div>
@@ -198,7 +235,10 @@ export default function SystemSettingsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {currencies.map((currency) => (
-                        <SelectItem key={currency.id} value={String(currency.id)}>
+                        <SelectItem
+                          key={currency.id}
+                          value={String(currency.id)}
+                        >
                           {currency.code} · {currency.name}
                         </SelectItem>
                       ))}

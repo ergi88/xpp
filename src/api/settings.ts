@@ -8,6 +8,7 @@ const THEME_KEY = 'theme'
 const defaults: Settings = {
   auto_update_currencies: false,
   hide_amounts: false,
+  lock_enabled: true,
   lock_timeout_minutes: 5,
 }
 
@@ -60,6 +61,8 @@ export const settingsApi = {
         updates.auto_update_currencies = map.auto_update_currencies === 'true'
       if (map.hide_amounts !== undefined)
         updates.hide_amounts = map.hide_amounts === 'true'
+      if (map.lock_enabled !== undefined)
+        updates.lock_enabled = map.lock_enabled !== 'false'
       if (map.lock_timeout_minutes !== undefined)
         updates.lock_timeout_minutes = Number(map.lock_timeout_minutes)
 
