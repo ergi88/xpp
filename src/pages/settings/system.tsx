@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Page, PageHeader, FormWrapper } from "@/components/shared";
 import {
   Card,
@@ -11,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -25,7 +30,200 @@ import {
   useUpdateSettings,
 } from "@/hooks";
 import { useTheme } from "@/hooks/use-theme";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Fingerprint, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  STORAGE_KEYS,
+  sha256,
+  registerWebAuthn,
+  isWebAuthnSupported,
+  clearAuthStorage,
+} from "@/lib/auth";
+import { settingsApi } from "@/api";
+
+const pinSchema = z
+  .object({
+    email: z.string().email("Must be a valid email"),
+    pin: z
+      .string()
+      .min(4, "PIN must be 4–6 digits")
+      .max(6)
+      .regex(/^\d+$/, "Digits only"),
+    pinConfirm: z.string(),
+  })
+  .refine((d) => d.pin === d.pinConfirm, {
+    message: "PINs do not match",
+    path: ["pinConfirm"],
+  });
+type PinFormData = z.infer<typeof pinSchema>;
+
+function SecuritySetupForm() {
+  const existingMethod = localStorage.getItem(STORAGE_KEYS.AUTH_METHOD);
+  const existingEmail = localStorage.getItem(STORAGE_KEYS.AUTH_EMAIL) ?? "";
+
+  const [pinMode, setPinMode] = useState(!isWebAuthnSupported());
+  const [webAuthnLoading, setWebAuthnLoading] = useState(false);
+  const [webAuthnError, setWebAuthnError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    formState: { errors },
+  } = useForm<PinFormData>({
+    resolver: zodResolver(pinSchema),
+    defaultValues: { email: existingEmail },
+  });
+
+  const saveEmail = (email: string) => {
+    localStorage.setItem(STORAGE_KEYS.AUTH_EMAIL, email);
+    settingsApi.syncAuthEmailToSheet(email);
+  };
+
+  const handleWebAuthn = async () => {
+    const { email } = getValues();
+    if (!email) return;
+    setWebAuthnLoading(true);
+    setWebAuthnError("");
+    try {
+      saveEmail(email);
+      const credentialId = await registerWebAuthn(email);
+      localStorage.setItem(STORAGE_KEYS.AUTH_CREDENTIAL_ID, credentialId);
+      localStorage.setItem(STORAGE_KEYS.AUTH_METHOD, "webauthn");
+      setSuccess(true);
+    } catch (err) {
+      setWebAuthnError(
+        err instanceof Error ? err.message : "WebAuthn setup failed",
+      );
+    } finally {
+      setWebAuthnLoading(false);
+    }
+  };
+
+  const onPinSubmit = async (data: PinFormData) => {
+    saveEmail(data.email);
+    const hash = await sha256(data.pin);
+    localStorage.setItem(STORAGE_KEYS.AUTH_PIN_HASH, hash);
+    localStorage.setItem(STORAGE_KEYS.AUTH_METHOD, "pin");
+    setSuccess(true);
+  };
+
+  if (success) {
+    return (
+      <Alert>
+        <CheckCircle2 className="size-4" />
+        <AlertDescription>Security method saved successfully.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {existingMethod && (
+        <p className="text-sm text-muted-foreground">
+          Current method:{" "}
+          <span className="font-medium text-foreground">
+            {existingMethod === "webauthn" ? "Biometrics / Passkey" : "PIN"}
+          </span>
+          . Set up a new one below to replace it.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="sec-email">Email</Label>
+        <Input
+          id="sec-email"
+          type="email"
+          placeholder="you@example.com"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-xs text-destructive">{errors.email.message}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Used to verify identity if you forget your passkey. Stored in your
+          sheet.
+        </p>
+      </div>
+
+      {!pinMode ? (
+        <div className="flex flex-col gap-3">
+          {webAuthnError && (
+            <Alert variant="destructive">
+              <AlertDescription>{webAuthnError}</AlertDescription>
+            </Alert>
+          )}
+          <Button
+            type="button"
+            onClick={handleWebAuthn}
+            disabled={webAuthnLoading}
+            className="gap-2"
+          >
+            {webAuthnLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Fingerprint className="size-4" />
+            )}
+            Set up Face ID / fingerprint / passkey
+          </Button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline self-start"
+            onClick={() => setPinMode(true)}
+          >
+            Use PIN instead
+          </button>
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit(onPinSubmit)}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="sec-pin">PIN (4–6 digits)</Label>
+            <Input
+              id="sec-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="••••••"
+              {...register("pin")}
+            />
+            {errors.pin && (
+              <p className="text-xs text-destructive">{errors.pin.message}</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="sec-pin-confirm">Confirm PIN</Label>
+            <Input
+              id="sec-pin-confirm"
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="••••••"
+              {...register("pinConfirm")}
+            />
+            {errors.pinConfirm && (
+              <p className="text-xs text-destructive">
+                {errors.pinConfirm.message}
+              </p>
+            )}
+          </div>
+          <Button type="submit">Save PIN</Button>
+          {isWebAuthnSupported() && (
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline self-start"
+              onClick={() => setPinMode(false)}
+            >
+              Use biometrics instead
+            </button>
+          )}
+        </form>
+      )}
+    </div>
+  );
+}
 
 export default function SystemSettingsPage() {
   const { data: settings, isLoading } = useSettings();
@@ -196,6 +394,18 @@ export default function SystemSettingsPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Authentication</CardTitle>
+              <CardDescription>
+                Set up or change your passkey or PIN
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SecuritySetupForm />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Base Currency</CardTitle>
               <CardDescription>
                 Change the primary currency used across the app without storing
@@ -310,6 +520,28 @@ export default function SystemSettingsPage() {
                   Open Spreadsheet
                   <ExternalLink className="h-4 w-4" />
                 </a>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle>Reset Setup</CardTitle>
+              <CardDescription>
+                Clears all local app data and restarts the setup wizard. Your
+                spreadsheet data is not affected.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  clearAuthStorage();
+                  localStorage.removeItem("xpp_settings");
+                  window.location.reload();
+                }}
+              >
+                Reset &amp; restart setup
               </Button>
             </CardContent>
           </Card>

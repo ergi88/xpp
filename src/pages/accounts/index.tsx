@@ -3,17 +3,18 @@ import { createAccountColumns } from "@/components/features/accounts";
 import { useAccounts, useDeleteAccount, useCurrencies } from "@/hooks";
 
 export default function AccountsPage() {
-  const { data: accounts, isLoading } = useAccounts({ exclude_debts: true });
-  console.log("🚀 ~ AccountsPage ~ accounts:", { accounts });
+  const { data: accounts, isLoading } = useAccounts();
   const deleteAccount = useDeleteAccount();
   const isReadOnly = false;
   const { data: currencies } = useCurrencies();
 
-  const enrichedAccounts = accounts?.map((a) => ({
-    ...a,
-    currency:
-      currencies?.find((c) => c.id.toString() === a.currencyId) || undefined,
-  }));
+  const enrichedAccounts = accounts
+    ?.filter((a) => a.type !== "debt")
+    .map((a) => ({
+      ...a,
+      currency:
+        currencies?.find((c) => c.id.toString() === a.currencyId) || undefined,
+    }));
 
   const columns = createAccountColumns(
     (id) => deleteAccount.mutate(id),

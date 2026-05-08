@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import type { Budget, BudgetFormData } from '@/types'
 
@@ -32,7 +33,7 @@ export const budgetsApi = {
 
   create: async (data: BudgetFormData): Promise<Budget> => {
     const r = await adapter.create('budgets', {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       name: data.name,
       amount: data.amount,
       currency_id: data.currency_id ?? '',

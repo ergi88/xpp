@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Fingerprint, Loader2 } from 'lucide-react'
 import { STORAGE_KEYS, sha256, registerWebAuthn, isWebAuthnSupported } from '@/lib/auth'
+import { settingsApi } from '@/api'
 
 const schema = z.object({
   email: z.string().email('Must be a valid email'),
@@ -32,9 +33,9 @@ export function SecureStep({ onNext }: SecureStepProps) {
     resolver: zodResolver(schema),
   })
 
-  const saveEmail = () => {
-    const { email } = getValues()
+  const saveEmail = (email: string) => {
     localStorage.setItem(STORAGE_KEYS.AUTH_EMAIL, email)
+    settingsApi.syncAuthEmailToSheet(email)
   }
 
   const handleWebAuthn = async () => {
@@ -43,7 +44,7 @@ export function SecureStep({ onNext }: SecureStepProps) {
     setWebAuthnLoading(true)
     setWebAuthnError('')
     try {
-      saveEmail()
+      saveEmail(email)
       const credentialId = await registerWebAuthn(email)
       localStorage.setItem(STORAGE_KEYS.AUTH_CREDENTIAL_ID, credentialId)
       localStorage.setItem(STORAGE_KEYS.AUTH_METHOD, 'webauthn')
@@ -56,7 +57,7 @@ export function SecureStep({ onNext }: SecureStepProps) {
   }
 
   const onPinSubmit = async (data: FormData) => {
-    saveEmail()
+    saveEmail(data.email)
     const hash = await sha256(data.pin)
     localStorage.setItem(STORAGE_KEYS.AUTH_PIN_HASH, hash)
     localStorage.setItem(STORAGE_KEYS.AUTH_METHOD, 'pin')
@@ -107,6 +108,14 @@ export function SecureStep({ onNext }: SecureStepProps) {
           )}
         </form>
       )}
+
+      <button
+        type="button"
+        className="text-xs text-muted-foreground underline self-start mt-2"
+        onClick={onNext}
+      >
+        Set up later in settings
+      </button>
     </div>
   )
 }

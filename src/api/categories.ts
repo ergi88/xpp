@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import { getBaseCurrencyMeta } from './accounts'
 import type { Category, CategoryFormData, CategorySummaryResponse } from '@/types'
@@ -25,7 +26,7 @@ export const categoriesApi = {
 
   create: async (data: CategoryFormData): Promise<Category> => {
     const r = await adapter.create('categories', {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       name: data.name,
       type: data.type,
       icon: data.icon,

@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import type { Tag, TagFormData } from '@/types'
 
@@ -21,7 +22,7 @@ export const tagsApi = {
 
   create: async (data: TagFormData): Promise<Tag> => {
     const r = await adapter.create('tags', {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       name: data.name,
       created_at: new Date().toISOString(),
     })

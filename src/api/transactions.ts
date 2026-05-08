@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import {
   accountsApi,
@@ -165,7 +166,7 @@ export const transactionsApi = {
   },
 
   create: async (data: TransactionFormData): Promise<Transaction> => {
-    const id = crypto.randomUUID()
+    const id = uuidv4()
     const row = {
       id,
       type: data.type,

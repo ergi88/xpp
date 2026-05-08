@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from "./client";
 import { currenciesApi } from "./currencies";
 import {
@@ -221,7 +222,7 @@ export const accountsApi = {
         : (data.initial_balance ?? 0);
     const [r, { currencyMap }] = await Promise.all([
       adapter.create("accounts", {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         name: data.name,
         type: data.type,
         currency_id: data.currency_id,

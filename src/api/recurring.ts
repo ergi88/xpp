@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import type { RecurringTransaction } from '@/types'
 import type { RecurringFormData } from '@/schemas'
@@ -67,7 +68,7 @@ export const recurringApi = {
 
   create: async (data: RecurringFormData): Promise<RecurringTransaction> => {
     await adapter.create('recurring', {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       type: data.type,
       account_id: data.account_id,
       to_account_id: data.to_account_id ?? '',

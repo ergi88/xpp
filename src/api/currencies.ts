@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import type { Currency, CurrencyFormData } from '@/types'
 
@@ -29,7 +30,7 @@ export const currenciesApi = {
     const found = existing.find(c => c.code === data.code)
     if (found) return found
     const r = await adapter.create('currencies', {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       code: data.code,
       name: data.name,
       symbol: data.symbol,

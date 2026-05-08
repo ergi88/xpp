@@ -56,6 +56,10 @@ export const settingsApi = {
         setThemeValue(map[THEME_KEY] as Theme)
       }
 
+      if (map.auth_email) {
+        localStorage.setItem('xpp_auth_email', map.auth_email)
+      }
+
       const updates: Partial<Settings> = {}
       if (map.auto_update_currencies !== undefined)
         updates.auto_update_currencies = map.auto_update_currencies === 'true'
@@ -78,5 +82,9 @@ export const settingsApi = {
 
   syncThemeToSheet: (theme: string): void => {
     writeToSheet(THEME_KEY, theme).catch(() => {})
+  },
+
+  syncAuthEmailToSheet: (email: string): void => {
+    writeToSheet('auth_email', email).catch(() => {})
   },
 }

@@ -20,7 +20,11 @@ export function LockScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (method === "webauthn") handleWebAuthn();
+    if (!method) {
+      unlock();
+    } else if (method === "webauthn") {
+      handleWebAuthn();
+    }
   }, []);
 
   const handleWebAuthn = async () => {

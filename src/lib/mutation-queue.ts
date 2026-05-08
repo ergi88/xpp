@@ -1,4 +1,5 @@
 // src/lib/mutation-queue.ts
+import { v4 as uuidv4 } from 'uuid'
 import { get, set } from 'idb-keyval'
 
 export type QueuedMutation = {
@@ -20,7 +21,7 @@ export async function enqueue(
   mutation: Omit<QueuedMutation, 'id' | 'timestamp'>,
 ): Promise<void> {
   const queue = await getQueue()
-  queue.push({ ...mutation, id: crypto.randomUUID(), timestamp: Date.now() })
+  queue.push({ ...mutation, id: uuidv4(), timestamp: Date.now() })
   await set(KEY, queue)
 }
 

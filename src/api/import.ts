@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import Papa from 'papaparse'
 import { transactionsApi } from './transactions'
 import { categoriesApi } from './categories'
@@ -21,7 +22,7 @@ export const importApi = {
           if (all.length === 0) return reject(new Error('Empty file'))
           const headers = all[0]
           const previewRows = all.slice(1, 6)
-          const importId = crypto.randomUUID()
+          const importId = uuidv4()
           parsedCache.set(importId, { headers, rows: all.slice(1) })
           resolve({
             importId,
