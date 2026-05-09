@@ -148,7 +148,7 @@ export function MobileFooterNav() {
   if (!isMobile || !enabled || keyboardVisible) return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <nav className="fixed inset-x-0 bottom-0 pb-4 z-40 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="grid grid-cols-5 items-center gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2">
         <FooterNavItem {...FOOTER_ITEMS[0]} showLabel={showLabels} />
         <FooterNavItem {...FOOTER_ITEMS[1]} showLabel={showLabels} />

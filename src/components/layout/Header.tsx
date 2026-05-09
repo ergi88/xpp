@@ -100,11 +100,11 @@ export function Header() {
                     value={balance.total_balance ?? 0}
                     decimals={balance.decimals ?? 2}
                     currency={balance.currency}
-                    className="font-mono font-medium no-wrap"
+                    className="font-mono font-medium flex-nowrap"
                   />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuContent align="end" className="w-80">
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">
                   Active accounts
                 </div>
@@ -117,7 +117,7 @@ export function Header() {
                     return (
                       <DropdownMenuItem
                         key={account.id}
-                        className="flex items-center justify-between gap-3"
+                        className="flex items-center justify-between gap-6"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <div
@@ -131,12 +131,12 @@ export function Header() {
                             {account.name}
                           </span>
                         </div>
-                        <div className="text-right flex no-wrap items-center gap-1">
+                        <div className="text-right flex flex-nowrap items-center gap-1">
                           <AmountText
                             value={account.currentBalance ?? 0}
                             decimals={account.currency?.decimals ?? 2}
                             currency={account.currency?.symbol ?? ""}
-                            className="text-sm font-mono font-medium no-wrap"
+                            className="text-sm font-mono font-medium flex-nowrap"
                           />
                         </div>
                       </DropdownMenuItem>

@@ -1,24 +1,30 @@
-import { useParams, Link } from 'react-router-dom'
-import { Pencil, ArrowLeft, Plus, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useAccount, useTransactions, useCurrencies } from '@/hooks'
-import { AccountCard } from '@/components/features/accounts/AccountCard'
-import { AccountStats } from '@/components/features/accounts/AccountStats'
-import { AmountText } from '@/components/shared/AmountText'
-import { ACCOUNT_TYPE_CONFIG } from '@/constants'
-import { cn } from '@/lib/utils'
+import { useParams, Link } from "react-router-dom";
+import { Pencil, ArrowLeft, Plus, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAccount, useTransactions, useCurrencies } from "@/hooks";
+import { AccountCard } from "@/components/features/accounts/AccountCard";
+import { AccountStats } from "@/components/features/accounts/AccountStats";
+import { AmountText } from "@/components/shared/AmountText";
+import { ACCOUNT_TYPE_CONFIG } from "@/constants";
+import { cn } from "@/lib/utils";
 
 export default function AccountViewPage() {
-  const { id } = useParams<{ id: string }>()
-  const { data: account, isLoading } = useAccount(id!)
-  const { data: currencies } = useCurrencies()
-  const { data: txnsData } = useTransactions({ account_id: id, per_page: 10 })
+  const { id } = useParams<{ id: string }>();
+  const { data: account, isLoading } = useAccount(id!);
+  const { data: currencies } = useCurrencies();
+  const { data: txnsData } = useTransactions({ account_id: id, per_page: 10 });
 
-  const enrichedAccount = account && currencies
-    ? { ...account, currency: currencies.find((c) => c.id.toString() === account.currencyId) }
-    : account
+  const enrichedAccount =
+    account && currencies
+      ? {
+          ...account,
+          currency: currencies.find(
+            (c) => c.id.toString() === account.currencyId,
+          ),
+        }
+      : account;
 
   if (isLoading) {
     return (
@@ -27,19 +33,19 @@ export default function AccountViewPage() {
         <Skeleton className="h-48 w-full rounded-2xl" />
         <Skeleton className="h-24 w-full" />
       </div>
-    )
+    );
   }
 
   if (!enrichedAccount) {
-    return <div className="p-6 text-muted-foreground">Account not found.</div>
+    return <div className="p-6 text-muted-foreground">Account not found.</div>;
   }
 
-  const config = ACCOUNT_TYPE_CONFIG[enrichedAccount.type]
-  const Icon = config.icon
-  const transactions = txnsData?.data ?? []
+  const config = ACCOUNT_TYPE_CONFIG[enrichedAccount.type];
+  const Icon = config.icon;
+  const transactions = txnsData?.data ?? [];
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
+    <div className="md:p-6 max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -48,7 +54,7 @@ export default function AccountViewPage() {
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
-          <div className={cn('p-2 rounded-lg', config.color)}>
+          <div className={cn("p-2 rounded-lg", config.color)}>
             <Icon className="size-5" />
           </div>
           <div>
@@ -100,17 +106,19 @@ export default function AccountViewPage() {
                 className="flex items-center justify-between rounded-lg border px-4 py-3"
               >
                 <div>
-                  <p className="font-medium text-sm">{t.description ?? 'No description'}</p>
+                  <p className="font-medium text-sm">
+                    {t.description ?? "No description"}
+                  </p>
                   <p className="text-xs text-muted-foreground">{t.date}</p>
                 </div>
                 <p
                   className={cn(
-                    'font-mono font-medium',
-                    t.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    "font-mono font-medium",
+                    t.type === "income" ? "text-green-600" : "text-red-600",
                   )}
                 >
                   <AmountText
-                    value={t.type === 'income' ? t.amount : -t.amount}
+                    value={t.type === "income" ? t.amount : -t.amount}
                     decimals={enrichedAccount.currency?.decimals ?? 2}
                     currency={enrichedAccount.currency?.symbol}
                     signDisplay="always"
@@ -137,9 +145,10 @@ export default function AccountViewPage() {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Create a recurring expense to track monthly maintenance or subscription fees for this account.
+          Create a recurring expense to track monthly maintenance or
+          subscription fees for this account.
         </p>
       </div>
     </div>
-  )
+  );
 }
