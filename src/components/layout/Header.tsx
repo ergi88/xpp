@@ -29,9 +29,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import type { AccountType } from "@/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
   const { lock } = useAuth();
+  const isMobile = useIsMobile();
   const hideAmounts = useHideAmounts();
   const updateSettings = useUpdateSettings();
   const { data: balance } = useTotalBalance();
@@ -49,7 +51,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 h-14 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="flex h-full items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
@@ -57,34 +59,36 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-1">
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">Transaction</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => handleCreateTransaction("income")}
-              >
-                <ArrowDownLeft className="size-4 mr-2 text-green-600" />
-                Income
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleCreateTransaction("expense")}
-              >
-                <ArrowUpRight className="size-4 mr-2 text-red-600" />
-                Expense
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleCreateTransaction("transfer")}
-              >
-                <ArrowLeftRight className="size-4 mr-2 text-blue-600" />
-                Transfer
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!isMobile && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="gap-1">
+                  <Plus className="size-4" />
+                  <span className="hidden sm:inline">Transaction</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleCreateTransaction("income")}
+                >
+                  <ArrowDownLeft className="size-4 mr-2 text-green-600" />
+                  Income
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleCreateTransaction("expense")}
+                >
+                  <ArrowUpRight className="size-4 mr-2 text-red-600" />
+                  Expense
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleCreateTransaction("transfer")}
+                >
+                  <ArrowLeftRight className="size-4 mr-2 text-blue-600" />
+                  Transfer
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {balance && (
             <DropdownMenu>

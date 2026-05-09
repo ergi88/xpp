@@ -2,22 +2,15 @@ import { useState, useEffect } from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
 import {
   Home,
-  FolderTree,
-  Coins,
   CreditCard,
   Settings,
   ChevronDown,
   Receipt,
   PiggyBank,
-  Hash,
   BarChart3,
   HandCoins,
-  Cog,
   Repeat,
-  Upload,
   LucideIcon,
-  Github,
-  ExternalLink,
   Download,
 } from "lucide-react";
 import { SyncStatus } from "@/components/shared/SyncStatus";
@@ -48,7 +41,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -63,28 +55,19 @@ interface MenuItem {
 const mainItems: MenuItem[] = [
   { to: "/", icon: Home, label: "Dashboard" },
   { to: "/transactions", icon: Receipt, label: "Transactions" },
-  { to: "/recurring", icon: Repeat, label: "Recurring" },
   { to: "/budgets", icon: PiggyBank, label: "Budgets" },
-  { to: "/debts", icon: HandCoins, label: "Debts" },
   { to: "/reports", icon: BarChart3, label: "Reports" },
   { to: "/accounts", icon: CreditCard, label: "Accounts" },
 ];
 
-const organizationItems: MenuItem[] = [
-  { to: "/categories", icon: FolderTree, label: "Categories" },
-  { to: "/currencies", icon: Coins, label: "Currencies" },
-  { to: "/tags", icon: Hash, label: "Tags" },
-];
-
-const settingsItems: MenuItem[] = [
-  { to: "/settings/system", icon: Cog, label: "System" },
-  { to: "/settings/import", icon: Upload, label: "Import" },
+const transactionItems: MenuItem[] = [
+  { to: "/recurring", icon: Repeat, label: "Recurring" },
+  { to: "/debts", icon: HandCoins, label: "Debts" },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
-  const [organizationOpen, setOrganizationOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [transactionsOpen, setTransactionsOpen] = useState(false);
   const { setOpenMobile } = useSidebar();
   const { canInstall, install } = usePWAInstall();
 
@@ -97,6 +80,16 @@ export function AppSidebar() {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  const isTransactionsSection =
+    location.pathname.startsWith("/recurring") ||
+    location.pathname.startsWith("/debts");
+
+  useEffect(() => {
+    if (isTransactionsSection) {
+      setTransactionsOpen(true);
+    }
+  }, [isTransactionsSection]);
 
   return (
     <Sidebar collapsible="icon">
@@ -144,26 +137,27 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupLabel>Transactions</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <Collapsible
-                open={organizationOpen}
-                onOpenChange={setOrganizationOpen}
+                open={transactionsOpen}
+                onOpenChange={setTransactionsOpen}
                 className="group/collapsible"
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip="Organization">
-                      <FolderTree />
-                      <span>Organization</span>
+                    <SidebarMenuButton tooltip="Transactions">
+                      <Receipt />
+                      <span>Transactions</span>
                       <ChevronDown
-                        className={`ml-auto transition-transform duration-200 ${organizationOpen ? "" : "-rotate-90"}`}
+                        className={`ml-auto transition-transform duration-200 ${transactionsOpen ? "" : "-rotate-90"}`}
                       />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                      {organizationItems.map(({ to, icon: Icon, label }) => (
+                      {transactionItems.map(({ to, icon: Icon, label }) => (
                         <SidebarMenuSubItem key={to}>
                           <SidebarMenuSubButton asChild isActive={isActive(to)}>
                             <NavLink to={to}>
@@ -177,38 +171,26 @@ export function AppSidebar() {
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-              <Collapsible
-                open={settingsOpen}
-                onOpenChange={setSettingsOpen}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip="Settings">
-                      <Settings />
-                      <span>Settings</span>
-                      <ChevronDown
-                        className={`ml-auto transition-transform duration-200 ${settingsOpen ? "" : "-rotate-90"}`}
-                      />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {settingsItems.map(({ to, icon: Icon, label }) => (
-                        <SidebarMenuSubItem key={to}>
-                          <SidebarMenuSubButton asChild isActive={isActive(to)}>
-                            <NavLink to={to}>
-                              <Icon />
-                              <span>{label}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/settings")}
+                  tooltip="Settings"
+                >
+                  <NavLink to="/settings">
+                    <Settings />
+                    <span>Settings</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
