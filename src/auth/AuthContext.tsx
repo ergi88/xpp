@@ -1,5 +1,5 @@
 // src/auth/AuthContext.tsx
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
 import { STORAGE_KEYS } from '@/lib/auth'
 
 interface AuthContextValue {
@@ -28,7 +28,14 @@ function isLockEnabled(): boolean {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLocked, setIsLocked] = useState(true)
+  const [isLocked, setIsLocked] = useState(() => {
+    if (!isLockEnabled()) return false
+    const timeout = Number(localStorage.getItem(STORAGE_KEYS.LOCK_TIMEOUT) ?? '5')
+    const lastActivity = Number(localStorage.getItem(STORAGE_KEYS.LAST_ACTIVITY) ?? '0')
+    const elapsed = (Date.now() - lastActivity) / 60000
+    if (lastActivity > 0 && elapsed < timeout) return false
+    return true
+  })
 
   const lock = useCallback(() => {
     if (isLockEnabled()) setIsLocked(true)
@@ -36,20 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const unlock = useCallback(() => {
     localStorage.setItem(STORAGE_KEYS.LAST_ACTIVITY, String(Date.now()))
     setIsLocked(false)
-  }, [])
-
-  useEffect(() => {
-    if (!isLockEnabled()) {
-      setIsLocked(false)
-      return
-    }
-    const timeout = Number(localStorage.getItem(STORAGE_KEYS.LOCK_TIMEOUT) ?? '5')
-    const lastActivity = Number(localStorage.getItem(STORAGE_KEYS.LAST_ACTIVITY) ?? '0')
-    const elapsed = (Date.now() - lastActivity) / 60000
-
-    if (lastActivity > 0 && elapsed < timeout) {
-      setIsLocked(false)
-    }
   }, [])
 
   return (
