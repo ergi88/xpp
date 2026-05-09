@@ -1,0 +1,1353 @@
+{
+  "communities": {
+    "0": [
+      "accounts_eachday",
+      "accounts_enrichaccount",
+      "accounts_formatexpirydate",
+      "accounts_getbasecurrencymeta",
+      "accounts_isaccountincludedinbaseaggregates",
+      "accounts_loadcurrencycontext",
+      "accounts_loadrawaccounts",
+      "accounts_normalizecardexpiry",
+      "accounts_normalizecardlastdigits",
+      "accounts_parsespreadsheetdate",
+      "accounts_toaccount",
+      "accounts_toaggregatecurrencymeta",
+      "currency_enrichaccountswithcurrencies",
+      "currency_enrichaccountwithcurrency",
+      "currency_getbasecurrency",
+      "currency_getcurrencymap",
+      "currency_isassetaccounttype",
+      "currency_isbasecurrencyaccount",
+      "debts_loadcurrencymap",
+      "debts_todebt",
+      "reports_filteraggregateaccounts",
+      "reports_filteraggregatetransactions",
+      "reports_loadall",
+      "src_api_accounts_ts",
+      "src_api_debts_ts",
+      "src_api_reports_ts",
+      "src_api_transactions_ts",
+      "src_lib_currency_ts",
+      "transactions_applyfilters",
+      "transactions_istransactionincludedinbaseaggregates",
+      "transactions_loadlookups",
+      "transactions_tolocaldatestring",
+      "transactions_totransaction"
+    ],
+    "1": [
+      "amounttext_amounttext",
+      "create_accountcreatepage",
+      "edit_accounteditpage",
+      "header_header",
+      "index_accountspage",
+      "money_formatmoney",
+      "money_formatnumber",
+      "src_components_layout_header_tsx",
+      "src_components_shared_amounttext_tsx",
+      "src_hooks_use_accounts_ts",
+      "src_hooks_use_settings_ts",
+      "src_lib_money_ts",
+      "src_pages_accounts_create_tsx",
+      "src_pages_accounts_id_edit_tsx",
+      "src_pages_accounts_index_tsx",
+      "use_accounts_useaccount",
+      "use_accounts_useaccounts",
+      "use_accounts_usebalancecomparison",
+      "use_accounts_usebalancehistory",
+      "use_accounts_usecreateaccount",
+      "use_accounts_usedeleteaccount",
+      "use_accounts_usetotalbalance",
+      "use_accounts_useupdateaccount",
+      "use_settings_usehideamounts",
+      "use_settings_usesettings",
+      "use_settings_useupdatesettings"
+    ],
+    "2": [
+      "gas_adapter_get",
+      "gas_adapter_post",
+      "gas_adapter_url",
+      "recurring_torecurring",
+      "report_engine_computeactivityheatmap",
+      "report_engine_computebycategory",
+      "report_engine_computecashflow",
+      "report_engine_computedynamics",
+      "report_engine_computeexpensepace",
+      "report_engine_computemoneyflow",
+      "report_engine_computenetworth",
+      "report_engine_computenetworthhistory",
+      "report_engine_computeoverview",
+      "report_engine_computetoptransactions",
+      "report_engine_computetransactionsummary",
+      "report_engine_dailyvalues",
+      "report_engine_filtertxns",
+      "report_engine_fmt",
+      "report_engine_getdaterange",
+      "report_engine_getprevdaterange",
+      "report_engine_groupby",
+      "report_engine_sumio",
+      "src_api_recurring_ts",
+      "src_lib_sheets_gas_adapter_ts",
+      "src_lib_sheets_report_engine_ts"
+    ],
+    "3": [
+      "auth_clearauthstorage",
+      "auth_iswebauthnsupported",
+      "auth_maskemail",
+      "auth_registerwebauthn",
+      "auth_sha256",
+      "auth_sha256pure",
+      "auth_verifywebauthn",
+      "forgotpasskey_handlereset",
+      "lockscreen_handlepin",
+      "lockscreen_handlewebauthn",
+      "securestep_handlewebauthn",
+      "securestep_onpinsubmit",
+      "securestep_saveemail",
+      "src_auth_lock_screen_forgotpasskey_tsx",
+      "src_auth_lock_screen_lockscreen_tsx",
+      "src_auth_setup_steps_securestep_tsx",
+      "src_lib_auth_ts",
+      "src_pages_settings_system_tsx",
+      "system_handleautoupdatechange",
+      "system_handlebasecurrencychange",
+      "system_handlehideamountschange",
+      "system_handlethemechange",
+      "system_handlewebauthn",
+      "system_onpinsubmit",
+      "system_saveemail"
+    ],
+    "4": [
+      "datenavblock_datenavblock",
+      "datenavhelpers_firstdayofcurrentmonth",
+      "datenavhelpers_formatperiod",
+      "datenavhelpers_getaccountlabel",
+      "datenavhelpers_getdaterange",
+      "datenavhelpers_getnavlabel",
+      "datenavhelpers_getnavvalue",
+      "datenavhelpers_stepday",
+      "datenavhelpers_stepmonth",
+      "index_clearfilters",
+      "index_handlenavnext",
+      "index_handlenavprev",
+      "index_handlenavtogglemode",
+      "index_toggleaccount",
+      "index_togglecategory",
+      "index_toggletag",
+      "src_pages_transactions_datenavblock_tsx",
+      "src_pages_transactions_datenavhelpers_ts",
+      "src_pages_transactions_index_tsx"
+    ],
+    "5": [
+      "create_debtcreatepage",
+      "edit_debteditpage",
+      "src_hooks_use_debts_ts",
+      "src_pages_debts_create_tsx",
+      "src_pages_debts_id_edit_tsx",
+      "use_debts_usecreatedebt",
+      "use_debts_usedebt",
+      "use_debts_usedebtcollection",
+      "use_debts_usedebtpayment",
+      "use_debts_usedebts",
+      "use_debts_usedebtsummary",
+      "use_debts_usedebtswithsummary",
+      "use_debts_usedeletedebt",
+      "use_debts_usereopendebt",
+      "use_debts_useupdatedebt"
+    ],
+    "6": [
+      "connectstep_fallbackcopy",
+      "connectstep_handlecopy",
+      "connectstep_handlevalidate",
+      "select_select",
+      "select_selectgroup",
+      "select_selectitem",
+      "select_selectlabel",
+      "select_selectscrolldownbutton",
+      "select_selectscrollupbutton",
+      "select_selectseparator",
+      "select_selecttrigger",
+      "select_selectvalue",
+      "src_auth_setup_steps_connectstep_tsx",
+      "src_components_ui_select_tsx"
+    ],
+    "7": [
+      "src_hooks_use_reports_ts",
+      "use_reports_useactivityheatmap",
+      "use_reports_usecashflowovertime",
+      "use_reports_useexpensepace",
+      "use_reports_useexpensesbycategory",
+      "use_reports_usemoneyflow",
+      "use_reports_usenetworth",
+      "use_reports_usenetworthhistory",
+      "use_reports_useoverviewmetrics",
+      "use_reports_usetransactionreportbycategory",
+      "use_reports_usetransactionreportdynamics",
+      "use_reports_usetransactionreportsummary",
+      "use_reports_usetransactionreporttop"
+    ],
+    "8": [
+      "mutation_queue_clearqueue",
+      "mutation_queue_dequeue",
+      "mutation_queue_enqueue",
+      "mutation_queue_getqueue",
+      "src_lib_mutation_queue_ts",
+      "src_lib_sync_ts",
+      "sync_addsyncerror",
+      "sync_clearsyncerrors",
+      "sync_flushmutationqueue",
+      "sync_getlastsynctime",
+      "sync_getsyncerrors",
+      "sync_setlastsynctime",
+      "sync_syncall"
+    ],
+    "9": [
+      "create_createtagpage",
+      "edit_tageditpage",
+      "index_tagspage",
+      "src_hooks_use_tags_ts",
+      "src_pages_tags_create_tsx",
+      "src_pages_tags_id_edit_tsx",
+      "src_pages_tags_index_tsx",
+      "use_tags_usecreatetag",
+      "use_tags_usedeletetag",
+      "use_tags_usetag",
+      "use_tags_usetags",
+      "use_tags_useupdatetag"
+    ],
+    "10": [
+      "create_recurringcreatepage",
+      "index_recurringpage",
+      "src_hooks_use_recurring_ts",
+      "src_pages_recurring_create_tsx",
+      "src_pages_recurring_index_tsx",
+      "use_recurring_usecreaterecurring",
+      "use_recurring_usedeleterecurring",
+      "use_recurring_userecurring",
+      "use_recurring_userecurringbyid",
+      "use_recurring_useskiprecurring",
+      "use_recurring_useupcomingrecurring",
+      "use_recurring_useupdaterecurring"
+    ],
+    "11": [
+      "create_categorycreatepage",
+      "index_categoriespage",
+      "src_hooks_use_categories_ts",
+      "src_pages_categories_create_tsx",
+      "src_pages_categories_index_tsx",
+      "use_categories_usecategories",
+      "use_categories_usecategory",
+      "use_categories_usecategorysummary",
+      "use_categories_usecreatecategory",
+      "use_categories_usedeletecategory",
+      "use_categories_useupdatecategory"
+    ],
+    "12": [
+      "create_currencycreatepage",
+      "index_currenciespage",
+      "src_hooks_use_currencies_ts",
+      "src_pages_currencies_create_tsx",
+      "src_pages_currencies_index_tsx",
+      "use_currencies_usecreatecurrency",
+      "use_currencies_usecurrencies",
+      "use_currencies_usecurrency",
+      "use_currencies_usedeletecurrency",
+      "use_currencies_usesetbasecurrency",
+      "use_currencies_useupdatecurrency"
+    ],
+    "13": [
+      "currencystep_currencystep",
+      "src_auth_setup_steps_currencystep_tsx",
+      "src_hooks_use_theme_ts",
+      "use_theme_applytheme",
+      "use_theme_getthemesnapshot",
+      "use_theme_inittheme",
+      "use_theme_notifythemechange",
+      "use_theme_resolvetheme",
+      "use_theme_setthemevalue",
+      "use_theme_subscribe",
+      "use_theme_usetheme"
+    ],
+    "14": [
+      "sheet_sheet",
+      "sheet_sheetclose",
+      "sheet_sheetdescription",
+      "sheet_sheetfooter",
+      "sheet_sheetheader",
+      "sheet_sheetoverlay",
+      "sheet_sheetportal",
+      "sheet_sheettitle",
+      "sheet_sheettrigger",
+      "src_components_ui_sheet_tsx"
+    ],
+    "15": [
+      "create_budgetcreatepage",
+      "index_budgetspage",
+      "src_hooks_use_budgets_ts",
+      "src_pages_budgets_create_tsx",
+      "src_pages_budgets_index_tsx",
+      "use_budgets_usebudget",
+      "use_budgets_usebudgets",
+      "use_budgets_usecreatebudget",
+      "use_budgets_usedeletebudget",
+      "use_budgets_useupdatebudget"
+    ],
+    "16": [
+      "create_transactioncreatepage",
+      "src_hooks_use_transactions_ts",
+      "src_pages_transactions_create_tsx",
+      "use_transactions_usecreatetransaction",
+      "use_transactions_usedeletetransaction",
+      "use_transactions_useduplicatetransaction",
+      "use_transactions_usetransaction",
+      "use_transactions_usetransactions",
+      "use_transactions_usetransactionsummary",
+      "use_transactions_useupdatetransaction"
+    ],
+    "17": [
+      "authcontext_authprovider",
+      "authcontext_islockenabled",
+      "authcontext_useauth",
+      "authgate_authgate",
+      "authgate_authgateinner",
+      "src_auth_authcontext_tsx",
+      "src_auth_authgate_tsx",
+      "src_auth_useactivitytracker_ts",
+      "useactivitytracker_useactivitytracker"
+    ],
+    "18": [
+      "dialog_cn",
+      "dialog_dialog",
+      "dialog_dialogclose",
+      "dialog_dialogdescription",
+      "dialog_dialogheader",
+      "dialog_dialogoverlay",
+      "dialog_dialogportal",
+      "dialog_dialogtrigger",
+      "src_components_ui_dialog_tsx"
+    ],
+    "19": [
+      "pagination_cn",
+      "pagination_pagination",
+      "pagination_paginationcontent",
+      "pagination_paginationellipsis",
+      "pagination_paginationitem",
+      "pagination_paginationnext",
+      "src_components_ui_pagination_tsx"
+    ],
+    "20": [
+      "sidebar_cn",
+      "sidebar_handlekeydown",
+      "sidebar_sidebarmenu",
+      "sidebar_sidebarmenubutton",
+      "sidebar_sidebarmenuitem",
+      "sidebar_usesidebar",
+      "src_components_ui_sidebar_tsx"
+    ],
+    "21": [
+      "dashboard_formatdate",
+      "dashboard_formatdatelocal",
+      "dashboard_getpresetdates",
+      "dashboard_gettransactioncolor",
+      "dashboard_gettransactionsign",
+      "dashboard_handleperiodchange",
+      "src_pages_dashboard_tsx"
+    ],
+    "22": [
+      "src_pages_reports_utils_ts",
+      "utils_formatyearmonth",
+      "utils_getcurrentmonth",
+      "utils_getmonthoptions",
+      "utils_getquarteroptions",
+      "utils_getyearoptions"
+    ],
+    "23": [
+      "src_components_ui_table_tsx",
+      "table_cn",
+      "table_table",
+      "table_tablebody",
+      "table_tableheader"
+    ],
+    "24": [
+      "alert_dialog_alertdialog",
+      "alert_dialog_alertdialogdescription",
+      "alert_dialog_cn",
+      "src_components_ui_alert_dialog_tsx"
+    ],
+    "25": [
+      "src_components_ui_tabs_tsx",
+      "tabs_tabs",
+      "tabs_tabslist",
+      "tabs_tabstrigger"
+    ],
+    "26": [
+      "card_carddescription",
+      "card_cardfooter",
+      "card_cn",
+      "src_components_ui_card_tsx"
+    ],
+    "27": [
+      "input_otp_cn",
+      "input_otp_inputotp",
+      "input_otp_inputotpgroup",
+      "src_components_ui_input_otp_tsx"
+    ],
+    "28": [
+      "avatar_avatar",
+      "avatar_avatarfallback",
+      "avatar_avatarimage",
+      "src_components_ui_avatar_tsx"
+    ],
+    "29": [
+      "dropdown_menu_cn",
+      "dropdown_menu_dropdownmenu",
+      "dropdown_menu_dropdownmenusubcontent",
+      "src_components_ui_dropdown_menu_tsx"
+    ],
+    "30": [
+      "bulkseedpanel_categorykey",
+      "bulkseedpanel_currencykey",
+      "bulkseedpanel_tagkey",
+      "src_components_features_import_bulkseedpanel_tsx"
+    ],
+    "31": [
+      "errorboundary_componentdidcatch",
+      "errorboundary_constructor",
+      "errorboundary_getderivedstatefromerror",
+      "src_components_shared_errorboundary_tsx"
+    ],
+    "32": [
+      "src_hooks_use_csv_import_ts",
+      "use_csv_import_useexecuteimport",
+      "use_csv_import_useparsecsv",
+      "use_csv_import_usepreviewimport"
+    ],
+    "33": [
+      "src_lib_utils_ts",
+      "utils_cn",
+      "utils_formatamount",
+      "utils_formatnumber"
+    ],
+    "34": [
+      "index_handlecollect",
+      "index_handlepayment",
+      "index_handlepaymentsubmit",
+      "src_pages_debts_index_tsx"
+    ],
+    "35": [
+      "activityheatmap_formatdatekey",
+      "activityheatmap_getintensityclass",
+      "activityheatmap_parselocaldate",
+      "src_pages_reports_components_activityheatmap_tsx"
+    ],
+    "36": [
+      "popover_popover",
+      "popover_popovertrigger",
+      "src_components_ui_popover_tsx"
+    ],
+    "37": [
+      "alert_alert",
+      "alert_cn",
+      "src_components_ui_alert_tsx"
+    ],
+    "38": [
+      "csvimportwizard_cangotostep",
+      "csvimportwizard_handlestepchange",
+      "src_components_features_import_csvimportwizard_tsx"
+    ],
+    "39": [
+      "src_hooks_use_crud_ts",
+      "use_crud_usecrud",
+      "use_crud_usecruditem"
+    ],
+    "40": [
+      "avatar_getuseravatarurl",
+      "avatar_getuserinitials",
+      "src_lib_avatar_ts"
+    ],
+    "41": [
+      "multiselectfilter_toggle",
+      "multiselectfilter_toggleall",
+      "src_pages_transactions_multiselectfilter_tsx"
+    ],
+    "42": [
+      "src_pages_reports_types_ts",
+      "types_formatdate",
+      "types_formatyearmonth"
+    ],
+    "43": [
+      "src_pages_reports_components_topincome_tsx",
+      "topincome_formatdate",
+      "topincome_handletransactionclick"
+    ],
+    "44": [
+      "incomestructurechart_formatcurrency",
+      "incomestructurechart_getoption",
+      "src_pages_reports_components_incomestructurechart_tsx"
+    ],
+    "45": [
+      "src_pages_reports_components_topexpenses_tsx",
+      "topexpenses_formatdate",
+      "topexpenses_handletransactionclick"
+    ],
+    "46": [
+      "expensepacechart_buildchartoption",
+      "expensepacechart_processmonthdata",
+      "src_pages_reports_components_expensepacechart_tsx"
+    ],
+    "47": [
+      "expensesstructurechart_formatcurrency",
+      "expensesstructurechart_getoption",
+      "src_pages_reports_components_expensesstructurechart_tsx"
+    ],
+    "48": [
+      "vite_config_configureserver",
+      "vite_config_ts"
+    ],
+    "49": [
+      "app_app",
+      "src_app_app_tsx"
+    ],
+    "50": [
+      "providers_providers",
+      "src_app_providers_tsx"
+    ],
+    "51": [
+      "setupgate_setupgate",
+      "src_auth_setupgate_tsx"
+    ],
+    "52": [
+      "setupwizard_next",
+      "src_auth_setup_setupwizard_tsx"
+    ],
+    "53": [
+      "accountstep_accountstep",
+      "src_auth_setup_steps_accountstep_tsx"
+    ],
+    "54": [
+      "seedstep_run",
+      "src_auth_setup_steps_seedstep_tsx"
+    ],
+    "55": [
+      "label_label",
+      "src_components_ui_label_tsx"
+    ],
+    "56": [
+      "empty_cn",
+      "src_components_ui_empty_tsx"
+    ],
+    "57": [
+      "src_components_ui_tooltip_tsx",
+      "tooltip_tooltipcontent"
+    ],
+    "58": [
+      "sparkline_sparkline",
+      "src_components_ui_sparkline_tsx"
+    ],
+    "59": [
+      "badge_badge",
+      "src_components_ui_badge_tsx"
+    ],
+    "60": [
+      "separator_separator",
+      "src_components_ui_separator_tsx"
+    ],
+    "61": [
+      "button_cn",
+      "src_components_ui_button_tsx"
+    ],
+    "62": [
+      "checkbox_checkbox",
+      "src_components_ui_checkbox_tsx"
+    ],
+    "63": [
+      "src_components_ui_stepper_tsx",
+      "stepper_usestepper"
+    ],
+    "64": [
+      "collapsible_collapsible",
+      "src_components_ui_collapsible_tsx"
+    ],
+    "65": [
+      "src_components_ui_textarea_tsx",
+      "textarea_cn"
+    ],
+    "66": [
+      "input_input",
+      "src_components_ui_input_tsx"
+    ],
+    "67": [
+      "emoji_picker_handleemojiclick",
+      "src_components_ui_emoji_picker_tsx"
+    ],
+    "68": [
+      "skeleton_skeleton",
+      "src_components_ui_skeleton_tsx"
+    ],
+    "69": [
+      "applayout_applayout",
+      "src_components_layout_applayout_tsx"
+    ],
+    "70": [
+      "sidebar_isactive",
+      "src_components_layout_sidebar_tsx"
+    ],
+    "71": [
+      "debtpaymentdialog_handlesubmit",
+      "src_components_features_debts_debtpaymentdialog_tsx"
+    ],
+    "72": [
+      "src_components_features_transactions_transactionform_tsx",
+      "transactionform_cn"
+    ],
+    "73": [
+      "columns_getdefaultdescription",
+      "src_components_features_transactions_columns_tsx"
+    ],
+    "74": [
+      "mappingstep_handlesubmit",
+      "src_components_features_import_steps_mappingstep_tsx"
+    ],
+    "75": [
+      "categorypreview_categorypreview",
+      "src_components_features_categories_categorypreview_tsx"
+    ],
+    "76": [
+      "iconpicker_iconpicker",
+      "src_components_features_categories_iconpicker_tsx"
+    ],
+    "77": [
+      "formpage_formpage",
+      "src_components_shared_formpage_tsx"
+    ],
+    "78": [
+      "formwrapper_formwrapper",
+      "src_components_shared_formwrapper_tsx"
+    ],
+    "79": [
+      "logo_logo",
+      "src_components_shared_logo_tsx"
+    ],
+    "80": [
+      "src_components_shared_syncstatus_tsx",
+      "syncstatus_relativetime"
+    ],
+    "81": [
+      "page_page",
+      "src_components_shared_page_tsx"
+    ],
+    "82": [
+      "serverpagination_generatepaginationitems",
+      "src_components_shared_serverpagination_tsx"
+    ],
+    "83": [
+      "src_hooks_use_mobile_ts",
+      "use_mobile_useismobile"
+    ],
+    "84": [
+      "src_hooks_use_pwa_install_ts",
+      "use_pwa_install_usepwainstall"
+    ],
+    "85": [
+      "src_hooks_use_sync_status_ts",
+      "use_sync_status_usesyncstatus"
+    ],
+    "86": [
+      "src_hooks_use_can_write_ts",
+      "use_can_write_usecanwrite"
+    ],
+    "87": [
+      "ability_defineabilityfor",
+      "src_lib_ability_ts"
+    ],
+    "88": [
+      "index_loadadapter",
+      "src_lib_sheets_index_ts"
+    ],
+    "89": [
+      "budgets_tobudget",
+      "src_api_budgets_ts"
+    ],
+    "90": [
+      "currencies_tocurrency",
+      "src_api_currencies_ts"
+    ],
+    "91": [
+      "settings_writetosheet",
+      "src_api_settings_ts"
+    ],
+    "92": [
+      "categories_tocategory",
+      "src_api_categories_ts"
+    ],
+    "93": [
+      "src_api_tags_ts",
+      "tags_totag"
+    ],
+    "94": [
+      "not_found_notfoundpage",
+      "src_pages_not_found_tsx"
+    ],
+    "95": [
+      "index_reportspage",
+      "src_pages_reports_index_tsx"
+    ],
+    "96": [
+      "expensesdynamicschart_togglecategory",
+      "src_pages_reports_components_expensesdynamicschart_tsx"
+    ],
+    "97": [
+      "incomedynamicschart_togglesource",
+      "src_pages_reports_components_incomedynamicschart_tsx"
+    ],
+    "98": [
+      "expensesbycategory_handlecategoryclick",
+      "src_pages_reports_components_expensesbycategory_tsx"
+    ],
+    "99": [
+      "metriccard_cn",
+      "src_pages_reports_components_metriccard_tsx"
+    ],
+    "100": [
+      "filtersbar_periodtypebadges",
+      "src_pages_reports_components_filtersbar_tsx"
+    ],
+    "101": [
+      "src_main_tsx"
+    ],
+    "102": [
+      "src_vite_env_d_ts"
+    ],
+    "103": [
+      "src_vitest_env_d_ts"
+    ],
+    "104": [
+      "src_version_ts"
+    ],
+    "105": [
+      "src_types_budgets_ts"
+    ],
+    "106": [
+      "src_types_currencies_ts"
+    ],
+    "107": [
+      "src_types_settings_ts"
+    ],
+    "108": [
+      "src_types_api_ts"
+    ],
+    "109": [
+      "src_types_categories_ts"
+    ],
+    "110": [
+      "src_types_transactions_ts"
+    ],
+    "111": [
+      "src_types_accounts_ts"
+    ],
+    "112": [
+      "src_types_index_ts"
+    ],
+    "113": [
+      "src_types_recurring_ts"
+    ],
+    "114": [
+      "src_types_debts_ts"
+    ],
+    "115": [
+      "src_types_import_ts"
+    ],
+    "116": [
+      "src_types_tags_ts"
+    ],
+    "117": [
+      "src_app_router_tsx"
+    ],
+    "118": [
+      "src_constants_colors_ts"
+    ],
+    "119": [
+      "src_constants_categories_ts"
+    ],
+    "120": [
+      "src_constants_accounts_ts"
+    ],
+    "121": [
+      "src_constants_index_ts"
+    ],
+    "122": [
+      "src_schemas_budgets_ts"
+    ],
+    "123": [
+      "src_schemas_currencies_ts"
+    ],
+    "124": [
+      "src_schemas_automation_ts"
+    ],
+    "125": [
+      "src_schemas_categories_ts"
+    ],
+    "126": [
+      "src_schemas_transactions_ts"
+    ],
+    "127": [
+      "src_schemas_accounts_ts"
+    ],
+    "128": [
+      "src_schemas_users_ts"
+    ],
+    "129": [
+      "src_schemas_index_ts"
+    ],
+    "130": [
+      "src_schemas_recurring_ts"
+    ],
+    "131": [
+      "src_schemas_debts_ts"
+    ],
+    "132": [
+      "src_components_ui_progress_tsx"
+    ],
+    "133": [
+      "src_components_ui_switch_tsx"
+    ],
+    "134": [
+      "src_components_ui_form_tsx"
+    ],
+    "135": [
+      "src_components_features_debts_debtform_tsx"
+    ],
+    "136": [
+      "src_components_features_debts_columns_tsx"
+    ],
+    "137": [
+      "src_components_features_debts_index_ts"
+    ],
+    "138": [
+      "src_components_features_currencies_currencyform_tsx"
+    ],
+    "139": [
+      "src_components_features_currencies_columns_tsx"
+    ],
+    "140": [
+      "src_components_features_currencies_index_ts"
+    ],
+    "141": [
+      "src_components_features_tags_columns_tsx"
+    ],
+    "142": [
+      "src_components_features_tags_index_ts"
+    ],
+    "143": [
+      "src_components_features_tags_tagform_tsx"
+    ],
+    "144": [
+      "src_components_features_transactions_index_ts"
+    ],
+    "145": [
+      "src_components_features_accounts_accountstats_tsx"
+    ],
+    "146": [
+      "src_components_features_accounts_columns_tsx"
+    ],
+    "147": [
+      "src_components_features_accounts_accountcard_tsx"
+    ],
+    "148": [
+      "src_components_features_accounts_accountform_tsx"
+    ],
+    "149": [
+      "src_components_features_accounts_index_ts"
+    ],
+    "150": [
+      "src_components_features_budgets_columns_tsx"
+    ],
+    "151": [
+      "src_components_features_budgets_budgetform_tsx"
+    ],
+    "152": [
+      "src_components_features_budgets_index_ts"
+    ],
+    "153": [
+      "src_components_features_import_bulk_seed_presets_ts"
+    ],
+    "154": [
+      "src_components_features_import_index_ts"
+    ],
+    "155": [
+      "src_components_features_import_steps_resultstep_tsx"
+    ],
+    "156": [
+      "src_components_features_import_steps_previewstep_tsx"
+    ],
+    "157": [
+      "src_components_features_import_steps_uploadstep_tsx"
+    ],
+    "158": [
+      "src_components_features_categories_typeselector_tsx"
+    ],
+    "159": [
+      "src_components_features_categories_columns_tsx"
+    ],
+    "160": [
+      "src_components_features_categories_categoryform_tsx"
+    ],
+    "161": [
+      "src_components_features_categories_index_ts"
+    ],
+    "162": [
+      "src_components_features_categories_colorpicker_tsx"
+    ],
+    "163": [
+      "src_components_features_recurring_columns_tsx"
+    ],
+    "164": [
+      "src_components_features_recurring_recurringform_tsx"
+    ],
+    "165": [
+      "src_components_features_recurring_index_ts"
+    ],
+    "166": [
+      "src_components_shared_pageheader_tsx"
+    ],
+    "167": [
+      "src_components_shared_accountselect_tsx"
+    ],
+    "168": [
+      "src_components_shared_datatable_tsx"
+    ],
+    "169": [
+      "src_components_shared_listpage_tsx"
+    ],
+    "170": [
+      "src_components_shared_index_ts"
+    ],
+    "171": [
+      "src_components_shared_categoryselect_tsx"
+    ],
+    "172": [
+      "src_hooks_index_ts"
+    ],
+    "173": [
+      "src_lib_query_client_ts"
+    ],
+    "174": [
+      "src_lib_iso_currencies_ts"
+    ],
+    "175": [
+      "src_lib_persister_ts"
+    ],
+    "176": [
+      "src_lib_sheets_adapter_ts"
+    ],
+    "177": [
+      "src_api_reports_types_ts"
+    ],
+    "178": [
+      "src_api_client_ts"
+    ],
+    "179": [
+      "src_api_index_ts"
+    ],
+    "180": [
+      "src_api_import_ts"
+    ],
+    "181": [
+      "src_pages_settings_import_tsx"
+    ],
+    "182": [
+      "src_pages_currencies_id_edit_tsx"
+    ],
+    "183": [
+      "src_pages_transactions_id_edit_tsx"
+    ],
+    "184": [
+      "src_pages_accounts_id_index_tsx"
+    ],
+    "185": [
+      "src_pages_budgets_id_edit_tsx"
+    ],
+    "186": [
+      "src_pages_categories_id_edit_tsx"
+    ],
+    "187": [
+      "src_pages_recurring_id_edit_tsx"
+    ],
+    "188": [
+      "src_pages_reports_tabs_incometab_tsx"
+    ],
+    "189": [
+      "src_pages_reports_tabs_overviewtab_tsx"
+    ],
+    "190": [
+      "src_pages_reports_tabs_expensestab_tsx"
+    ],
+    "191": [
+      "src_pages_reports_tabs_cashflowtab_tsx"
+    ],
+    "192": [
+      "src_pages_reports_tabs_index_ts"
+    ],
+    "193": [
+      "src_pages_reports_tabs_networthtab_tsx"
+    ],
+    "194": [
+      "src_pages_reports_components_cashflowchart_tsx"
+    ],
+    "195": [
+      "src_pages_reports_components_networthchart_tsx"
+    ],
+    "196": [
+      "src_pages_reports_components_sankeydiagram_tsx"
+    ],
+    "197": [
+      "src_pages_reports_components_index_ts"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08,
+    "1": 0.1,
+    "2": 0.14,
+    "3": 0.11,
+    "4": 0.14,
+    "5": 0.14,
+    "6": 0.15,
+    "7": 0.15,
+    "8": 0.27,
+    "9": 0.2,
+    "10": 0.2,
+    "11": 0.2,
+    "12": 0.22,
+    "13": 0.29,
+    "14": 0.2,
+    "15": 0.22,
+    "16": 0.2,
+    "17": 0.25,
+    "18": 0.22,
+    "19": 0.29,
+    "20": 0.33,
+    "21": 0.33,
+    "22": 0.47,
+    "23": 0.4,
+    "24": 0.5,
+    "25": 0.5,
+    "26": 0.5,
+    "27": 0.5,
+    "28": 0.5,
+    "29": 0.5,
+    "30": 0.5,
+    "31": 0.5,
+    "32": 0.5,
+    "33": 0.5,
+    "34": 0.5,
+    "35": 0.5,
+    "36": 0.67,
+    "37": 0.67,
+    "38": 1.0,
+    "39": 0.67,
+    "40": 0.67,
+    "41": 0.67,
+    "42": 0.67,
+    "43": 0.67,
+    "44": 0.67,
+    "45": 0.67,
+    "46": 0.67,
+    "47": 0.67,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0,
+    "81": 1.0,
+    "82": 1.0,
+    "83": 1.0,
+    "84": 1.0,
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0,
+    "92": 1.0,
+    "93": 1.0,
+    "94": 1.0,
+    "95": 1.0,
+    "96": 1.0,
+    "97": 1.0,
+    "98": 1.0,
+    "99": 1.0,
+    "100": 1.0,
+    "101": 1.0,
+    "102": 1.0,
+    "103": 1.0,
+    "104": 1.0,
+    "105": 1.0,
+    "106": 1.0,
+    "107": 1.0,
+    "108": 1.0,
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0,
+    "115": 1.0,
+    "116": 1.0,
+    "117": 1.0,
+    "118": 1.0,
+    "119": 1.0,
+    "120": 1.0,
+    "121": 1.0,
+    "122": 1.0,
+    "123": 1.0,
+    "124": 1.0,
+    "125": 1.0,
+    "126": 1.0,
+    "127": 1.0,
+    "128": 1.0,
+    "129": 1.0,
+    "130": 1.0,
+    "131": 1.0,
+    "132": 1.0,
+    "133": 1.0,
+    "134": 1.0,
+    "135": 1.0,
+    "136": 1.0,
+    "137": 1.0,
+    "138": 1.0,
+    "139": 1.0,
+    "140": 1.0,
+    "141": 1.0,
+    "142": 1.0,
+    "143": 1.0,
+    "144": 1.0,
+    "145": 1.0,
+    "146": 1.0,
+    "147": 1.0,
+    "148": 1.0,
+    "149": 1.0,
+    "150": 1.0,
+    "151": 1.0,
+    "152": 1.0,
+    "153": 1.0,
+    "154": 1.0,
+    "155": 1.0,
+    "156": 1.0,
+    "157": 1.0,
+    "158": 1.0,
+    "159": 1.0,
+    "160": 1.0,
+    "161": 1.0,
+    "162": 1.0,
+    "163": 1.0,
+    "164": 1.0,
+    "165": 1.0,
+    "166": 1.0,
+    "167": 1.0,
+    "168": 1.0,
+    "169": 1.0,
+    "170": 1.0,
+    "171": 1.0,
+    "172": 1.0,
+    "173": 1.0,
+    "174": 1.0,
+    "175": 1.0,
+    "176": 1.0,
+    "177": 1.0,
+    "178": 1.0,
+    "179": 1.0,
+    "180": 1.0,
+    "181": 1.0,
+    "182": 1.0,
+    "183": 1.0,
+    "184": 1.0,
+    "185": 1.0,
+    "186": 1.0,
+    "187": 1.0,
+    "188": 1.0,
+    "189": 1.0,
+    "190": 1.0,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 1.0,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
+    "197": 1.0
+  },
+  "gods": [
+    {
+      "id": "gas_adapter_get",
+      "label": "get()",
+      "degree": 12
+    },
+    {
+      "id": "header_header",
+      "label": "Header()",
+      "degree": 6
+    },
+    {
+      "id": "report_engine_fmt",
+      "label": "fmt()",
+      "degree": 6
+    },
+    {
+      "id": "report_engine_groupby",
+      "label": "groupBy()",
+      "degree": 6
+    },
+    {
+      "id": "use_theme_getthemesnapshot",
+      "label": "getThemeSnapshot()",
+      "degree": 5
+    },
+    {
+      "id": "auth_sha256",
+      "label": "sha256()",
+      "degree": 5
+    },
+    {
+      "id": "sync_syncall",
+      "label": "syncAll()",
+      "degree": 5
+    },
+    {
+      "id": "sync_flushmutationqueue",
+      "label": "flushMutationQueue()",
+      "degree": 5
+    },
+    {
+      "id": "datenavblock_datenavblock",
+      "label": "DateNavBlock()",
+      "degree": 5
+    },
+    {
+      "id": "authcontext_useauth",
+      "label": "useAuth()",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "enrichAccountWithCurrency()",
+      "target": "get()",
+      "source_files": [
+        "/Users/ergiasllani/CREATIONS/xpp/src/lib/currency.ts",
+        "/Users/ergiasllani/CREATIONS/xpp/src/lib/sheets/gas-adapter.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `enrichAccountWithCurrency()` unexpectedly reaches hub `get()`"
+    },
+    {
+      "source": "enrichAccount()",
+      "target": "get()",
+      "source_files": [
+        "/Users/ergiasllani/CREATIONS/xpp/src/api/accounts.ts",
+        "/Users/ergiasllani/CREATIONS/xpp/src/lib/sheets/gas-adapter.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `enrichAccount()` unexpectedly reaches hub `get()`"
+    },
+    {
+      "source": "toDebt()",
+      "target": "get()",
+      "source_files": [
+        "/Users/ergiasllani/CREATIONS/xpp/src/api/debts.ts",
+        "/Users/ergiasllani/CREATIONS/xpp/src/lib/sheets/gas-adapter.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `toDebt()` unexpectedly reaches hub `get()`"
+    },
+    {
+      "source": "Header()",
+      "target": "useAuth()",
+      "source_files": [
+        "/Users/ergiasllani/CREATIONS/xpp/src/components/layout/Header.tsx",
+        "/Users/ergiasllani/CREATIONS/xpp/src/auth/AuthContext.tsx"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "handlePin()",
+      "target": "sha256()",
+      "source_files": [
+        "/Users/ergiasllani/CREATIONS/xpp/src/auth/lock-screen/LockScreen.tsx",
+        "/Users/ergiasllani/CREATIONS/xpp/src/lib/auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `handlePin()` unexpectedly reaches hub `sha256()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `get()` connect `Community 2` to `Community 0`, `Community 3`?",
+      "why": "High betweenness centrality (0.013) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `verifyWebAuthn()` connect `Community 3` to `Community 2`?",
+      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `enrichAccount()` connect `Community 0` to `Community 2`?",
+      "why": "High betweenness centrality (0.005) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 10 inferred relationships involving `get()` (e.g. with `enrichAccountWithCurrency()` and `verifyWebAuthn()`) actually correct?",
+      "why": "`get()` has 10 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 5 inferred relationships involving `Header()` (e.g. with `useAuth()` and `useHideAmounts()`) actually correct?",
+      "why": "`Header()` has 5 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
