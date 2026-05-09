@@ -40,7 +40,7 @@ export function Header() {
   const { data: accounts } = useAccounts({
     active: true,
   });
-  console.log("🚀 ~ Header ~ balance:", { balance, accounts });
+
   const navigate = useNavigate();
 
   const handleCreateTransaction = (type: "income" | "expense" | "transfer") => {

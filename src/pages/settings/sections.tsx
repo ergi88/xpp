@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -586,6 +587,44 @@ export function SpreadsheetCard() {
             Open Spreadsheet
             <ExternalLink className="h-4 w-4" />
           </a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function AppUpdateCard() {
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW();
+
+  const handleForceRefresh = async () => {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+    window.location.reload();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>App Update</CardTitle>
+        <CardDescription>
+          {needRefresh
+            ? "A new version is ready to install."
+            : "Manually refresh the app to pick up the latest version."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex gap-3 flex-wrap">
+        {needRefresh && (
+          <Button onClick={() => updateServiceWorker(true)} className="gap-2">
+            <span>Install update</span>
+          </Button>
+        )}
+        <Button variant="outline" onClick={handleForceRefresh} className="gap-2">
+          Force refresh
         </Button>
       </CardContent>
     </Card>

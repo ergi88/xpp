@@ -1,6 +1,7 @@
 import { Page, PageHeader, FormWrapper } from "@/components/shared";
 import {
   AppearanceSettingsCard,
+  AppUpdateCard,
   AuthenticationSettingsCard,
   BaseCurrencyCard,
   CurrencyRatesCard,
@@ -21,6 +22,7 @@ export default function SystemSettingsPage() {
           <BaseCurrencyCard />
           <CurrencyRatesCard />
           <SpreadsheetCard />
+          <AppUpdateCard />
           <ResetSetupCard />
         </div>
       </FormWrapper>

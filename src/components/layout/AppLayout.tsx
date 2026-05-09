@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { MobileFooterNav } from "./MobileFooterNav";
+import { PWAUpdateBanner } from "./PWAUpdateBanner";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings } from "@/hooks";
@@ -17,6 +18,7 @@ export function AppLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
+        <PWAUpdateBanner />
         <Header />
         <main
           className={cn("flex-1 overflow-y-auto p-6", showFooter && "pb-24")}
