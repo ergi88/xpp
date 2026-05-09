@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-      <Toaster position="bottom-center" richColors />
+      <Toaster offset={{ bottom: 100 }} position="bottom-center" richColors />
     </PersistQueryClientProvider>
   );
 }
