@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from '@/lib/auth'
 
 interface AuthContextValue {
   isLocked: boolean
+  hasAuth: boolean
   lock: () => void
   unlock: () => void
 }
@@ -45,8 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLocked(false)
   }, [])
 
+  const hasAuth = !!localStorage.getItem(STORAGE_KEYS.AUTH_METHOD)
+
   return (
-    <AuthContext.Provider value={{ isLocked, lock, unlock }}>
+    <AuthContext.Provider value={{ isLocked, hasAuth, lock, unlock }}>
       {children}
     </AuthContext.Provider>
   )

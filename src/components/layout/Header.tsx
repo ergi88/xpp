@@ -22,6 +22,7 @@ import { AmountText } from "@/components/shared";
 import {
   useAccounts,
   useHideAmounts,
+  useSettings,
   useTotalBalance,
   useUpdateSettings,
 } from "@/hooks";
@@ -32,10 +33,11 @@ import type { AccountType } from "@/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
-  const { lock } = useAuth();
+  const { lock, hasAuth } = useAuth();
   const isMobile = useIsMobile();
   const hideAmounts = useHideAmounts();
   const updateSettings = useUpdateSettings();
+  const { data: settings } = useSettings();
   const { data: balance } = useTotalBalance();
   const { data: accounts } = useAccounts({
     active: true,
@@ -151,14 +153,16 @@ export function Header() {
             </DropdownMenu>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={lock}
-            aria-label="Lock app"
-          >
-            <Lock className="h-5 w-5" />
-          </Button>
+          {hasAuth && (settings?.lock_enabled ?? true) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={lock}
+              aria-label="Lock app"
+            >
+              <Lock className="h-5 w-5" />
+            </Button>
+          )}
 
           <Button
             variant="ghost"
