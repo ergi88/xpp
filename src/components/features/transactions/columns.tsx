@@ -88,7 +88,20 @@ export function createTransactionColumns(
             accessorKey: 'description',
             header: 'Description',
             cell: ({ row }) => {
-                const { description, category, account, toAccount, type, itemsCount, tags } = row.original
+                const {
+                    description,
+                    category,
+                    account,
+                    toAccount,
+                    type,
+                    itemsCount,
+                    tags,
+                    isExcluded,
+                    isOneTime,
+                    recurringId,
+                    linkedTransactionId,
+                    debtId,
+                } = row.original
 
                 const getDefaultDescription = () => {
                     if (type === 'transfer') return `${account.name} → ${toAccount?.name}`
@@ -107,10 +120,22 @@ export function createTransactionColumns(
                     )
                 }
 
+                const hasBadges =
+                    isExcluded || isOneTime || recurringId || linkedTransactionId || debtId
+
                 return (
-                    <div className="space-y-1">
+                    <div className={cn('space-y-1', isExcluded && 'opacity-60')}>
                         <div className="font-medium">
                             {description || getDefaultDescription()}
+                            {hasBadges && (
+                                <span className="ml-1 inline-flex gap-1 align-middle text-xs text-muted-foreground">
+                                    {isExcluded && <span title="Excluded">⊘</span>}
+                                    {isOneTime && <span title="One-time">★</span>}
+                                    {recurringId && <span title="From recurring">↻</span>}
+                                    {linkedTransactionId && <span title="Linked counterpart">⇄</span>}
+                                    {debtId && <span title="Debt payment">$</span>}
+                                </span>
+                            )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                             {getSubDescription()}

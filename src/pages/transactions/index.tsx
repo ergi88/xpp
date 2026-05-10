@@ -512,6 +512,9 @@ export default function TransactionsPage() {
         getRowCanExpand={(row) =>
           (row.original.itemsCount ?? row.original.items?.length ?? 0) > 1
         }
+        getRowClassName={(row) =>
+          row.original.isExcluded ? "opacity-60" : undefined
+        }
         manualPagination
       />
 
