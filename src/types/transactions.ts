@@ -3,7 +3,7 @@ import { Account } from './accounts'
 import { Category } from './categories'
 import { Tag } from './tags'
 
-export type TransactionType = 'income' | 'expense' | 'transfer' | 'debt_payment' | 'debt_collection'
+export type TransactionType = 'income' | 'expense' | 'transfer'
 
 export interface TransactionItem {
     id?: string
@@ -26,8 +26,14 @@ export interface Transaction extends BaseEntity {
     items: TransactionItem[]
     itemsCount?: number
     tags: Tag[]
+    // Phase 1 fields:
+    isExcluded: boolean
+    isOneTime: boolean
+    parentId: string | null
+    debtId: string | null
+    linkedTransactionId: string | null
+    recurringId: string | null
 }
-
 
 export interface TransactionFilters {
     type?: 'income' | 'expense' | 'transfer'
@@ -43,6 +49,8 @@ export interface TransactionFilters {
     sort_direction?: 'asc' | 'desc'
     per_page?: number
     page?: number
+    include_excluded?: boolean
+    include_split_children?: boolean
 }
 
 export interface TransactionSummary {
