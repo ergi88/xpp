@@ -47,7 +47,6 @@ import {
   useDuplicateTransaction,
   useCategories,
   useTags,
-  useTransactionSummary,
   useAccounts,
 } from "@/hooks";
 import { Transaction } from "@/types";
@@ -158,18 +157,7 @@ export default function TransactionsPage() {
     end_date: monthDateRange.end_date,
   };
 
-  const summaryFilters = {
-    types: params.types.length > 0 ? params.types : undefined,
-    account_ids: params.accountIds.length > 0 ? params.accountIds : undefined,
-    category_ids:
-      params.categoryIds.length > 0 ? params.categoryIds : undefined,
-    tag_ids: params.tagIds.length > 0 ? params.tagIds : undefined,
-    start_date: dateRange.start_date,
-    end_date: dateRange.end_date,
-  };
-
   const { data, isLoading } = useTransactions(fetchFilters);
-  const { data: summary } = useTransactionSummary(summaryFilters);
   const deleteTransaction = useDeleteTransaction();
   const duplicateTransaction = useDuplicateTransaction();
   const { data: categories } = useCategories();
@@ -202,6 +190,28 @@ export default function TransactionsPage() {
     filteredTxns = filteredTxns.filter((t) =>
       t.tags.some((tag) => params.tagIds.includes(tag.id)),
     );
+
+  const summaryIncome = filteredTxns
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + t.amount, 0);
+  const summaryExpense = filteredTxns
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + t.amount, 0);
+  const summaryTransfer = filteredTxns
+    .filter((t) => t.type === "transfer")
+    .reduce((s, t) => s + t.amount, 0);
+  const summaryRef = filteredTxns[0] ?? allMonthTxns[0];
+  const summary = data
+    ? {
+        income: summaryIncome,
+        expense: summaryExpense,
+        transfer: summaryTransfer,
+        balance: summaryIncome - summaryExpense,
+        transactions_count: filteredTxns.length,
+        currency: summaryRef?.account.currency?.symbol ?? "",
+        decimals: summaryRef?.account.currency?.decimals ?? 2,
+      }
+    : undefined;
 
   const perPage = 20;
   const currentPage = params.page;
@@ -464,7 +474,7 @@ export default function TransactionsPage() {
             setParams({ sortBy, sortDir, page: 1 });
           }}
         >
-          <SelectTrigger className="w-[180px] h-9">
+          <SelectTrigger className="w-45 h-9">
             <ArrowUpDown className="size-4 mr-2" />
             <SelectValue />
           </SelectTrigger>
