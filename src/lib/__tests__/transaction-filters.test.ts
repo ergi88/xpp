@@ -9,7 +9,6 @@ import {
 
 function txn(overrides: Partial<Transaction> & { id: string }): Transaction {
   return {
-    id: overrides.id,
     type: overrides.type ?? 'expense',
     amount: overrides.amount ?? 10,
     date: overrides.date ?? '2026-05-01',
