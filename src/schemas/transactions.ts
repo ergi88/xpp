@@ -37,6 +37,13 @@ export const transactionSchema = z.object({
     items: z.array(transactionItemSchema).optional(),
 
     tag_ids: z.array(z.string().min(1)).optional(),
+
+    is_excluded: z.boolean().default(false),
+    is_one_time: z.boolean().default(false),
+    parent_id: z.string().min(1).nullable().optional(),
+    debt_id: z.string().min(1).nullable().optional(),
+    linked_transaction_id: z.string().min(1).nullable().optional(),
+    recurring_id: z.string().min(1).nullable().optional(),
 }).superRefine((data, ctx) => {
     // Transfer requires to_account_id
     if (data.type === 'transfer' && !data.to_account_id) {
@@ -76,6 +83,15 @@ export const transactionSchema = z.object({
                 path: ['items'],
             })
         }
+    }
+
+    // Phase 1 invariants:
+    if (data.is_excluded && data.is_one_time) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Transaction cannot be both excluded and one-time',
+            path: ['is_one_time'],
+        })
     }
 })
 
