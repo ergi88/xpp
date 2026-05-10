@@ -135,6 +135,12 @@ export const debtsApi = {
   delete: (id: string | number): Promise<void> =>
     adapter.delete("debts", String(id)),
 
+  updateBalance: async (id: string | number, delta: number): Promise<void> => {
+    const debt = await debtsApi.getById(id);
+    const newPaid = debt.currentBalance + delta;
+    await adapter.update("debts", String(id), { paid_amount: newPaid });
+  },
+
   makePayment: async (
     debtId: string | number,
     data: DebtPaymentFormData,
