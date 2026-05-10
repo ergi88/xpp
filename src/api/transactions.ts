@@ -9,6 +9,7 @@ import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
 import type { TransactionFormValues as TransactionFormData } from '@/schemas'
+import { toBool, toIdOrNull } from '@/lib/coerce'
 
 export interface TransactionsResponse {
   data: Transaction[]
@@ -66,6 +67,12 @@ function toTransaction(
     category: r.category_id ? categoryMap.get(r.category_id as string) as Transaction['category'] : undefined,
     items: [],
     tags: tagIds.map(tid => tagMap.get(tid)).filter(Boolean) as Transaction['tags'],
+    isExcluded: toBool(r.is_excluded),
+    isOneTime: toBool(r.is_one_time),
+    parentId: toIdOrNull(r.parent_id),
+    debtId: toIdOrNull(r.debt_id),
+    linkedTransactionId: toIdOrNull(r.linked_transaction_id),
+    recurringId: toIdOrNull(r.recurring_id),
     createdAt: r.created_at as string,
   }
 }
