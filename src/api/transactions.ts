@@ -80,6 +80,14 @@ function toTransaction(
 
 function applyFilters(txns: Transaction[], filters: TransactionFilters): Transaction[] {
   let result = txns
+  // Hide split children unless explicitly requested
+  if (!filters.include_split_children) {
+    result = result.filter(t => !t.parentId)
+  }
+  // Hide excluded unless explicitly requested
+  if (!filters.include_excluded) {
+    result = result.filter(t => !t.isExcluded)
+  }
   if (filters.type) result = result.filter(t => t.type === filters.type)
   if (filters.types?.length) result = result.filter(t => filters.types!.includes(t.type))
   if (filters.account_id) result = result.filter(t => t.account?.id === String(filters.account_id))

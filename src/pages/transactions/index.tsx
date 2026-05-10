@@ -6,6 +6,7 @@ import {
   parseAsString,
   parseAsArrayOf,
   parseAsStringLiteral,
+  parseAsBoolean,
 } from "nuqs";
 import {
   Plus,
@@ -26,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -137,6 +139,8 @@ const transactionSearchParams = {
   navMode: parseAsStringLiteral(["month", "day"] as const).withDefault("month"),
   navDate: parseAsString.withDefault(firstDayOfCurrentMonth()),
   accountIds: parseAsArrayOf(parseAsString).withDefault([]),
+  showExcluded: parseAsBoolean.withDefault(false),
+  showSplitChildren: parseAsBoolean.withDefault(false),
 };
 
 export default function TransactionsPage() {
@@ -155,6 +159,8 @@ export default function TransactionsPage() {
     sort_direction: params.sortDir,
     start_date: monthDateRange.start_date,
     end_date: monthDateRange.end_date,
+    include_excluded: params.showExcluded,
+    include_split_children: params.showSplitChildren,
   };
 
   const { data, isLoading } = useTransactions(fetchFilters);
@@ -235,12 +241,16 @@ export default function TransactionsPage() {
   const activeFiltersCount = [
     params.categoryIds.length > 0,
     params.tagIds.length > 0,
+    params.showExcluded,
+    params.showSplitChildren,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setParams({
       categoryIds: null,
       tagIds: null,
+      showExcluded: null,
+      showSplitChildren: null,
       page: 1,
     });
   };
@@ -427,6 +437,39 @@ export default function TransactionsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Visibility toggles */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Visibility
+                    </label>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={params.showExcluded}
+                          onCheckedChange={(checked) =>
+                            setParams({
+                              showExcluded: checked === true ? true : null,
+                              page: 1,
+                            })
+                          }
+                        />
+                        Show excluded
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={params.showSplitChildren}
+                          onCheckedChange={(checked) =>
+                            setParams({
+                              showSplitChildren: checked === true ? true : null,
+                              page: 1,
+                            })
+                          }
+                        />
+                        Show split children
+                      </label>
+                    </div>
+                  </div>
 
                   {/* Tags */}
                   {tags && tags.length > 0 && (
