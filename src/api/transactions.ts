@@ -7,6 +7,7 @@ import {
 } from './accounts'
 import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
+import { applyTransactionEffects } from './transaction-effects'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
 import type { TransactionFormValues as TransactionFormData } from '@/schemas'
 import { toBool, toIdOrNull } from '@/lib/coerce'
@@ -186,22 +187,19 @@ export const transactionsApi = {
       description: data.description ?? '',
       date: data.date,
       tag_ids: (data.tag_ids ?? []).join(','),
+      is_excluded: data.is_excluded ? 'true' : 'false',
+      is_one_time: data.is_one_time ? 'true' : 'false',
+      parent_id: data.parent_id ?? '',
+      debt_id: data.debt_id ?? '',
+      linked_transaction_id: data.linked_transaction_id ?? '',
+      recurring_id: data.recurring_id ?? '',
       created_at: new Date().toISOString(),
     }
     await adapter.create('transactions', row)
 
-    if (data.type === 'income') {
-      await accountsApi.updateBalance(String(data.account_id), data.amount)
-    } else if (data.type === 'expense') {
-      await accountsApi.updateBalance(String(data.account_id), -data.amount)
-    } else if (data.type === 'transfer' && data.to_account_id) {
-      await Promise.all([
-        accountsApi.updateBalance(String(data.account_id), -data.amount),
-        accountsApi.updateBalance(String(data.to_account_id), data.to_amount ?? data.amount),
-      ])
-    }
-
-    return transactionsApi.getById(id)
+    const created = await transactionsApi.getById(id)
+    await applyTransactionEffects(created, 1)
+    return created
   },
 
   update: async (id: string | number, data: Partial<TransactionFormData>): Promise<Transaction> => {
@@ -209,45 +207,24 @@ export const transactionsApi = {
     await adapter.update('transactions', String(id), {
       ...data,
       tag_ids: data.tag_ids ? data.tag_ids.join(',') : undefined,
+      is_excluded: data.is_excluded === undefined ? undefined : (data.is_excluded ? 'true' : 'false'),
+      is_one_time: data.is_one_time === undefined ? undefined : (data.is_one_time ? 'true' : 'false'),
+      parent_id: data.parent_id ?? undefined,
+      debt_id: data.debt_id ?? undefined,
+      linked_transaction_id: data.linked_transaction_id ?? undefined,
+      recurring_id: data.recurring_id ?? undefined,
     } as Record<string, unknown>)
 
-    if (existing.type === 'income') {
-      await accountsApi.updateBalance(existing.account.id, -existing.amount)
-    } else if (existing.type === 'expense') {
-      await accountsApi.updateBalance(existing.account.id, existing.amount)
-    } else if (existing.type === 'transfer') {
-      await Promise.all([
-        accountsApi.updateBalance(existing.account.id, existing.amount),
-        existing.toAccount && accountsApi.updateBalance(existing.toAccount.id, -(existing.toAmount ?? existing.amount)),
-      ].filter(Boolean) as Promise<unknown>[])
-    }
+    await applyTransactionEffects(existing, -1)
     const updated = await transactionsApi.getById(id)
-    if (updated.type === 'income') {
-      await accountsApi.updateBalance(updated.account.id, updated.amount)
-    } else if (updated.type === 'expense') {
-      await accountsApi.updateBalance(updated.account.id, -updated.amount)
-    } else if (updated.type === 'transfer') {
-      await Promise.all([
-        accountsApi.updateBalance(updated.account.id, -updated.amount),
-        updated.toAccount && accountsApi.updateBalance(updated.toAccount.id, updated.toAmount ?? updated.amount),
-      ].filter(Boolean) as Promise<unknown>[])
-    }
+    await applyTransactionEffects(updated, 1)
     return updated
   },
 
   delete: async (id: string | number): Promise<void> => {
     const existing = await transactionsApi.getById(id)
     await adapter.delete('transactions', String(id))
-    if (existing.type === 'income') {
-      await accountsApi.updateBalance(existing.account.id, -existing.amount)
-    } else if (existing.type === 'expense') {
-      await accountsApi.updateBalance(existing.account.id, existing.amount)
-    } else if (existing.type === 'transfer') {
-      await Promise.all([
-        accountsApi.updateBalance(existing.account.id, existing.amount),
-        existing.toAccount && accountsApi.updateBalance(existing.toAccount.id, -(existing.toAmount ?? existing.amount)),
-      ].filter(Boolean) as Promise<unknown>[])
-    }
+    await applyTransactionEffects(existing, -1)
   },
 
   duplicate: async (id: string | number): Promise<Transaction> => {
