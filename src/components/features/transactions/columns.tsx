@@ -124,7 +124,7 @@ export function createTransactionColumns(
                     isExcluded || isOneTime || recurringId || linkedTransactionId || debtId
 
                 return (
-                    <div className={cn('space-y-1', isExcluded && 'opacity-60')}>
+                    <div className="space-y-1">
                         <div className="font-medium">
                             {description || getDefaultDescription()}
                             {hasBadges && (
