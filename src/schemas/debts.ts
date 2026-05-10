@@ -24,11 +24,7 @@ export const debtSchema = z.object({
 export type DebtFormData = z.infer<typeof debtSchema>;
 
 export const debtPaymentSchema = z.object({
-  account_id: z.coerce
-    .number({
-      error: "Please select account",
-    })
-    .positive("Please select account"),
+  account_id: z.string().min(1, "Please select account"),
 
   amount: z.coerce.number().positive("Amount must be greater than 0"),
 

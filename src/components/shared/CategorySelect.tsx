@@ -1,70 +1,77 @@
-import { useMemo } from 'react'
+import { useMemo } from "react";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import { FormControl } from '@/components/ui/form'
-import { useCategories } from '@/hooks'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FormControl } from "@/components/ui/form";
+import { useCategories } from "@/hooks";
 
 interface CategorySelectProps {
-    value?: string | null
-    onChange: (value: string) => void
-    type: 'income' | 'expense'
-    placeholder?: string
-    disabled?: boolean
-    sortByPopularity?: boolean
+  value?: string | null;
+  onChange: (value: string) => void;
+  type: "income" | "expense";
+  placeholder?: string;
+  disabled?: boolean;
+  sortByPopularity?: boolean;
+  withFormControl?: boolean;
 }
 
 export function CategorySelect({
-    value,
-    onChange,
-    type,
-    placeholder = 'Select category',
-    disabled,
-    sortByPopularity = true,
+  value,
+  onChange,
+  type,
+  placeholder = "Select category",
+  disabled,
+  sortByPopularity = true,
+  withFormControl = true,
 }: CategorySelectProps) {
-    const { data: categories } = useCategories()
+  const { data: categories } = useCategories();
 
-    const filteredCategories = useMemo(() => {
-        const filtered = categories?.filter(c => c.type === type) ?? []
-        if (sortByPopularity) {
-            return filtered.sort((a, b) => (b.transactionsCount ?? 0) - (a.transactionsCount ?? 0))
-        }
-        return filtered
-    }, [categories, type, sortByPopularity])
+  const filteredCategories = useMemo(() => {
+    const filtered = categories?.filter((c) => c.type === type) ?? [];
+    if (sortByPopularity) {
+      return filtered.sort(
+        (a, b) => (b.transactionsCount ?? 0) - (a.transactionsCount ?? 0),
+      );
+    }
+    return filtered;
+  }, [categories, type, sortByPopularity]);
 
-    return (
-        <Select
-            onValueChange={(val) => onChange(val)}
-            value={value ? value.toString() : undefined}
-            disabled={disabled}
-        >
-            <FormControl>
-                <SelectTrigger>
-                    <SelectValue placeholder={placeholder} />
-                </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-                {filteredCategories.map((category) => (
-                    <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span
-                                className="w-5 h-5 rounded flex items-center justify-center text-xs text-white"
-                                style={{ backgroundColor: category.color }}
-                            >
-                                {category.icon}
-                            </span>
-                            <span>{category.name}</span>
-                        </div>
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    )
+  return (
+    <Select
+      onValueChange={(val) => onChange(val)}
+      value={value ? value.toString() : ""}
+      disabled={disabled}
+    >
+      {withFormControl ? (
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+        </FormControl>
+      ) : (
+        <SelectTrigger>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+      )}
+      <SelectContent>
+        {filteredCategories.map((category) => (
+          <SelectItem key={category.id} value={category.id.toString()}>
+            <div className="flex items-center gap-2">
+              <span
+                className="w-5 h-5 rounded flex items-center justify-center text-xs text-white"
+                style={{ backgroundColor: category.color }}
+              >
+                {category.icon}
+              </span>
+              <span>{category.name}</span>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 }
