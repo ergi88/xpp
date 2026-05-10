@@ -38,8 +38,8 @@ export const transactionSchema = z.object({
 
     tag_ids: z.array(z.string().min(1)).optional(),
 
-    is_excluded: z.boolean().default(false),
-    is_one_time: z.boolean().default(false),
+    is_excluded: z.boolean().optional(),
+    is_one_time: z.boolean().optional(),
     parent_id: z.string().min(1).nullable().optional(),
     debt_id: z.string().min(1).nullable().optional(),
     linked_transaction_id: z.string().min(1).nullable().optional(),
