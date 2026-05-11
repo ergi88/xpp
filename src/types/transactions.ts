@@ -5,14 +5,6 @@ import { Tag } from './tags'
 
 export type TransactionType = 'income' | 'expense' | 'transfer'
 
-export interface TransactionItem {
-    id?: string
-    name: string
-    quantity: number
-    pricePerUnit: number
-    totalPrice: number
-}
-
 export interface Transaction extends BaseEntity {
     type: TransactionType
     amount: number
@@ -23,8 +15,8 @@ export interface Transaction extends BaseEntity {
     account: Account
     toAccount?: Account
     category?: Category
-    items: TransactionItem[]
-    itemsCount?: number
+    children?: Transaction[]
+    childrenCount?: number
     tags: Tag[]
     // Phase 1 fields:
     isExcluded: boolean
@@ -34,6 +26,10 @@ export interface Transaction extends BaseEntity {
     linkedTransactionId: string | null
     recurringId: string | null
 }
+
+// Legacy alias preserved for any straggler component reading `items` / `itemsCount` —
+// these point at children. Remove after a sweep confirms no readers remain.
+export type TransactionItem = Transaction
 
 export interface TransactionFilters {
     type?: 'income' | 'expense' | 'transfer'
