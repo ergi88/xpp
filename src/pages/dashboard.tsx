@@ -42,11 +42,6 @@ import {
   useBalanceComparison,
   useUpcomingRecurring,
 } from "@/hooks";
-import {
-  collapseLinkedPairs,
-  excludeSplitChildren,
-  excludeExcluded,
-} from "@/lib/transaction-filters";
 import { useOverviewMetrics } from "@/hooks/use-reports";
 import type { ReportFilters } from "@/pages/reports/types";
 import { AmountText } from "@/components/shared/AmountText";
@@ -223,20 +218,13 @@ export default function DashboardPage() {
     debtsData?.data?.filter((d) => !d.isPaidOff).slice(0, 4) ?? [];
   const debtSummary = debtsData?.summary;
 
-  const monthTransactions = monthData?.data ?? [];
-  const monthSpendFiltered = excludeExcluded(
-    excludeSplitChildren(collapseLinkedPairs(monthTransactions)),
-  );
-
   const totalBalance = balance?.total_balance ?? 0;
   const currency = balance?.currency_code ?? balance?.currency ?? "USD";
   const decimals = balance?.decimals ?? 2;
-  const monthIncome = monthSpendFiltered
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const monthExpense = monthSpendFiltered
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Server summary already applies the Phase 2 filter chain (Task 2) plus
+  // base-currency aggregation — use it directly to preserve multi-currency math.
+  const monthIncome = monthData?.summary?.income ?? 0;
+  const monthExpense = monthData?.summary?.expense ?? 0;
 
   // Calculate percentage changes
   const balanceChange = useMemo(() => {
