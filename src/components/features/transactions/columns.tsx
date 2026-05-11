@@ -47,7 +47,10 @@ export function createTransactionColumns(
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => row.toggleExpanded()}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            row.toggleExpanded()
+                        }}
                         className="size-6"
                     >
                         <ChevronRight
@@ -199,7 +202,11 @@ export function createTransactionColumns(
                 return (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-sm">
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 <MoreHorizontal className="size-4" />
                             </Button>
                         </DropdownMenuTrigger>

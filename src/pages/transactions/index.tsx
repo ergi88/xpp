@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   useQueryStates,
   parseAsInteger,
@@ -144,6 +144,7 @@ const transactionSearchParams = {
 };
 
 export default function TransactionsPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useQueryStates(transactionSearchParams);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -558,6 +559,7 @@ export default function TransactionsPage() {
         getRowClassName={(row) =>
           row.original.isExcluded ? "opacity-60" : undefined
         }
+        onRowClick={(row) => navigate(`/transactions/${row.original.id}`)}
         manualPagination
       />
 

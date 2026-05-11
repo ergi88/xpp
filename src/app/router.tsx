@@ -6,6 +6,9 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const TransactionsPage = lazy(() => import("@/pages/transactions"));
 const TransactionCreatePage = lazy(() => import("@/pages/transactions/create"));
+const TransactionViewPage = lazy(
+  () => import("@/pages/transactions/[id]/index"),
+);
 const TransactionEditPage = lazy(
   () => import("@/pages/transactions/[id]/edit"),
 );
@@ -63,6 +66,10 @@ export const router = createBrowserRouter(
         {
           path: "transactions/create",
           element: withSuspense(TransactionCreatePage),
+        },
+        {
+          path: "transactions/:id",
+          element: withSuspense(TransactionViewPage),
         },
         {
           path: "transactions/:id/edit",

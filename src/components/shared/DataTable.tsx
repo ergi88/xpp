@@ -45,6 +45,7 @@ interface DataTableProps<T> {
     renderSubComponent?: (props: { row: Row<T> }) => React.ReactNode
     getRowCanExpand?: (row: Row<T>) => boolean
     getRowClassName?: (row: Row<T>) => string | undefined
+    onRowClick?: (row: Row<T>) => void
     manualPagination?: boolean
 }
 
@@ -185,6 +186,7 @@ export function DataTable<T>({
     renderSubComponent,
     getRowCanExpand,
     getRowClassName,
+    onRowClick,
     manualPagination = false,
 }: DataTableProps<T>) {
     const table = useReactTable({
@@ -235,7 +237,8 @@ export function DataTable<T>({
                         <Fragment key={row.id}>
                             <TableRow
                                 data-state={row.getIsSelected() && 'selected'}
-                                className={cn(getRowClassName?.(row))}
+                                className={cn(getRowClassName?.(row), onRowClick && 'cursor-pointer')}
+                                onClick={() => onRowClick?.(row)}
                             >
                                 {row.getVisibleCells().map((cell) => (
                                     <TableCell key={cell.id}>
