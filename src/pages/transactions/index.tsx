@@ -73,47 +73,37 @@ const TYPE_FILTERS: {
 ];
 
 function TransactionItems({ row }: { row: Row<Transaction> }) {
-  const items = row.original.items;
-  const decimals = row.original.account.currency?.decimals ?? 2;
-  const symbol = row.original.account.currency?.symbol;
-  if (!items || items.length === 0) return null;
+  const children = row.original.children
+  const decimals = row.original.account.currency?.decimals ?? 2
+  const symbol = row.original.account.currency?.symbol
+  if (!children || children.length === 0) return null
 
   return (
     <div className="px-4 py-3 ml-10">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-muted-foreground text-xs">
-            <th className="text-left font-medium pb-2">Item</th>
-            <th className="text-right font-medium pb-2 w-20">Qty</th>
-            <th className="text-right font-medium pb-2 w-24">Price</th>
-            <th className="text-right font-medium pb-2 w-24">Total</th>
+            <th className="text-left font-medium pb-2">Description</th>
+            <th className="text-left font-medium pb-2">Attribution</th>
+            <th className="text-right font-medium pb-2 w-24">Amount</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item, idx) => (
-            <tr key={item.id ?? idx} className="border-t border-border/50">
-              <td className="py-1.5">{item.name}</td>
-              <td className="py-1.5 text-right font-mono">{item.quantity}</td>
-              <td className="py-1.5 text-right font-mono">
-                <AmountText
-                  value={item.pricePerUnit}
-                  decimals={decimals}
-                  currency={symbol}
-                />
+          {children.map((c) => (
+            <tr key={c.id} className="border-t border-border/50">
+              <td className="py-1.5">{c.description || <span className="text-muted-foreground italic">—</span>}</td>
+              <td className="py-1.5">
+                {c.debtId ? '$ Debt payment' : (c.category?.name ?? '—')}
               </td>
               <td className="py-1.5 text-right font-mono font-medium">
-                <AmountText
-                  value={item.totalPrice}
-                  decimals={decimals}
-                  currency={symbol}
-                />
+                <AmountText value={c.amount} decimals={decimals} currency={symbol} />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
-  );
+  )
 }
 
 const SORT_OPTIONS = [
@@ -554,7 +544,7 @@ export default function TransactionsPage() {
         }
         renderSubComponent={TransactionItems}
         getRowCanExpand={(row) =>
-          (row.original.itemsCount ?? row.original.items?.length ?? 0) > 1
+          (row.original.childrenCount ?? row.original.children?.length ?? 0) > 0
         }
         getRowClassName={(row) =>
           row.original.isExcluded ? "opacity-60" : undefined

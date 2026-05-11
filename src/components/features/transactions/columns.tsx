@@ -41,8 +41,8 @@ export function createTransactionColumns(
             header: '',
             size: 32,
             cell: ({ row }) => {
-                const itemsCount = row.original.itemsCount ?? row.original.items?.length ?? 0
-                if (itemsCount <= 1) return null
+                const childrenCount = row.original.childrenCount ?? row.original.children?.length ?? 0
+                if (childrenCount < 1) return null
                 return (
                     <Button
                         variant="ghost"
@@ -97,7 +97,7 @@ export function createTransactionColumns(
                     account,
                     toAccount,
                     type,
-                    itemsCount,
+                    childrenCount,
                     tags,
                     isExcluded,
                     isOneTime,
@@ -142,8 +142,8 @@ export function createTransactionColumns(
                         </div>
                         <div className="text-xs text-muted-foreground">
                             {getSubDescription()}
-                            {itemsCount != null && itemsCount > 0 && (
-                                <span className="ml-2 text-primary">({itemsCount} items)</span>
+                            {childrenCount != null && childrenCount > 0 && (
+                                <span className="ml-2 text-primary">({childrenCount} splits)</span>
                             )}
                         </div>
                         {tags && tags.length > 0 && (
