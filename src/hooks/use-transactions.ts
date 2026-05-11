@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { transactionsApi } from '@/api'
 import type { TransactionFilters } from '@/types'
-import type { TransactionFormValues } from '@/schemas'
+import type { TransactionFormValues, SplitChildFormData } from '@/schemas'
 type TransactionFormData = TransactionFormValues
 import { toast } from 'sonner'
 
@@ -131,6 +131,49 @@ export function useToggleTransactionFlag() {
         },
         onError: (error: Error) => {
             toast.error(error.message || 'Failed to update transaction')
+        },
+    })
+}
+
+export function useSplitTransaction() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (params: {
+            parentId: string | number
+            children: SplitChildFormData[]
+        }) => {
+            return transactionsApi.split(params.parentId, params.children)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            queryClient.invalidateQueries({ queryKey: ['debts'] })
+            toast.success('Transaction split saved')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to split transaction')
+        },
+    })
+}
+
+export function useUnsplitTransaction() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string | number) => transactionsApi.unsplit(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            queryClient.invalidateQueries({ queryKey: ['debts'] })
+            toast.success('Transaction unsplit')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to unsplit')
         },
     })
 }
