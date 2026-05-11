@@ -25,11 +25,6 @@ export default function TransactionEditPage() {
               exchange_rate: transaction.exchangeRate ?? null,
               description: transaction.description ?? '',
               date: transaction.date,
-              items: transaction.items?.map(item => ({
-                  name: item.name,
-                  quantity: item.quantity,
-                  price_per_unit: item.pricePerUnit,
-              })) ?? [],
               tag_ids: transaction.tags?.map(tag => tag.id) ?? [],
           }
         : undefined
