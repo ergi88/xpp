@@ -1,4 +1,10 @@
-var SPREADSHEET_ID = '';
+// Source of truth for the Google Apps Script body users paste into the
+// Apps Script editor. Bumped whenever GAS-side semantics change so the in-app
+// banner can prompt existing users to redeploy.
+
+export const GAS_SCRIPT_VERSION = 2;
+
+export const GAS_SCRIPT = `var SPREADSHEET_ID = '';
 
 function doGet(e) {
   try {
@@ -159,3 +165,4 @@ function errorResponse(message) {
   return ContentService.createTextOutput(JSON.stringify({ error: message }))
     .setMimeType(ContentService.MimeType.JSON);
 }
+`;

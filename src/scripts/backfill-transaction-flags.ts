@@ -29,13 +29,24 @@ async function getAll(): Promise<Row[]> {
   return res.json() as Promise<Row[]>
 }
 
-async function update(id: string, data: Record<string, unknown>): Promise<void> {
+async function update(id: string, data: Record<string, unknown>): Promise<string> {
   const res = await fetch(GAS_URL!, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    redirect: 'follow',
     body: JSON.stringify({ action: 'update', resource: 'transactions', id, data }),
   })
-  if (!res.ok) throw new Error(`update ${id} failed: ${res.status}`)
+  const text = await res.text()
+  if (!res.ok) throw new Error(`update ${id} failed: ${res.status} body=${text.slice(0, 500)}`)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    throw new Error(`update ${id} returned non-JSON (status=${res.status} url=${res.url}): ${text.slice(0, 500)}`)
+  }
+  if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+    throw new Error(`update ${id} GAS error: ${(parsed as { error: string }).error}`)
+  }
+  return text.slice(0, 200)
 }
 
 async function main() {
@@ -56,8 +67,8 @@ async function main() {
     if (DRY_RUN) {
       console.log(`Would backfill ${r.id}: ${JSON.stringify(patch)}`)
     } else {
-      await update(String(r.id), patch)
-      console.log(`Backfilled ${r.id}`)
+      const responseText = await update(String(r.id), patch)
+      console.log(`Backfilled ${r.id} — GAS returned: ${responseText}`)
     }
     updated++
   }
