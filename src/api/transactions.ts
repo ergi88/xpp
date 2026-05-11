@@ -11,6 +11,11 @@ import { applyTransactionEffects } from './transaction-effects'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
 import type { TransactionFormValues as TransactionFormData } from '@/schemas'
 import { toBool, toIdOrNull } from '@/lib/coerce'
+import {
+  collapseLinkedPairs,
+  excludeSplitChildren,
+  excludeExcluded,
+} from '@/lib/transaction-filters'
 
 export interface TransactionsResponse {
   data: Transaction[]
@@ -142,9 +147,13 @@ export const transactionsApi = {
     let summary: TransactionSummary | undefined
     if (filters?.with_summary) {
       const { baseCurrency, currency } = await getBaseCurrencyMeta()
-      const aggregateTxns = txns.filter((transaction) =>
+      let aggregateTxns = txns.filter((transaction) =>
         isTransactionIncludedInBaseAggregates(transaction, baseCurrency?.id),
       )
+      // Phase 2 matrix: summary tiles skip excluded, hide split children, collapse linked pairs.
+      aggregateTxns = collapseLinkedPairs(aggregateTxns)
+      aggregateTxns = excludeSplitChildren(aggregateTxns)
+      aggregateTxns = excludeExcluded(aggregateTxns)
       const income = aggregateTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
       const expense = aggregateTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
       summary = {
