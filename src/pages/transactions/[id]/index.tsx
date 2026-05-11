@@ -8,6 +8,7 @@ import {
     useTransaction,
     useDeleteTransaction,
     useDuplicateTransaction,
+    useToggleTransactionFlag,
 } from '@/hooks'
 import {
     Pencil,
@@ -17,6 +18,8 @@ import {
     ArrowDownLeft,
     ArrowUpRight,
     ArrowLeftRight,
+    Ban,
+    Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +35,7 @@ export default function TransactionViewPage() {
     const { data: t, isLoading } = useTransaction(id!)
     const deleteTransaction = useDeleteTransaction()
     const duplicateTransaction = useDuplicateTransaction()
+    const toggleFlag = useToggleTransactionFlag()
 
     const handleDelete = () => {
         if (!id) return
@@ -161,6 +165,24 @@ export default function TransactionViewPage() {
                     <Button variant="outline" onClick={() => duplicateTransaction.mutate(t.id)}>
                         <Copy className="size-4 mr-1" />
                         Duplicate
+                    </Button>
+                    <Button
+                        variant={t.isExcluded ? 'default' : 'outline'}
+                        onClick={() => toggleFlag.mutate({ id: t.id, flag: 'is_excluded', value: !t.isExcluded })}
+                        disabled={toggleFlag.isPending || t.isOneTime}
+                        title={t.isOneTime ? 'Cannot exclude a one-time transaction' : ''}
+                    >
+                        <Ban className="size-4 mr-1" />
+                        {t.isExcluded ? 'Included' : 'Exclude'}
+                    </Button>
+                    <Button
+                        variant={t.isOneTime ? 'default' : 'outline'}
+                        onClick={() => toggleFlag.mutate({ id: t.id, flag: 'is_one_time', value: !t.isOneTime })}
+                        disabled={toggleFlag.isPending || t.isExcluded}
+                        title={t.isExcluded ? 'Cannot mark excluded transaction as one-time' : ''}
+                    >
+                        <Star className="size-4 mr-1" />
+                        {t.isOneTime ? 'Recurring-like' : 'Mark one-time'}
                     </Button>
                     <Button variant="destructive" onClick={handleDelete}>
                         <Trash2 className="size-4 mr-1" />
