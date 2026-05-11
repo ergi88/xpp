@@ -124,6 +124,7 @@ export function useToggleTransactionFlag() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
             queryClient.invalidateQueries({ queryKey: ['reports'] })
             toast.success('Transaction updated')
