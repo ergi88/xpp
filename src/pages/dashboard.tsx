@@ -37,11 +37,16 @@ import {
   useBalanceHistory,
   useAccounts,
   useCategorySummary,
-  useBudgets,
+  useBudgetsWithProgress,
   useDebtsWithSummary,
   useBalanceComparison,
   useUpcomingRecurring,
 } from "@/hooks";
+import {
+  collapseLinkedPairs,
+  excludeSplitChildren,
+  excludeExcluded,
+} from "@/lib/transaction-filters";
 import { useOverviewMetrics } from "@/hooks/use-reports";
 import type { ReportFilters } from "@/pages/reports/types";
 import { AmountText } from "@/components/shared/AmountText";
@@ -204,7 +209,7 @@ export default function DashboardPage() {
     type: "expense",
     ...currentMonthFilters,
   });
-  const { data: budgets } = useBudgets();
+  const { data: budgets } = useBudgetsWithProgress();
   const { data: debtsData } = useDebtsWithSummary();
   const { data: overviewData } = useOverviewMetrics(reportFilters);
   const { data: balanceComparison } = useBalanceComparison();
@@ -218,13 +223,20 @@ export default function DashboardPage() {
     debtsData?.data?.filter((d) => !d.isPaidOff).slice(0, 4) ?? [];
   const debtSummary = debtsData?.summary;
 
-  const summary = monthData?.summary;
+  const monthTransactions = monthData?.data ?? [];
+  const monthSpendFiltered = excludeExcluded(
+    excludeSplitChildren(collapseLinkedPairs(monthTransactions)),
+  );
 
   const totalBalance = balance?.total_balance ?? 0;
   const currency = balance?.currency_code ?? balance?.currency ?? "USD";
   const decimals = balance?.decimals ?? 2;
-  const monthIncome = Number(summary?.income) || 0;
-  const monthExpense = Number(summary?.expense) || 0;
+  const monthIncome = monthSpendFiltered
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const monthExpense = monthSpendFiltered
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
 
   // Calculate percentage changes
   const balanceChange = useMemo(() => {
