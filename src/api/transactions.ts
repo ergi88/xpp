@@ -8,6 +8,7 @@ import {
 import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
 import { applyTransactionEffects } from './transaction-effects'
+import { debtsApi } from './debts'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
 import type { TransactionFormValues as TransactionFormData } from '@/schemas'
 import { toBool, toIdOrNull } from '@/lib/coerce'
@@ -237,6 +238,41 @@ export const transactionsApi = {
 
     const created = await transactionsApi.getById(id)
     await applyTransactionEffects(created, 1)
+
+    // Phase 3: persist children if provided.
+    if (data.children && data.children.length > 0) {
+      for (const c of data.children) {
+        const childRow = {
+          id: uuidv4(),
+          type: data.type,
+          account_id: String(data.account_id),
+          to_account_id: '',
+          category_id: c.category_id ? String(c.category_id) : '',
+          amount: c.amount,
+          to_amount: '',
+          exchange_rate: '',
+          description: c.description ?? '',
+          date: data.date,
+          tag_ids: '',
+          is_excluded: 'false',
+          is_one_time: 'false',
+          parent_id: id,
+          debt_id: c.debt_id ? String(c.debt_id) : '',
+          linked_transaction_id: '',
+          recurring_id: '',
+          created_at: new Date().toISOString(),
+        }
+        await adapter.create('transactions', childRow)
+
+        // Apply debt-balance side-effect on debt-linked children.
+        if (c.debt_id) {
+          await debtsApi.updateBalance(String(c.debt_id), c.amount)
+        }
+      }
+      // Re-fetch so children are attached on the returned object
+      return transactionsApi.getById(id)
+    }
+
     return created
   },
 
@@ -261,6 +297,17 @@ export const transactionsApi = {
 
   delete: async (id: string | number): Promise<void> => {
     const existing = await transactionsApi.getById(id)
+
+    // Cascade: delete all children first, reversing each child's debt effects.
+    if (existing.children && existing.children.length > 0) {
+      for (const child of existing.children) {
+        if (child.debtId) {
+          await debtsApi.updateBalance(child.debtId, -child.amount)
+        }
+        await adapter.delete('transactions', String(child.id))
+      }
+    }
+
     await adapter.delete('transactions', String(id))
     await applyTransactionEffects(existing, -1)
   },
