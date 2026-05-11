@@ -10,7 +10,7 @@ import { tagsApi } from './tags'
 import { applyTransactionEffects } from './transaction-effects'
 import { debtsApi } from './debts'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
-import type { TransactionFormValues as TransactionFormData } from '@/schemas'
+import type { TransactionFormValues as TransactionFormData, SplitChildFormData } from '@/schemas'
 import { toBool, toIdOrNull } from '@/lib/coerce'
 import {
   collapseLinkedPairs,
@@ -310,6 +310,65 @@ export const transactionsApi = {
 
     await adapter.delete('transactions', String(id))
     await applyTransactionEffects(existing, -1)
+  },
+
+  split: async (parentId: string | number, children: SplitChildFormData[]): Promise<Transaction> => {
+    const parent = await transactionsApi.getById(parentId)
+
+    // Validate sum equals parent amount within 0.01.
+    const sum = children.reduce((s, c) => s + c.amount, 0)
+    if (Math.abs(sum - parent.amount) > 0.01) {
+      throw new Error(`Children total (${sum.toFixed(2)}) must equal parent amount (${parent.amount.toFixed(2)})`)
+    }
+
+    // Delete any existing children first (idempotent re-split).
+    if (parent.children && parent.children.length > 0) {
+      for (const c of parent.children) {
+        if (c.debtId) await debtsApi.updateBalance(c.debtId, -c.amount)
+        await adapter.delete('transactions', String(c.id))
+      }
+    }
+
+    // Write new children.
+    for (const c of children) {
+      const childRow = {
+        id: uuidv4(),
+        type: parent.type,
+        account_id: parent.account.id,
+        to_account_id: '',
+        category_id: c.category_id ? String(c.category_id) : '',
+        amount: c.amount,
+        to_amount: '',
+        exchange_rate: '',
+        description: c.description ?? '',
+        date: parent.date,
+        tag_ids: '',
+        is_excluded: 'false',
+        is_one_time: 'false',
+        parent_id: String(parentId),
+        debt_id: c.debt_id ? String(c.debt_id) : '',
+        linked_transaction_id: '',
+        recurring_id: '',
+        created_at: new Date().toISOString(),
+      }
+      await adapter.create('transactions', childRow)
+      if (c.debt_id) {
+        await debtsApi.updateBalance(String(c.debt_id), c.amount)
+      }
+    }
+
+    return transactionsApi.getById(parentId)
+  },
+
+  unsplit: async (parentId: string | number): Promise<Transaction> => {
+    const parent = await transactionsApi.getById(parentId)
+    if (parent.children && parent.children.length > 0) {
+      for (const c of parent.children) {
+        if (c.debtId) await debtsApi.updateBalance(c.debtId, -c.amount)
+        await adapter.delete('transactions', String(c.id))
+      }
+    }
+    return transactionsApi.getById(parentId)
   },
 
   duplicate: async (id: string | number): Promise<Transaction> => {
