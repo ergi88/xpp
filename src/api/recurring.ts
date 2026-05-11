@@ -1,3 +1,6 @@
+// Phase 2 NOTE: when a recurring-detection feature is added (Phase 5 engine),
+// it must filter out is_excluded, is_one_time, and split children before
+// matching candidates. See spec §4.1 matrix row 'Recurring detection'.
 import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import type { RecurringTransaction } from '@/types'
