@@ -23,12 +23,25 @@ export function collapseLinkedPairs(txns: Transaction[]): Transaction[] {
   return result
 }
 
-// Pass-through until Phase 3 lands split children. When children exist,
-// this will replace each parent (whose id appears as another row's parentId)
-// with its children, so category-attribution surfaces see per-category amounts.
-// Today there are no split children so the input is returned unchanged.
+// Replace each parent (a row whose .children is non-empty) with its children.
+// Rows whose own id appears as another row's parent_id are dropped to prevent
+// double-counting. Rows with no .children pass through.
 export function expandSplitChildrenForCategoryView(
   txns: Transaction[],
 ): Transaction[] {
-  return txns
+  const parentIdsWithChildren = new Set<string>()
+  for (const t of txns) {
+    if (t.children && t.children.length > 0) parentIdsWithChildren.add(t.id)
+  }
+  const result: Transaction[] = []
+  for (const t of txns) {
+    // Skip child rows of a parent we will expand below.
+    if (t.parentId && parentIdsWithChildren.has(t.parentId)) continue
+    if (t.children && t.children.length > 0) {
+      result.push(...t.children)
+    } else {
+      result.push(t)
+    }
+  }
+  return result
 }

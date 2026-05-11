@@ -70,3 +70,26 @@ describe('expandSplitChildrenForCategoryView', () => {
     expect(expandSplitChildrenForCategoryView(list).map(t => t.id)).toEqual(['b', 'a', 'c'])
   })
 })
+
+describe('expandSplitChildrenForCategoryView (with children)', () => {
+  it('replaces parents that have children with their child rows', () => {
+    const child1 = txn({ id: 'c1', parentId: 'p', amount: 60 })
+    const child2 = txn({ id: 'c2', parentId: 'p', amount: 40 })
+    const parent = { ...txn({ id: 'p', amount: 100 }), children: [child1, child2] } as Transaction
+    const result = expandSplitChildrenForCategoryView([parent])
+    expect(result.map(t => t.id)).toEqual(['c1', 'c2'])
+  })
+  it('passes through parents that have no children', () => {
+    const a = txn({ id: 'a' })
+    const b = txn({ id: 'b' })
+    expect(expandSplitChildrenForCategoryView([a, b]).map(t => t.id)).toEqual(['a', 'b'])
+  })
+  it('skips standalone child rows when their parent appears in the input', () => {
+    // Avoids double-counting: parent expands to its children, raw child rows are dropped.
+    const child1 = txn({ id: 'c1', parentId: 'p' })
+    const child2 = txn({ id: 'c2', parentId: 'p' })
+    const parent = { ...txn({ id: 'p' }), children: [child1, child2] } as Transaction
+    const result = expandSplitChildrenForCategoryView([parent, child1, child2])
+    expect(result.map(t => t.id)).toEqual(['c1', 'c2'])
+  })
+})
