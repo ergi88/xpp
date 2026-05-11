@@ -37,6 +37,7 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AccountSelect } from "@/components/shared/AccountSelect";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { FormWrapper } from "@/components/shared/FormWrapper";
@@ -97,6 +98,8 @@ export function TransactionForm({
       date: defaultValues?.date || today,
       items: defaultValues?.items ?? [],
       tag_ids: defaultValues?.tag_ids ?? [],
+      is_excluded: defaultValues?.is_excluded ?? false,
+      is_one_time: defaultValues?.is_one_time ?? false,
     };
   }, [defaultValues]);
 
@@ -554,6 +557,58 @@ export function TransactionForm({
               </FormItem>
             )}
           />
+
+          {/* Flags */}
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <FormField
+              control={form.control}
+              name="is_excluded"
+              render={({ field }) => {
+                const isOneTime = form.watch('is_one_time')
+                return (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value ?? false}
+                        disabled={!!isOneTime}
+                        onCheckedChange={(v) => field.onChange(!!v)}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel>Exclude from reports</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Hidden from every aggregate. Account balance still counts it.
+                      </p>
+                    </div>
+                  </FormItem>
+                )
+              }}
+            />
+            <FormField
+              control={form.control}
+              name="is_one_time"
+              render={({ field }) => {
+                const isExcluded = form.watch('is_excluded')
+                return (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value ?? false}
+                        disabled={!!isExcluded}
+                        onCheckedChange={(v) => field.onChange(!!v)}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel>Mark as one-time</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Counted in raw totals but skipped from averages and projections.
+                      </p>
+                    </div>
+                  </FormItem>
+                )
+              }}
+            />
+          </div>
 
           {/* Tags */}
           {tags && tags.length > 0 && (
