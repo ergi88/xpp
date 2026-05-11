@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Page } from '@/components/shared'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,8 @@ import {
     useDeleteTransaction,
     useDuplicateTransaction,
     useToggleTransactionFlag,
+    useSplitTransaction,
+    useUnsplitTransaction,
 } from '@/hooks'
 import {
     Pencil,
@@ -20,8 +23,10 @@ import {
     ArrowLeftRight,
     Ban,
     Star,
+    Split,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SplitEditor } from '@/components/features/transactions/SplitEditor'
 
 const TYPE_CONFIG = {
     income: { icon: ArrowDownLeft, color: 'text-green-600', label: 'Income' },
@@ -36,6 +41,9 @@ export default function TransactionViewPage() {
     const deleteTransaction = useDeleteTransaction()
     const duplicateTransaction = useDuplicateTransaction()
     const toggleFlag = useToggleTransactionFlag()
+    const [splitMode, setSplitMode] = useState(false)
+    const splitTransaction = useSplitTransaction()
+    const unsplitTransaction = useUnsplitTransaction()
 
     const handleDelete = () => {
         if (!id) return
@@ -154,6 +162,63 @@ export default function TransactionViewPage() {
                     </Card>
                 )}
 
+                {/* Split children read-only display */}
+                {t.children && t.children.length > 0 && !splitMode && (
+                  <Card>
+                    <CardContent className="p-6 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">Split into {t.children.length} children</div>
+                        <Button size="sm" variant="outline" onClick={() => setSplitMode(true)}>
+                          <Split className="size-4 mr-1" />
+                          Edit split
+                        </Button>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead className="text-xs text-muted-foreground">
+                          <tr>
+                            <th className="text-left py-1">Description</th>
+                            <th className="text-left py-1">Attribution</th>
+                            <th className="text-right py-1">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {t.children.map(c => (
+                            <tr key={c.id} className="border-t">
+                              <td className="py-1.5">{c.description || <span className="text-muted-foreground italic">—</span>}</td>
+                              <td className="py-1.5">
+                                {c.debtId ? <span>$ Debt</span> : (c.category?.name ?? <span className="text-muted-foreground italic">no category</span>)}
+                              </td>
+                              <td className="py-1.5 text-right font-mono">
+                                <AmountText value={c.amount} decimals={t.account.currency?.decimals ?? 2} currency={t.account.currency?.symbol} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Split editor */}
+                {splitMode && (
+                  <SplitEditor
+                    parent={t}
+                    isSubmitting={splitTransaction.isPending}
+                    onCancel={() => setSplitMode(false)}
+                    onUnsplit={() => {
+                      unsplitTransaction.mutate(t.id, {
+                        onSuccess: () => setSplitMode(false),
+                      })
+                    }}
+                    onSave={(children) => {
+                      splitTransaction.mutate(
+                        { parentId: t.id, children },
+                        { onSuccess: () => setSplitMode(false) },
+                      )
+                    }}
+                  />
+                )}
+
                 {/* Action bar */}
                 <div className="flex flex-wrap gap-2 justify-end">
                     <Button asChild variant="default">
@@ -184,6 +249,12 @@ export default function TransactionViewPage() {
                         <Star className="size-4 mr-1" />
                         {t.isOneTime ? 'Recurring-like' : 'Mark one-time'}
                     </Button>
+                    {!t.children?.length && !splitMode && (
+                        <Button variant="outline" onClick={() => setSplitMode(true)}>
+                            <Split className="size-4 mr-1" />
+                            Split
+                        </Button>
+                    )}
                     <Button variant="destructive" onClick={handleDelete}>
                         <Trash2 className="size-4 mr-1" />
                         Delete
