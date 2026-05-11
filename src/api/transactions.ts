@@ -71,7 +71,6 @@ function toTransaction(
     account: accountMap.get(r.account_id as string) as Transaction['account'],
     toAccount: r.to_account_id ? accountMap.get(r.to_account_id as string) as Transaction['toAccount'] : undefined,
     category: r.category_id ? categoryMap.get(r.category_id as string) as Transaction['category'] : undefined,
-    items: [],
     tags: tagIds.map(tid => tagMap.get(tid)).filter(Boolean) as Transaction['tags'],
     isExcluded: toBool(r.is_excluded),
     isOneTime: toBool(r.is_one_time),
@@ -136,6 +135,28 @@ export const transactionsApi = {
       loadLookups(),
     ])
     let txns = rows.map(r => toTransaction(r, lookups.accountMap, lookups.categoryMap, lookups.tagMap))
+
+    // Phase 3: group children under parents. Children remain in the flat
+    // list so `include_split_children: true` callers can still see them;
+    // parents additionally gain `.children` and `.childrenCount`.
+    const childrenByParent = new Map<string, Transaction[]>()
+    for (const t of txns) {
+      if (t.parentId) {
+        const arr = childrenByParent.get(t.parentId) ?? []
+        arr.push(t)
+        childrenByParent.set(t.parentId, arr)
+      }
+    }
+    for (const t of txns) {
+      if (!t.parentId) {
+        const c = childrenByParent.get(t.id)
+        if (c && c.length > 0) {
+          t.children = c
+          t.childrenCount = c.length
+        }
+      }
+    }
+
     if (filters) txns = applyFilters(txns, filters)
 
     const perPage = filters?.per_page ?? 50
