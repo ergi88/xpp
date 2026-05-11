@@ -22,3 +22,13 @@ export function collapseLinkedPairs(txns: Transaction[]): Transaction[] {
   }
   return result
 }
+
+// Pass-through until Phase 3 lands split children. When children exist,
+// this will replace each parent (whose id appears as another row's parentId)
+// with its children, so category-attribution surfaces see per-category amounts.
+// Today there are no split children so the input is returned unchanged.
+export function expandSplitChildrenForCategoryView(
+  txns: Transaction[],
+): Transaction[] {
+  return txns
+}

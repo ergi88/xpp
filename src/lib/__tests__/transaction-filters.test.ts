@@ -5,6 +5,7 @@ import {
   excludeOneTime,
   excludeSplitChildren,
   collapseLinkedPairs,
+  expandSplitChildrenForCategoryView,
 } from '@/lib/transaction-filters'
 
 function txn(overrides: Partial<Transaction> & { id: string }): Transaction {
@@ -56,5 +57,16 @@ describe('collapseLinkedPairs', () => {
   it('keeps unlinked rows untouched', () => {
     const list = [txn({ id: '1' }), txn({ id: '2' })]
     expect(collapseLinkedPairs(list).map(t => t.id)).toEqual(['1', '2'])
+  })
+})
+
+describe('expandSplitChildrenForCategoryView', () => {
+  it('returns the input unchanged when no split parents/children exist', () => {
+    const list = [txn({ id: '1' }), txn({ id: '2' })]
+    expect(expandSplitChildrenForCategoryView(list).map(t => t.id)).toEqual(['1', '2'])
+  })
+  it('preserves array order', () => {
+    const list = [txn({ id: 'b' }), txn({ id: 'a' }), txn({ id: 'c' })]
+    expect(expandSplitChildrenForCategoryView(list).map(t => t.id)).toEqual(['b', 'a', 'c'])
   })
 })
