@@ -5,6 +5,13 @@ import {
   isAccountIncludedInBaseAggregates,
 } from './accounts'
 import { categoriesApi } from './categories'
+import {
+  collapseLinkedPairs,
+  expandSplitChildrenForCategoryView,
+  excludeSplitChildren,
+  excludeExcluded,
+  excludeOneTime,
+} from '@/lib/transaction-filters'
 import type { ReportFilters } from '@/pages/reports/types'
 import type { CashFlowGroupBy, TransactionType } from './reports-types'
 import type { Account, Transaction } from '@/types'
@@ -225,13 +232,30 @@ function filterAggregateTransactions(
 async function loadAll() {
   const [txnRes, accounts, categories, { baseCurrency, currency }] =
     await Promise.all([
-      transactionsApi.getAll({ per_page: 99999 }),
+      transactionsApi.getAll({ per_page: 99999, include_excluded: true, include_split_children: true }),
       accountsApi.getAll(),
       categoriesApi.getAll(),
       getBaseCurrencyMeta(),
     ])
+  const raw = txnRes.data
+
+  // Phase 2 matrix: two pre-filtered views.
+  // Category surfaces: expand children, drop excluded; KEEP one-time (raw category totals).
+  let categoryView = raw
+  categoryView = collapseLinkedPairs(categoryView)
+  categoryView = expandSplitChildrenForCategoryView(categoryView)
+  categoryView = excludeExcluded(categoryView)
+
+  // Trend surfaces: skip excluded AND one-time so averages aren't skewed.
+  let trendView = raw
+  trendView = collapseLinkedPairs(trendView)
+  trendView = excludeSplitChildren(trendView)
+  trendView = excludeExcluded(trendView)
+  trendView = excludeOneTime(trendView)
+
   return {
-    txns: txnRes.data,
+    txns: trendView, // Default — most existing methods use trends/averages
+    txnsCategory: categoryView,
     accounts,
     categories,
     baseCurrency,
@@ -260,10 +284,10 @@ export const reportsApi = {
   },
 
   getMoneyFlow: async (filters: ReportFilters): Promise<MoneyFlowData> => {
-    const { txns, categories, baseCurrency, currency } = await loadAll()
+    const { txnsCategory, categories, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     return computeMoneyFlow(
-      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      filterAggregateTransactions(filterTxns(txnsCategory, start, end, filters), baseCurrency?.id),
       categories,
       currency,
     )
@@ -282,16 +306,16 @@ export const reportsApi = {
 
   // Returns the old { categories, currency } shape expected by ExpensesByCategory component
   getExpensesByCategory: async (filters: ReportFilters): Promise<ExpensesByCategoryData> => {
-    const { txns, baseCurrency, currency } = await loadAll()
+    const { txnsCategory, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     const prevRange = getPrevDateRange(filters)
     const curr = filterAggregateTransactions(
-      filterTxns(txns, start, end, filters),
+      filterTxns(txnsCategory, start, end, filters),
       baseCurrency?.id,
     )
     const prev = prevRange
       ? filterAggregateTransactions(
-          filterTxns(txns, prevRange[0], prevRange[1], filters),
+          filterTxns(txnsCategory, prevRange[0], prevRange[1], filters),
           baseCurrency?.id,
         )
       : []
@@ -351,16 +375,16 @@ export const reportsApi = {
 
   // Returns the { items, total, currency } shape expected by ExpensesStructureChart component
   getTransactionsByCategory: async (filters: ReportFilters, type: TransactionType): Promise<TransactionsByCategoryData> => {
-    const { txns, baseCurrency, currency } = await loadAll()
+    const { txnsCategory, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     const prevRange = getPrevDateRange(filters)
     const curr = filterAggregateTransactions(
-      filterTxns(txns, start, end, filters),
+      filterTxns(txnsCategory, start, end, filters),
       baseCurrency?.id,
     )
     const prev = prevRange
       ? filterAggregateTransactions(
-          filterTxns(txns, prevRange[0], prevRange[1], filters),
+          filterTxns(txnsCategory, prevRange[0], prevRange[1], filters),
           baseCurrency?.id,
         )
       : []
@@ -393,10 +417,10 @@ export const reportsApi = {
   },
 
   getTopTransactions: async (filters: ReportFilters, type: TransactionType, limit = 10): Promise<TopTransactionsData> => {
-    const { txns, baseCurrency, currency } = await loadAll()
+    const { txnsCategory, baseCurrency, currency } = await loadAll()
     const [start, end] = getDateRange(filters)
     return computeTopTransactions(
-      filterAggregateTransactions(filterTxns(txns, start, end, filters), baseCurrency?.id),
+      filterAggregateTransactions(filterTxns(txnsCategory, start, end, filters), baseCurrency?.id),
       type,
       limit,
       currency,
