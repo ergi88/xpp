@@ -110,3 +110,26 @@ export function useTransactionSummary(filters?: TransactionFilters) {
         queryFn: () => transactionsApi.getSummary(filters),
     })
 }
+
+export function useToggleTransactionFlag() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (params: {
+            id: string | number
+            flag: 'is_excluded' | 'is_one_time'
+            value: boolean
+        }) => {
+            return transactionsApi.update(params.id, { [params.flag]: params.value })
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Transaction updated')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to update transaction')
+        },
+    })
+}
