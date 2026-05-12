@@ -18,6 +18,20 @@ import {
   excludeExcluded,
 } from '@/lib/transaction-filters'
 
+// Returns the delta-to-paid_amount sign for a transaction-on-debt side-effect.
+// "Same direction" (expense → i_owe, income → owed_to_me) settles the debt:
+// delta is +amount, paid_amount goes up, remaining goes down. "Opposite
+// direction" (expense → owed_to_me lending, income → i_owe rare) is treated
+// as growing the debt: delta is -amount, paid_amount goes down (can go
+// negative), remaining grows.
+async function debtDeltaSign(debtId: string, txnType: 'income' | 'expense' | 'transfer'): Promise<1 | -1> {
+  const debt = await debtsApi.getById(debtId)
+  const same =
+    (txnType === 'expense' && debt.debtType === 'i_owe') ||
+    (txnType === 'income' && debt.debtType === 'owed_to_me')
+  return same ? 1 : -1
+}
+
 export interface TransactionsResponse {
   data: Transaction[]
   summary?: TransactionSummary
@@ -85,9 +99,22 @@ function toTransaction(
 
 function applyFilters(txns: Transaction[], filters: TransactionFilters): Transaction[] {
   let result = txns
-  // Hide split children unless explicitly requested
-  if (!filters.include_split_children) {
+  // Hide split children unless explicitly requested, BUT keep them when the
+  // caller is filtering by category/categories — the children carry the
+  // real attribution and the user clearly wants per-category rows.
+  const hasCategoryFilter =
+    !!filters.category_id || (filters.category_ids?.length ?? 0) > 0
+  if (!filters.include_split_children && !hasCategoryFilter) {
     result = result.filter(t => !t.parentId)
+  }
+  // When category-filtering, also drop parents whose own (possibly stale)
+  // category matches but who have been split — their children cover the row.
+  if (hasCategoryFilter) {
+    const parentIdsWithChildren = new Set<string>()
+    for (const t of result) {
+      if (!t.parentId && t.children && t.children.length > 0) parentIdsWithChildren.add(t.id)
+    }
+    result = result.filter(t => !parentIdsWithChildren.has(t.id))
   }
   // Hide excluded unless explicitly requested
   if (!filters.include_excluded) {
@@ -204,12 +231,23 @@ export const transactionsApi = {
   },
 
   getById: async (id: string | number): Promise<Transaction> => {
-    const [r, lookups] = await Promise.all([
-      adapter.getById('transactions', String(id)),
+    // Phase 3: load full list so we can attach children to the parent.
+    // Cheaper than a separate getAll filtered by parent_id (GAS has no filtering).
+    const [allRows, lookups] = await Promise.all([
+      adapter.getAll('transactions'),
       loadLookups(),
     ])
-    if (!r) throw new Error('Transaction not found')
-    return toTransaction(r, lookups.accountMap, lookups.categoryMap, lookups.tagMap)
+    const all = allRows.map(r => toTransaction(r, lookups.accountMap, lookups.categoryMap, lookups.tagMap))
+    const target = all.find(t => String(t.id) === String(id))
+    if (!target) throw new Error('Transaction not found')
+    if (!target.parentId) {
+      const children = all.filter(t => t.parentId === target.id)
+      if (children.length > 0) {
+        target.children = children
+        target.childrenCount = children.length
+      }
+    }
+    return target
   },
 
   create: async (data: TransactionFormData): Promise<Transaction> => {
@@ -264,9 +302,11 @@ export const transactionsApi = {
         }
         await adapter.create('transactions', childRow)
 
-        // Apply debt-balance side-effect on debt-linked children.
+        // Apply debt-balance side-effect on debt-linked children, signed
+        // by debt direction (see debtDeltaSign).
         if (c.debt_id) {
-          await debtsApi.updateBalance(String(c.debt_id), c.amount)
+          const sign = await debtDeltaSign(String(c.debt_id), data.type)
+          await debtsApi.updateBalance(String(c.debt_id), c.amount * sign)
         }
       }
       // Re-fetch so children are attached on the returned object
@@ -302,7 +342,8 @@ export const transactionsApi = {
     if (existing.children && existing.children.length > 0) {
       for (const child of existing.children) {
         if (child.debtId) {
-          await debtsApi.updateBalance(child.debtId, -child.amount)
+          const sign = await debtDeltaSign(child.debtId, existing.type)
+          await debtsApi.updateBalance(child.debtId, -child.amount * sign)
         }
         await adapter.delete('transactions', String(child.id))
       }
@@ -324,7 +365,10 @@ export const transactionsApi = {
     // Delete any existing children first (idempotent re-split).
     if (parent.children && parent.children.length > 0) {
       for (const c of parent.children) {
-        if (c.debtId) await debtsApi.updateBalance(c.debtId, -c.amount)
+        if (c.debtId) {
+          const sign = await debtDeltaSign(c.debtId, parent.type)
+          await debtsApi.updateBalance(c.debtId, -c.amount * sign)
+        }
         await adapter.delete('transactions', String(c.id))
       }
     }
@@ -353,7 +397,8 @@ export const transactionsApi = {
       }
       await adapter.create('transactions', childRow)
       if (c.debt_id) {
-        await debtsApi.updateBalance(String(c.debt_id), c.amount)
+        const sign = await debtDeltaSign(String(c.debt_id), parent.type)
+        await debtsApi.updateBalance(String(c.debt_id), c.amount * sign)
       }
     }
 
@@ -364,7 +409,10 @@ export const transactionsApi = {
     const parent = await transactionsApi.getById(parentId)
     if (parent.children && parent.children.length > 0) {
       for (const c of parent.children) {
-        if (c.debtId) await debtsApi.updateBalance(c.debtId, -c.amount)
+        if (c.debtId) {
+          const sign = await debtDeltaSign(c.debtId, parent.type)
+          await debtsApi.updateBalance(c.debtId, -c.amount * sign)
+        }
         await adapter.delete('transactions', String(c.id))
       }
     }

@@ -22,7 +22,7 @@ export function ExpensesByCategory({ filters }: ExpensesByCategoryProps) {
     }, [data])
 
     const handleCategoryClick = (categoryId: string) => {
-        navigate(`/transactions?category_ids=${categoryId}`)
+        navigate(`/transactions?categoryIds=${categoryId}`)
     }
 
     if (error) {

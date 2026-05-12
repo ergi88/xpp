@@ -246,10 +246,12 @@ async function loadAll() {
   categoryView = expandSplitChildrenForCategoryView(categoryView)
   categoryView = excludeExcluded(categoryView)
 
-  // Trend surfaces: skip excluded AND one-time so averages aren't skewed.
+  // Trend surfaces: expand children too so per-category filters see real
+  // attribution (parent's pre-split category is stale once children exist).
+  // Then drop excluded AND one-time so averages aren't skewed.
   let trendView = raw
   trendView = collapseLinkedPairs(trendView)
-  trendView = excludeSplitChildren(trendView)
+  trendView = expandSplitChildrenForCategoryView(trendView)
   trendView = excludeExcluded(trendView)
   trendView = excludeOneTime(trendView)
 

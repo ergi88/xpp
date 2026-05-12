@@ -81,11 +81,13 @@ export function SplitEditor({ parent, onSave, onCancel, onUnsplit, isSubmitting 
   const addRow = () => setRows(prev => [...prev, emptyRow()])
   const removeRow = (idx: number) => setRows(prev => prev.filter((_, i) => i !== idx))
 
+  // Allow any debt that matches the parent's currency, regardless of
+  // direction. Delta sign is computed at write time based on
+  // (transaction type × debt type): same direction increases paid_amount,
+  // opposite direction decreases it (i.e. grows remaining debt for lending).
   const compatibleDebts = (debts ?? []).filter(d => {
-    if (parent.account.currency?.id !== d.currencyId) return false
-    if (parent.type === 'expense') return d.debtType === 'i_owe'
-    if (parent.type === 'income') return d.debtType === 'owed_to_me'
-    return false
+    if (!parent.account.currency?.id) return true
+    return d.currencyId === parent.account.currency.id
   })
 
   const canSave = isBalanced && rows.every(r =>
