@@ -23,18 +23,28 @@ import {
   transactionSchema,
   TransactionFormValues,
 } from "@/schemas/transactions";
-import { useAccounts, useCategories, useTags } from "@/hooks";
+import { useAccounts, useCategories, useTags, useDebts } from "@/hooks";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowLeftRight,
+  Banknote,
+  HandCoins,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AccountSelect } from "@/components/shared/AccountSelect";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { FormWrapper } from "@/components/shared/FormWrapper";
+import { AmountText } from "@/components/shared/AmountText";
 
 const TRANSACTION_TYPES = [
   {
@@ -78,6 +88,7 @@ export function TransactionForm({
   });
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
+  const { data: debts } = useDebts();
 
   const formDefaults = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -93,6 +104,7 @@ export function TransactionForm({
       tag_ids: defaultValues?.tag_ids ?? [],
       is_excluded: defaultValues?.is_excluded ?? false,
       is_one_time: defaultValues?.is_one_time ?? false,
+      debt_id: defaultValues?.debt_id ?? null,
     };
   }, [defaultValues]);
 
@@ -517,6 +529,88 @@ export function TransactionForm({
               }}
             />
           </div>
+
+          {/* Debt link (only for income/expense; transfers skip) */}
+          {transactionType !== "transfer" && (
+            <FormField
+              control={form.control}
+              name="debt_id"
+              render={({ field }) => {
+                const compatibleDebts = (debts ?? []).filter((d) => {
+                  if (!selectedAccount?.currency?.id) return true;
+                  return d.currencyId === selectedAccount.currency.id;
+                });
+                const linked = !!field.value;
+                return (
+                  <FormItem>
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={linked}
+                        onCheckedChange={(v) =>
+                          field.onChange(v ? "" : null)
+                        }
+                      />
+                      <FormLabel className="mb-0">Link to debt</FormLabel>
+                      <span className="text-xs text-muted-foreground">
+                        Settles or grows a debt based on direction.
+                      </span>
+                    </div>
+                    {linked && (
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={(v) => field.onChange(v || null)}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="mt-2">
+                            <SelectValue placeholder="Pick a debt" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {compatibleDebts.length === 0 ? (
+                            <SelectItem value="none" disabled>
+                              No debts in this currency
+                            </SelectItem>
+                          ) : (
+                            compatibleDebts.map((d) => {
+                              const Icon =
+                                d.debtType === "i_owe" ? Banknote : HandCoins;
+                              const color =
+                                d.debtType === "i_owe"
+                                  ? "text-red-600"
+                                  : "text-green-600";
+                              return (
+                                <SelectItem key={d.id} value={d.id}>
+                                  <div className="flex items-center gap-2 w-full">
+                                    <Icon
+                                      className={cn(
+                                        "size-3.5 shrink-0",
+                                        color,
+                                      )}
+                                    />
+                                    <span className="flex-1 truncate">
+                                      {d.name}
+                                    </span>
+                                    <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                                      <AmountText
+                                        value={d.remainingDebt}
+                                        decimals={d.currency?.decimals ?? 2}
+                                        currency={d.currency?.symbol}
+                                      />
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              );
+                            })
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+          )}
 
           {/* Tags */}
           {tags && tags.length > 0 && (

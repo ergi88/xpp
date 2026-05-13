@@ -142,7 +142,10 @@ export default function TransactionsPage() {
   // Always fetch full month — day mode filters client-side from this cache
   const monthDateRange = getDateRange("month", params.navDate);
 
-  // Fetch only by date range + sort — all other filters applied locally
+  // Fetch only by date range + sort — all other filters applied locally.
+  // Force-include children when a category filter is active so the per-child
+  // category match can hit (parent's pre-split category is stale).
+  const hasCategoryFilter = params.categoryIds.length > 0;
   const fetchFilters = {
     per_page: 9999,
     page: 1,
@@ -151,7 +154,7 @@ export default function TransactionsPage() {
     start_date: monthDateRange.start_date,
     end_date: monthDateRange.end_date,
     include_excluded: params.showExcluded,
-    include_split_children: params.showSplitChildren,
+    include_split_children: params.showSplitChildren || hasCategoryFilter,
   };
 
   const { data, isLoading } = useTransactions(fetchFilters);
@@ -179,10 +182,21 @@ export default function TransactionsPage() {
     filteredTxns = filteredTxns.filter(
       (t) => t.account && params.accountIds.includes(t.account.id),
     );
-  if (params.categoryIds.length > 0)
+  if (params.categoryIds.length > 0) {
+    // Drop parents that have children — their children carry the real
+    // attribution and would double-count.
+    const parentIdsWithChildren = new Set<string>();
+    for (const t of filteredTxns) {
+      if (!t.parentId && t.children && t.children.length > 0)
+        parentIdsWithChildren.add(t.id);
+    }
     filteredTxns = filteredTxns.filter(
-      (t) => t.category && params.categoryIds.includes(t.category.id),
+      (t) =>
+        !parentIdsWithChildren.has(t.id) &&
+        t.category &&
+        params.categoryIds.includes(t.category.id),
     );
+  }
   if (params.tagIds.length > 0)
     filteredTxns = filteredTxns.filter((t) =>
       t.tags.some((tag) => params.tagIds.includes(tag.id)),

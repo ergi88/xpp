@@ -9,7 +9,12 @@ vi.mock('@/api/accounts', () => ({
   isAccountIncludedInBaseAggregates: vi.fn(() => true),
 }))
 vi.mock('@/api/debts', () => ({
-  debtsApi: { updateBalance: (...args: unknown[]) => updateDebt(...args) },
+  debtsApi: {
+    updateBalance: (...args: unknown[]) => updateDebt(...args),
+    // Test debts default to debtType='i_owe' so (expense + i_owe) settles
+    // (+amount * sign). Override per test if needed.
+    getById: vi.fn(async () => ({ debtType: 'i_owe' })),
+  },
 }))
 
 import { applyTransactionEffects } from '@/api/transaction-effects'

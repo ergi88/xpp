@@ -26,7 +26,15 @@ export async function applyTransactionEffects(
   }
 
   if (txn.debtId) {
-    // Positive delta = more paid = remaining debt decreases.
-    await debtsApi.updateBalance(txn.debtId, txn.amount * sign)
+    // Direction-aware delta: (expense + i_owe) and (income + owed_to_me)
+    // settle the debt → +amount. Opposite direction (lending / weird) grows
+    // the debt → -amount.
+    const debt = await debtsApi.getById(txn.debtId)
+    const directionSign =
+      (txn.type === 'expense' && debt.debtType === 'i_owe') ||
+      (txn.type === 'income' && debt.debtType === 'owed_to_me')
+        ? 1
+        : -1
+    await debtsApi.updateBalance(txn.debtId, txn.amount * sign * directionSign)
   }
 }

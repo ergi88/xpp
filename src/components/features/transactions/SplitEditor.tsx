@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Trash2, Save, X, Split } from 'lucide-react'
+import { Plus, Trash2, Save, X, Split, Banknote, HandCoins } from 'lucide-react'
+import { AmountText } from '@/components/shared/AmountText'
 import { useDebts } from '@/hooks'
 import { CategorySelect } from '@/components/shared/CategorySelect'
 import { cn } from '@/lib/utils'
@@ -207,9 +208,25 @@ export function SplitEditor({ parent, onSave, onCancel, onUnsplit, isSubmitting 
                         <SelectValue placeholder="Pick debt" />
                       </SelectTrigger>
                       <SelectContent>
-                        {compatibleDebts.map(d => (
-                          <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                        ))}
+                        {compatibleDebts.map(d => {
+                          const Icon = d.debtType === 'i_owe' ? Banknote : HandCoins
+                          const color = d.debtType === 'i_owe' ? 'text-red-600' : 'text-green-600'
+                          return (
+                            <SelectItem key={d.id} value={d.id}>
+                              <div className="flex items-center gap-2 w-full">
+                                <Icon className={cn('size-3.5 shrink-0', color)} />
+                                <span className="flex-1 truncate">{d.name}</span>
+                                <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                                  <AmountText
+                                    value={d.remainingDebt}
+                                    decimals={d.currency?.decimals ?? 2}
+                                    currency={d.currency?.symbol}
+                                  />
+                                </span>
+                              </div>
+                            </SelectItem>
+                          )
+                        })}
                       </SelectContent>
                     </Select>
                   )}
