@@ -28,6 +28,7 @@ import {
     Split,
     Link2,
     Link2Off,
+    Repeat,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SplitEditor } from '@/components/features/transactions/SplitEditor'
@@ -281,6 +282,14 @@ export default function TransactionViewPage() {
                         <Button variant="outline" onClick={() => setLinkPickerOpen(true)}>
                             <Link2 className="size-4 mr-1" />
                             Link counterpart
+                        </Button>
+                    )}
+                    {!t.parentId && (
+                        <Button asChild variant="outline">
+                            <Link to={`/recurring/create?from_transaction=${t.id}`}>
+                                <Repeat className="size-4 mr-1" />
+                                Create recurring
+                            </Link>
                         </Button>
                     )}
                     <Button variant="destructive" onClick={handleDelete}>
