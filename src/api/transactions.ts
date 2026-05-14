@@ -419,6 +419,32 @@ export const transactionsApi = {
     return transactionsApi.getById(parentId)
   },
 
+  linkCounterpart: async (idA: string | number, idB: string | number): Promise<void> => {
+    const [a, b] = await Promise.all([
+      transactionsApi.getById(idA),
+      transactionsApi.getById(idB),
+    ])
+    if (a.linkedTransactionId) {
+      throw new Error('Source transaction is already linked')
+    }
+    if (b.linkedTransactionId) {
+      throw new Error('Target transaction is already linked')
+    }
+    await Promise.all([
+      adapter.update('transactions', String(idA), { linked_transaction_id: String(idB) }),
+      adapter.update('transactions', String(idB), { linked_transaction_id: String(idA) }),
+    ])
+  },
+
+  unlinkCounterpart: async (id: string | number): Promise<void> => {
+    const t = await transactionsApi.getById(id)
+    if (!t.linkedTransactionId) return
+    await Promise.all([
+      adapter.update('transactions', String(id), { linked_transaction_id: '' }),
+      adapter.update('transactions', String(t.linkedTransactionId), { linked_transaction_id: '' }),
+    ])
+  },
+
   duplicate: async (id: string | number): Promise<Transaction> => {
     const existing = await transactionsApi.getById(id)
     return transactionsApi.create({
