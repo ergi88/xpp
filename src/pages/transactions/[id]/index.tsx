@@ -12,6 +12,8 @@ import {
     useToggleTransactionFlag,
     useSplitTransaction,
     useUnsplitTransaction,
+    useLinkCounterpart,
+    useUnlinkCounterpart,
 } from '@/hooks'
 import {
     Pencil,
@@ -24,9 +26,12 @@ import {
     Ban,
     Star,
     Split,
+    Link2,
+    Link2Off,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SplitEditor } from '@/components/features/transactions/SplitEditor'
+import { CounterpartLinkPicker } from '@/components/features/transactions/CounterpartLinkPicker'
 
 const TYPE_CONFIG = {
     income: { icon: ArrowDownLeft, color: 'text-green-600', label: 'Income' },
@@ -44,6 +49,9 @@ export default function TransactionViewPage() {
     const [splitMode, setSplitMode] = useState(false)
     const splitTransaction = useSplitTransaction()
     const unsplitTransaction = useUnsplitTransaction()
+    const [linkPickerOpen, setLinkPickerOpen] = useState(false)
+    const linkCounterpart = useLinkCounterpart()
+    const unlinkCounterpart = useUnlinkCounterpart()
 
     const handleDelete = () => {
         if (!id) return
@@ -149,9 +157,23 @@ export default function TransactionViewPage() {
                                 </Link>
                             )}
                             {t.linkedTransactionId && (
-                                <Link to={`/transactions/${t.linkedTransactionId}`} className="block hover:underline">
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    to={`/transactions/${t.linkedTransactionId}`}
+                                    className="flex-1 hover:underline"
+                                  >
                                     ⇄ Linked counterpart →
-                                </Link>
+                                  </Link>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => unlinkCounterpart.mutate(t.id)}
+                                    disabled={unlinkCounterpart.isPending}
+                                  >
+                                    <Link2Off className="size-3.5 mr-1" />
+                                    Unlink
+                                  </Button>
+                                </div>
                             )}
                             {t.debtId && (
                                 <Link to={`/debts/${t.debtId}/edit`} className="block hover:underline">
@@ -255,12 +277,30 @@ export default function TransactionViewPage() {
                             Split
                         </Button>
                     )}
+                    {!t.linkedTransactionId && !t.parentId && t.type !== 'transfer' && (
+                        <Button variant="outline" onClick={() => setLinkPickerOpen(true)}>
+                            <Link2 className="size-4 mr-1" />
+                            Link counterpart
+                        </Button>
+                    )}
                     <Button variant="destructive" onClick={handleDelete}>
                         <Trash2 className="size-4 mr-1" />
                         Delete
                     </Button>
                 </div>
             </div>
+            <CounterpartLinkPicker
+              source={t}
+              open={linkPickerOpen}
+              onOpenChange={setLinkPickerOpen}
+              isSubmitting={linkCounterpart.isPending}
+              onPick={(targetId) => {
+                linkCounterpart.mutate(
+                  { idA: t.id, idB: targetId },
+                  { onSuccess: () => setLinkPickerOpen(false) },
+                )
+              }}
+            />
         </Page>
     )
 }
