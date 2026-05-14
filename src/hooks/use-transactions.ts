@@ -177,3 +177,40 @@ export function useUnsplitTransaction() {
         },
     })
 }
+
+export function useLinkCounterpart() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (params: { idA: string | number; idB: string | number }) =>
+            transactionsApi.linkCounterpart(params.idA, params.idB),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Counterpart linked')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to link counterpart')
+        },
+    })
+}
+
+export function useUnlinkCounterpart() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string | number) => transactionsApi.unlinkCounterpart(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Counterpart unlinked')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to unlink')
+        },
+    })
+}
