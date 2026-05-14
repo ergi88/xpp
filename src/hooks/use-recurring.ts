@@ -92,3 +92,40 @@ export function useSkipRecurring() {
         },
     })
 }
+
+export function useRunDueRecurring() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: () => recurringApi.runDueRecurring(),
+        onSuccess: (count) => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            if (count > 0) toast.success(`${count} recurring transaction${count === 1 ? '' : 's'} generated`)
+        },
+    })
+}
+
+export function useRunNowRecurring() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string | number) => recurringApi.runNow(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Recurring transaction generated')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to run recurring')
+        },
+    })
+}
