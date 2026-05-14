@@ -8,6 +8,8 @@ import type { RecurringFormData } from '@/schemas'
 import { accountsApi } from './accounts'
 import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
+import { transactionsApi } from './transactions'
+import { advanceNextRunDate } from '@/lib/recurring-schedule'
 
 function toRecurring(
   r: Record<string, unknown>,
@@ -42,6 +44,38 @@ function toRecurring(
     createdAt: r.created_at as string | undefined,
     createdFromTransactionId: r.created_from_transaction_id ? String(r.created_from_transaction_id) : undefined,
   }
+}
+
+async function runOne(r: RecurringTransaction): Promise<void> {
+  // Create generated transaction with recurring_id set.
+  await transactionsApi.create({
+    type: r.type as 'income' | 'expense' | 'transfer',
+    account_id: r.accountId,
+    to_account_id: r.toAccountId ?? null,
+    category_id: r.categoryId ?? null,
+    amount: r.amount,
+    to_amount: r.toAmount ?? null,
+    description: r.description ?? '',
+    date: r.nextRunDate,
+    tag_ids: r.tags.map(t => t.id),
+    recurring_id: r.id,
+  })
+
+  // Advance schedule and stamp last_run_date.
+  const next = advanceNextRunDate(
+    r.nextRunDate,
+    r.frequency,
+    r.interval,
+    r.dayOfWeek,
+    r.dayOfMonth,
+  )
+  // If next > endDate, deactivate.
+  const shouldDeactivate = r.endDate ? next > r.endDate : false
+  await adapter.update('recurring', r.id, {
+    next_run_date: next,
+    last_run_date: r.nextRunDate,
+    is_active: shouldDeactivate ? 'false' : 'true',
+  })
 }
 
 export const recurringApi = {
@@ -118,5 +152,29 @@ export const recurringApi = {
     const in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
     return all.filter(r => r.isActive && r.nextRunDate >= today && r.nextRunDate <= in30)
       .sort((a, b) => a.nextRunDate.localeCompare(b.nextRunDate))
+  },
+
+  runDueRecurring: async (): Promise<number> => {
+    const all = await recurringApi.getAll()
+    const today = new Date().toISOString().slice(0, 10)
+    const due = all.filter(r => r.isActive && r.nextRunDate <= today)
+    let count = 0
+    for (const r of due) {
+      // Loop in case template missed multiple periods.
+      let current = r
+      while (current.isActive && current.nextRunDate <= today) {
+        await runOne(current)
+        count++
+        // Re-fetch to get the freshly advanced row.
+        current = await recurringApi.getById(current.id)
+      }
+    }
+    return count
+  },
+
+  runNow: async (id: string | number): Promise<RecurringTransaction> => {
+    const r = await recurringApi.getById(id)
+    await runOne(r)
+    return recurringApi.getById(id)
   },
 }
