@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useEffect,
   useMemo,
+  useState,
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,13 @@ import {
   transactionSchema,
   TransactionFormValues,
 } from "@/schemas/transactions";
-import { useAccounts, useCategories, useTags, useDebts } from "@/hooks";
+import {
+  useAccounts,
+  useCategories,
+  useTags,
+  useDebts,
+  useCreateDebt,
+} from "@/hooks";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownLeft,
@@ -45,6 +52,15 @@ import { AccountSelect } from "@/components/shared/AccountSelect";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { FormWrapper } from "@/components/shared/FormWrapper";
 import { AmountText } from "@/components/shared/AmountText";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const TRANSACTION_TYPES = [
   {
@@ -89,6 +105,13 @@ export function TransactionForm({
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
   const { data: debts } = useDebts();
+  const createDebt = useCreateDebt();
+  const [pickerMode, setPickerMode] = useState<"category" | "debt">(
+    defaultValues?.debt_id ? "debt" : "category",
+  );
+  const [createDebtOpen, setCreateDebtOpen] = useState(false);
+  const [newDebtName, setNewDebtName] = useState("");
+  const [newDebtAmount, setNewDebtAmount] = useState("");
 
   const formDefaults = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -285,9 +308,6 @@ export function TransactionForm({
                 control={form.control}
                 name="category_id"
                 render={({ field: categoryField }) => {
-                  const debtId =
-                    (form.watch("debt_id") as string | null | undefined) ?? null;
-                  const mode: "category" | "debt" = debtId ? "debt" : "category";
                   const compatibleDebts = (debts ?? []).filter((d) => {
                     if (!selectedAccount?.currency?.id) return true;
                     return d.currencyId === selectedAccount.currency.id;
@@ -296,16 +316,17 @@ export function TransactionForm({
                     <FormItem>
                       <div className="flex items-center justify-between">
                         <FormLabel>
-                          {mode === "debt" ? "Debt" : "Category"}
+                          {pickerMode === "debt" ? "Debt" : "Category"}
                         </FormLabel>
                         <Select
-                          value={mode}
+                          value={pickerMode}
                           onValueChange={(v) => {
-                            if (v === "category") {
+                            const next = v as "category" | "debt";
+                            setPickerMode(next);
+                            if (next === "category") {
                               form.setValue("debt_id", null);
                             } else {
                               categoryField.onChange(null);
-                              form.setValue("debt_id", "");
                             }
                           }}
                         >
@@ -314,16 +335,11 @@ export function TransactionForm({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="category">Category</SelectItem>
-                            <SelectItem
-                              value="debt"
-                              disabled={compatibleDebts.length === 0}
-                            >
-                              Debt
-                            </SelectItem>
+                            <SelectItem value="debt">Debt</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      {mode === "category" ? (
+                      {pickerMode === "category" ? (
                         <CategorySelect
                           value={categoryField.value}
                           onChange={categoryField.onChange}
@@ -336,56 +352,59 @@ export function TransactionForm({
                           render={({ field: debtField }) => (
                             <Select
                               value={debtField.value ?? ""}
-                              onValueChange={(v) =>
-                                debtField.onChange(v || null)
-                              }
+                              onValueChange={(v) => {
+                                if (v === "__new__") {
+                                  setCreateDebtOpen(true);
+                                  return;
+                                }
+                                debtField.onChange(v || null);
+                              }}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Pick a debt" />
+                                  <SelectValue placeholder="Pick a debt or create new" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {compatibleDebts.length === 0 ? (
-                                  <SelectItem value="none" disabled>
-                                    No debts in this currency
-                                  </SelectItem>
-                                ) : (
-                                  compatibleDebts.map((d) => {
-                                    const Icon =
-                                      d.debtType === "i_owe"
-                                        ? Banknote
-                                        : HandCoins;
-                                    const color =
-                                      d.debtType === "i_owe"
-                                        ? "text-red-600"
-                                        : "text-green-600";
-                                    return (
-                                      <SelectItem key={d.id} value={d.id}>
-                                        <div className="flex items-center gap-2 w-full">
-                                          <Icon
-                                            className={cn(
-                                              "size-3.5 shrink-0",
-                                              color,
-                                            )}
+                                {compatibleDebts.map((d) => {
+                                  const Icon =
+                                    d.debtType === "i_owe"
+                                      ? Banknote
+                                      : HandCoins;
+                                  const color =
+                                    d.debtType === "i_owe"
+                                      ? "text-red-600"
+                                      : "text-green-600";
+                                  return (
+                                    <SelectItem key={d.id} value={d.id}>
+                                      <div className="flex items-center gap-2 w-full">
+                                        <Icon
+                                          className={cn(
+                                            "size-3.5 shrink-0",
+                                            color,
+                                          )}
+                                        />
+                                        <span className="flex-1 truncate">
+                                          {d.name}
+                                        </span>
+                                        <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                                          <AmountText
+                                            value={d.remainingDebt}
+                                            decimals={
+                                              d.currency?.decimals ?? 2
+                                            }
+                                            currency={d.currency?.symbol}
                                           />
-                                          <span className="flex-1 truncate">
-                                            {d.name}
-                                          </span>
-                                          <span className="font-mono text-xs text-muted-foreground tabular-nums">
-                                            <AmountText
-                                              value={d.remainingDebt}
-                                              decimals={
-                                                d.currency?.decimals ?? 2
-                                              }
-                                              currency={d.currency?.symbol}
-                                            />
-                                          </span>
-                                        </div>
-                                      </SelectItem>
-                                    );
-                                  })
-                                )}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                                <SelectItem value="__new__">
+                                  <span className="text-primary font-medium">
+                                    + Create new debt
+                                  </span>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           )}
@@ -678,6 +697,77 @@ export function TransactionForm({
           </Button>
         </form>
       </Form>
+
+      {/* Create new debt dialog */}
+      <Dialog open={createDebtOpen} onOpenChange={setCreateDebtOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new debt</DialogTitle>
+            <DialogDescription>
+              {transactionType === "income"
+                ? "Income → 'I owe' debt. Money received that you'll pay back."
+                : "Expense → 'Owed to me' debt. Money lent that someone will repay."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="new-debt-name">Name</Label>
+              <Input
+                id="new-debt-name"
+                value={newDebtName}
+                onChange={(e) => setNewDebtName(e.target.value)}
+                placeholder="e.g. Loan from John"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-debt-amount">Amount</Label>
+              <Input
+                id="new-debt-amount"
+                type="number"
+                step="0.01"
+                min={0}
+                value={newDebtAmount}
+                onChange={(e) => setNewDebtAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCreateDebtOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                createDebt.isPending ||
+                !newDebtName.trim() ||
+                !(Number(newDebtAmount) > 0) ||
+                !selectedAccount?.currency?.id
+              }
+              onClick={async () => {
+                const debtType =
+                  transactionType === "income" ? "i_owe" : "owed_to_me";
+                const created = await createDebt.mutateAsync({
+                  name: newDebtName.trim(),
+                  debt_type: debtType,
+                  currency_id: selectedAccount!.currency!.id,
+                  amount: Number(newDebtAmount),
+                });
+                form.setValue("debt_id", created.id);
+                setCreateDebtOpen(false);
+                setNewDebtName("");
+                setNewDebtAmount("");
+              }}
+            >
+              {createDebt.isPending ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </FormWrapper>
   );
 }
