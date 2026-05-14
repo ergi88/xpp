@@ -280,21 +280,121 @@ export function TransactionForm({
                 )}
               />
             ) : (
-              /* Category (Income/Expense only) */
+              /* Category OR Debt (Income/Expense only) */
               <FormField
                 control={form.control}
                 name="category_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <CategorySelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      type={transactionType as "income" | "expense"}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field: categoryField }) => {
+                  const debtId =
+                    (form.watch("debt_id") as string | null | undefined) ?? null;
+                  const mode: "category" | "debt" = debtId ? "debt" : "category";
+                  const compatibleDebts = (debts ?? []).filter((d) => {
+                    if (!selectedAccount?.currency?.id) return true;
+                    return d.currencyId === selectedAccount.currency.id;
+                  });
+                  return (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>
+                          {mode === "debt" ? "Debt" : "Category"}
+                        </FormLabel>
+                        <Select
+                          value={mode}
+                          onValueChange={(v) => {
+                            if (v === "category") {
+                              form.setValue("debt_id", null);
+                            } else {
+                              categoryField.onChange(null);
+                              form.setValue("debt_id", "");
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem
+                              value="debt"
+                              disabled={compatibleDebts.length === 0}
+                            >
+                              Debt
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {mode === "category" ? (
+                        <CategorySelect
+                          value={categoryField.value}
+                          onChange={categoryField.onChange}
+                          type={transactionType as "income" | "expense"}
+                        />
+                      ) : (
+                        <FormField
+                          control={form.control}
+                          name="debt_id"
+                          render={({ field: debtField }) => (
+                            <Select
+                              value={debtField.value ?? ""}
+                              onValueChange={(v) =>
+                                debtField.onChange(v || null)
+                              }
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pick a debt" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {compatibleDebts.length === 0 ? (
+                                  <SelectItem value="none" disabled>
+                                    No debts in this currency
+                                  </SelectItem>
+                                ) : (
+                                  compatibleDebts.map((d) => {
+                                    const Icon =
+                                      d.debtType === "i_owe"
+                                        ? Banknote
+                                        : HandCoins;
+                                    const color =
+                                      d.debtType === "i_owe"
+                                        ? "text-red-600"
+                                        : "text-green-600";
+                                    return (
+                                      <SelectItem key={d.id} value={d.id}>
+                                        <div className="flex items-center gap-2 w-full">
+                                          <Icon
+                                            className={cn(
+                                              "size-3.5 shrink-0",
+                                              color,
+                                            )}
+                                          />
+                                          <span className="flex-1 truncate">
+                                            {d.name}
+                                          </span>
+                                          <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                                            <AmountText
+                                              value={d.remainingDebt}
+                                              decimals={
+                                                d.currency?.decimals ?? 2
+                                              }
+                                              currency={d.currency?.symbol}
+                                            />
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  })
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             )}
           </div>
@@ -529,88 +629,6 @@ export function TransactionForm({
               }}
             />
           </div>
-
-          {/* Debt link (only for income/expense; transfers skip) */}
-          {transactionType !== "transfer" && (
-            <FormField
-              control={form.control}
-              name="debt_id"
-              render={({ field }) => {
-                const compatibleDebts = (debts ?? []).filter((d) => {
-                  if (!selectedAccount?.currency?.id) return true;
-                  return d.currencyId === selectedAccount.currency.id;
-                });
-                const linked = !!field.value;
-                return (
-                  <FormItem>
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={linked}
-                        onCheckedChange={(v) =>
-                          field.onChange(v ? "" : null)
-                        }
-                      />
-                      <FormLabel className="mb-0">Link to debt</FormLabel>
-                      <span className="text-xs text-muted-foreground">
-                        Settles or grows a debt based on direction.
-                      </span>
-                    </div>
-                    {linked && (
-                      <Select
-                        value={field.value ?? ""}
-                        onValueChange={(v) => field.onChange(v || null)}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="mt-2">
-                            <SelectValue placeholder="Pick a debt" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {compatibleDebts.length === 0 ? (
-                            <SelectItem value="none" disabled>
-                              No debts in this currency
-                            </SelectItem>
-                          ) : (
-                            compatibleDebts.map((d) => {
-                              const Icon =
-                                d.debtType === "i_owe" ? Banknote : HandCoins;
-                              const color =
-                                d.debtType === "i_owe"
-                                  ? "text-red-600"
-                                  : "text-green-600";
-                              return (
-                                <SelectItem key={d.id} value={d.id}>
-                                  <div className="flex items-center gap-2 w-full">
-                                    <Icon
-                                      className={cn(
-                                        "size-3.5 shrink-0",
-                                        color,
-                                      )}
-                                    />
-                                    <span className="flex-1 truncate">
-                                      {d.name}
-                                    </span>
-                                    <span className="font-mono text-xs text-muted-foreground tabular-nums">
-                                      <AmountText
-                                        value={d.remainingDebt}
-                                        decimals={d.currency?.decimals ?? 2}
-                                        currency={d.currency?.symbol}
-                                      />
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              );
-                            })
-                          )}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-          )}
 
           {/* Tags */}
           {tags && tags.length > 0 && (

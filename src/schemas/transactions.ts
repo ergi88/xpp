@@ -86,11 +86,12 @@ export const transactionSchema = z.object({
         })
     }
 
-    // Income/Expense should have category
-    if (data.type !== 'transfer' && !data.category_id) {
+    // Income/Expense must have either a category OR a debt link (XOR enforced
+    // by the form's mode switch — schema only requires one of them present).
+    if (data.type !== 'transfer' && !data.category_id && !data.debt_id) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Please select a category',
+            message: 'Please select a category or debt',
             path: ['category_id'],
         })
     }
