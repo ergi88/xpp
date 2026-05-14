@@ -4,12 +4,10 @@ import { findCounterpartCandidates } from '@/lib/counterpart-matcher'
 
 function txn(o: Partial<Transaction> & { id: string }): Transaction {
   return {
-    id: o.id,
     type: o.type ?? 'expense',
     amount: o.amount ?? 100,
     date: o.date ?? '2026-05-10',
     account: o.account ?? ({ id: 'a1' } as Transaction['account']),
-    items: [],
     tags: [],
     isExcluded: false,
     isOneTime: false,
