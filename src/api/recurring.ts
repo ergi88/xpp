@@ -28,6 +28,8 @@ function toRecurring(
     frequency: r.frequency as RecurringTransaction['frequency'],
     frequencyLabel: r.frequency as string,
     interval: Number(r.interval ?? 1),
+    dayOfWeek: r.day_of_week !== undefined && r.day_of_week !== '' ? Number(r.day_of_week) : undefined,
+    dayOfMonth: r.day_of_month !== undefined && r.day_of_month !== '' ? Number(r.day_of_month) : undefined,
     startDate: r.start_date as string,
     endDate: r.end_date as string | undefined,
     nextRunDate: r.next_run_date as string,
@@ -38,6 +40,7 @@ function toRecurring(
     category: r.category_id ? categoryMap.get(r.category_id as string) as RecurringTransaction['category'] : undefined,
     tags: tagIds.map(tid => tagMap.get(tid)).filter(Boolean) as RecurringTransaction['tags'],
     createdAt: r.created_at as string | undefined,
+    createdFromTransactionId: r.created_from_transaction_id ? String(r.created_from_transaction_id) : undefined,
   }
 }
 
@@ -81,11 +84,15 @@ export const recurringApi = {
       description: data.description ?? '',
       frequency: data.frequency,
       interval: data.interval,
+      day_of_week: data.day_of_week ?? '',
+      day_of_month: data.day_of_month ?? '',
       start_date: data.start_date,
       end_date: data.end_date ?? '',
       next_run_date: data.start_date,
       is_active: String(data.is_active),
       tag_ids: (data.tag_ids ?? []).join(','),
+      created_from_transaction_id: (data as RecurringFormData & { created_from_transaction_id?: string }).created_from_transaction_id ?? '',
+      last_run_date: '',
       created_at: new Date().toISOString(),
     })
     return recurringApi.getAll().then(all => all.find(r => r.accountId === String(data.account_id))!)

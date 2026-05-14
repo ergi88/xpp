@@ -26,6 +26,7 @@ export interface RecurringTransaction extends BaseEntity {
     nextRunDate: string
     lastRunDate?: string
     isActive: boolean
+    createdFromTransactionId?: string
     account: Account
     toAccount?: Account
     category?: Category
