@@ -49,6 +49,15 @@ function toRecurring(
 const VALID_TYPES = ['income', 'expense', 'transfer'] as const
 type ValidTxnType = (typeof VALID_TYPES)[number]
 
+// LocalStorage lock prevents the engine from re-firing while the GAS write
+// for a generated transaction is still queued in the offline mutation queue
+// (transactionsApi.getAll won't see the queued create, and the recurring's
+// next_run_date update is also queued, so without a local lock the engine
+// would treat the same period as "still due" on every reload).
+function lockKey(recurringId: string, date: string): string {
+  return `xpp_recurring_lock_${recurringId}_${date}`
+}
+
 async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
   // Fix 2: validate type strictly — if sheet's type column has garbage
   // (uuid, empty, anything else), surface a real error instead of writing
@@ -59,9 +68,15 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
     )
   }
 
-  // Fix 3: same-day idempotency — if a transaction already exists with this
-  // recurring_id on r.nextRunDate, skip and still advance the schedule so
-  // the loop terminates.
+  // Fix 3a: local lock catches the offline / unsynced case where the
+  // backend hasn't yet acknowledged our previous create.
+  const key = lockKey(r.id, r.nextRunDate)
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(key)) {
+    return { skipped: true }
+  }
+
+  // Fix 3b: server-side dedup for the synced case (works across devices
+  // once the queue drains).
   const existing = await transactionsApi.getAll({
     per_page: 9999,
     include_excluded: true,
@@ -72,6 +87,11 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
   )
 
   if (!alreadyRan) {
+    // Set the lock BEFORE firing the create. If the create gets queued and
+    // the page reloads while still offline, the lock blocks a re-fire.
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(key, new Date().toISOString())
+    }
     await transactionsApi.create({
       type: r.type as ValidTxnType,
       account_id: r.accountId,
@@ -86,6 +106,10 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
       // Phase 5 fix: engine-generated → needs user approval.
       is_approved: false,
     })
+  } else if (typeof localStorage !== 'undefined') {
+    // Server confirms the run happened — clear any stale lock so
+    // localStorage doesn't grow unbounded.
+    localStorage.removeItem(key)
   }
 
   // Advance schedule and stamp last_run_date.
@@ -183,6 +207,14 @@ export const recurringApi = {
   },
 
   runDueRecurring: async (): Promise<number> => {
+    // Skip entirely when offline — engine writes would queue in the
+    // mutation queue, but next_run_date wouldn't advance server-side and
+    // getAll wouldn't see the queued creates, so on every reload while
+    // offline the engine would re-fire the same period. The local lock
+    // (in runOne) is a belt; this skip is suspenders.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return 0
+    }
     const all = await recurringApi.getAll()
     const today = new Date().toISOString().slice(0, 10)
     const due = all.filter(r => r.isActive && r.nextRunDate <= today)
