@@ -229,15 +229,14 @@ export const recurringApi = {
     const today = new Date().toISOString().slice(0, 10)
     const due = all.filter(r => r.isActive && r.nextRunDate <= today)
     let count = 0
+    // One iteration per template per call. Multi-period catch-up was
+    // racy: if next_run_date acknowledgment lagged (GAS cache, offline
+    // queue, PWA service-worker), the loop could re-read the same date
+    // and re-fire across quick app refreshes. User catches up missed
+    // days by pressing "Run now" on each recurring's edit page.
     for (const r of due) {
-      // Loop in case template missed multiple periods.
-      let current = r
-      while (current.isActive && current.nextRunDate <= today) {
-        const result = await runOne(current)
-        if (!result.skipped) count++
-        // Re-fetch to get the freshly advanced row.
-        current = await recurringApi.getById(current.id)
-      }
+      const result = await runOne(r)
+      if (!result.skipped) count++
     }
     return count
   },
