@@ -68,27 +68,33 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
     )
   }
 
-  // Fix 3a: local lock catches the offline / unsynced case where the
-  // backend hasn't yet acknowledged our previous create.
+  // Decide whether to create. Two dedup paths:
+  //   - LocalStorage lock keyed by (id + nextRunDate): catches the case
+  //     where backend hasn't yet reflected our previous create (offline
+  //     queue, GAS cache lag, PWA service-worker cached GET).
+  //   - Server-side check via getAll: catches cross-device dedup once
+  //     queues drain.
   const key = lockKey(r.id, r.nextRunDate)
-  if (typeof localStorage !== 'undefined' && localStorage.getItem(key)) {
-    return { skipped: true }
+  const hasLocalLock =
+    typeof localStorage !== 'undefined' && !!localStorage.getItem(key)
+
+  let alreadyRanOnServer = false
+  if (!hasLocalLock) {
+    const existing = await transactionsApi.getAll({
+      per_page: 9999,
+      include_excluded: true,
+      include_split_children: true,
+    })
+    alreadyRanOnServer = existing.data.some(
+      t => t.recurringId === r.id && t.date === r.nextRunDate,
+    )
   }
 
-  // Fix 3b: server-side dedup for the synced case (works across devices
-  // once the queue drains).
-  const existing = await transactionsApi.getAll({
-    per_page: 9999,
-    include_excluded: true,
-    include_split_children: true,
-  })
-  const alreadyRan = existing.data.some(
-    t => t.recurringId === r.id && t.date === r.nextRunDate,
-  )
+  const shouldCreate = !hasLocalLock && !alreadyRanOnServer
 
-  if (!alreadyRan) {
-    // Set the lock BEFORE firing the create. If the create gets queued and
-    // the page reloads while still offline, the lock blocks a re-fire.
+  if (shouldCreate) {
+    // Set the lock BEFORE firing the create. If the create gets queued
+    // and the page reloads, the lock blocks a re-fire.
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(key, new Date().toISOString())
     }
@@ -106,13 +112,17 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
       // Phase 5 fix: engine-generated → needs user approval.
       is_approved: false,
     })
-  } else if (typeof localStorage !== 'undefined') {
+  } else if (alreadyRanOnServer && typeof localStorage !== 'undefined') {
     // Server confirms the run happened — clear any stale lock so
     // localStorage doesn't grow unbounded.
     localStorage.removeItem(key)
   }
 
-  // Advance schedule and stamp last_run_date.
+  // CRITICAL: advance the schedule on EVERY pass, even when we skipped
+  // the create. Otherwise the while-loop in runDueRecurring would re-read
+  // the same nextRunDate (because the recurring row's date hasn't moved),
+  // the lock would short-circuit again, and the iteration could spin or
+  // duplicate-fire across refreshes if the local lock cleared.
   const next = advanceNextRunDate(
     r.nextRunDate,
     r.frequency,
@@ -127,7 +137,7 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
     is_active: shouldDeactivate ? 'false' : 'true',
   })
 
-  return { skipped: alreadyRan }
+  return { skipped: !shouldCreate }
 }
 
 export const recurringApi = {
