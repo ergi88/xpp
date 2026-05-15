@@ -25,6 +25,9 @@ export interface Transaction extends BaseEntity {
     debtId: string | null
     linkedTransactionId: string | null
     recurringId: string | null
+    // Phase 5 fix: engine-generated transactions start unapproved.
+    // Legacy rows missing this column default to true (already-approved).
+    isApproved: boolean
 }
 
 // Legacy alias preserved for any straggler component reading `items` / `itemsCount` —

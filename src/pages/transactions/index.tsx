@@ -73,10 +73,10 @@ const TYPE_FILTERS: {
 ];
 
 function TransactionItems({ row }: { row: Row<Transaction> }) {
-  const children = row.original.children
-  const decimals = row.original.account.currency?.decimals ?? 2
-  const symbol = row.original.account.currency?.symbol
-  if (!children || children.length === 0) return null
+  const children = row.original.children;
+  const decimals = row.original.account.currency?.decimals ?? 2;
+  const symbol = row.original.account.currency?.symbol;
+  if (!children || children.length === 0) return null;
 
   return (
     <div className="px-4 py-3 ml-10">
@@ -91,19 +91,27 @@ function TransactionItems({ row }: { row: Row<Transaction> }) {
         <tbody>
           {children.map((c) => (
             <tr key={c.id} className="border-t border-border/50">
-              <td className="py-1.5">{c.description || <span className="text-muted-foreground italic">—</span>}</td>
               <td className="py-1.5">
-                {c.debtId ? '$ Debt payment' : (c.category?.name ?? '—')}
+                {c.description || (
+                  <span className="text-muted-foreground italic">—</span>
+                )}
+              </td>
+              <td className="py-1.5">
+                {c.debtId ? "$ Debt payment" : (c.category?.name ?? "—")}
               </td>
               <td className="py-1.5 text-right font-mono font-medium">
-                <AmountText value={c.amount} decimals={decimals} currency={symbol} />
+                <AmountText
+                  value={c.amount}
+                  decimals={decimals}
+                  currency={symbol}
+                />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
-  )
+  );
 }
 
 const SORT_OPTIONS = [
@@ -171,6 +179,7 @@ export default function TransactionsPage() {
     (id) => duplicateTransaction.mutate(id),
     isReadOnly,
   );
+  console.log("🚀 ~ TransactionsPage ~ columns:", { columns });
 
   const allMonthTxns = data?.data ?? [];
   let filteredTxns = allMonthTxns;
@@ -231,6 +240,7 @@ export default function TransactionsPage() {
     (currentPage - 1) * perPage,
     currentPage * perPage,
   );
+  console.log("🚀 ~ TransactionsPage ~ transactions:", { transactions });
   const meta =
     totalCount > 0
       ? {

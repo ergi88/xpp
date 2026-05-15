@@ -117,7 +117,7 @@ export function useToggleTransactionFlag() {
     return useMutation({
         mutationFn: async (params: {
             id: string | number
-            flag: 'is_excluded' | 'is_one_time'
+            flag: 'is_excluded' | 'is_one_time' | 'is_approved'
             value: boolean
         }) => {
             return transactionsApi.update(params.id, { [params.flag]: params.value })

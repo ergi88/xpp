@@ -29,10 +29,22 @@ import {
     Link2,
     Link2Off,
     Repeat,
+    CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SplitEditor } from '@/components/features/transactions/SplitEditor'
 import { CounterpartLinkPicker } from '@/components/features/transactions/CounterpartLinkPicker'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 const TYPE_CONFIG = {
     income: { icon: ArrowDownLeft, color: 'text-green-600', label: 'Income' },
@@ -108,6 +120,11 @@ export default function TransactionViewPage() {
                             {t.tags.map(tag => <Badge key={tag.id} variant="outline">#{tag.name}</Badge>)}
                             {t.isOneTime && <Badge variant="secondary">★ One-time</Badge>}
                             {t.isExcluded && <Badge variant="secondary">⊘ Excluded</Badge>}
+                            {!t.isApproved && (
+                                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                                    ⏳ Pending approval
+                                </Badge>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -292,10 +309,51 @@ export default function TransactionViewPage() {
                             </Link>
                         </Button>
                     )}
-                    <Button variant="destructive" onClick={handleDelete}>
-                        <Trash2 className="size-4 mr-1" />
-                        Delete
-                    </Button>
+                    {!t.isApproved && (
+                        <Button
+                            variant="default"
+                            onClick={() => toggleFlag.mutate({ id: t.id, flag: 'is_approved', value: true })}
+                            disabled={toggleFlag.isPending}
+                            className="bg-amber-600 hover:bg-amber-700"
+                        >
+                            <CheckCircle2 className="size-4 mr-1" />
+                            Approve
+                        </Button>
+                    )}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                variant="destructive"
+                                disabled={deleteTransaction.isPending}
+                            >
+                                <Trash2 className="size-4 mr-1" />
+                                {deleteTransaction.isPending ? 'Deleting...' : 'Delete'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {t.children && t.children.length > 0
+                                        ? `This will also delete ${t.children.length} split children and reverse their debt effects.`
+                                        : 'This will reverse the account balance and any linked debt effects.'}
+                                    {' '}This cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={deleteTransaction.isPending}>
+                                    Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleDelete}
+                                    disabled={deleteTransaction.isPending}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                    {deleteTransaction.isPending ? 'Deleting...' : 'Delete'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
             <CounterpartLinkPicker

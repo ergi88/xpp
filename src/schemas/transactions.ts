@@ -62,6 +62,7 @@ export const transactionSchema = z.object({
 
     is_excluded: z.boolean().optional(),
     is_one_time: z.boolean().optional(),
+    is_approved: z.boolean().optional(),
     parent_id: z.string().min(1).nullable().optional(),
     debt_id: z.string().min(1).nullable().optional(),
     linked_transaction_id: z.string().min(1).nullable().optional(),

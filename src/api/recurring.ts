@@ -46,20 +46,47 @@ function toRecurring(
   }
 }
 
-async function runOne(r: RecurringTransaction): Promise<void> {
-  // Create generated transaction with recurring_id set.
-  await transactionsApi.create({
-    type: r.type as 'income' | 'expense' | 'transfer',
-    account_id: r.accountId,
-    to_account_id: r.toAccountId ?? null,
-    category_id: r.categoryId ?? null,
-    amount: r.amount,
-    to_amount: r.toAmount ?? null,
-    description: r.description ?? '',
-    date: r.nextRunDate,
-    tag_ids: r.tags.map(t => t.id),
-    recurring_id: r.id,
+const VALID_TYPES = ['income', 'expense', 'transfer'] as const
+type ValidTxnType = (typeof VALID_TYPES)[number]
+
+async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
+  // Fix 2: validate type strictly — if sheet's type column has garbage
+  // (uuid, empty, anything else), surface a real error instead of writing
+  // a malformed transaction that breaks applyTransactionEffects.
+  if (!VALID_TYPES.includes(r.type as ValidTxnType)) {
+    throw new Error(
+      `Recurring ${r.id} has invalid type "${r.type}". Expected one of income/expense/transfer. Check the recurring sheet row.`,
+    )
+  }
+
+  // Fix 3: same-day idempotency — if a transaction already exists with this
+  // recurring_id on r.nextRunDate, skip and still advance the schedule so
+  // the loop terminates.
+  const existing = await transactionsApi.getAll({
+    per_page: 9999,
+    include_excluded: true,
+    include_split_children: true,
   })
+  const alreadyRan = existing.data.some(
+    t => t.recurringId === r.id && t.date === r.nextRunDate,
+  )
+
+  if (!alreadyRan) {
+    await transactionsApi.create({
+      type: r.type as ValidTxnType,
+      account_id: r.accountId,
+      to_account_id: r.toAccountId ?? null,
+      category_id: r.categoryId ?? null,
+      amount: r.amount,
+      to_amount: r.toAmount ?? null,
+      description: r.description ?? '',
+      date: r.nextRunDate,
+      tag_ids: r.tags.map(t => t.id),
+      recurring_id: r.id,
+      // Phase 5 fix: engine-generated → needs user approval.
+      is_approved: false,
+    })
+  }
 
   // Advance schedule and stamp last_run_date.
   const next = advanceNextRunDate(
@@ -69,13 +96,14 @@ async function runOne(r: RecurringTransaction): Promise<void> {
     r.dayOfWeek,
     r.dayOfMonth,
   )
-  // If next > endDate, deactivate.
   const shouldDeactivate = r.endDate ? next > r.endDate : false
   await adapter.update('recurring', r.id, {
     next_run_date: next,
     last_run_date: r.nextRunDate,
     is_active: shouldDeactivate ? 'false' : 'true',
   })
+
+  return { skipped: alreadyRan }
 }
 
 export const recurringApi = {
@@ -163,8 +191,8 @@ export const recurringApi = {
       // Loop in case template missed multiple periods.
       let current = r
       while (current.isActive && current.nextRunDate <= today) {
-        await runOne(current)
-        count++
+        const result = await runOne(current)
+        if (!result.skipped) count++
         // Re-fetch to get the freshly advanced row.
         current = await recurringApi.getById(current.id)
       }
