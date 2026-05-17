@@ -46,6 +46,7 @@ import { useOverviewMetrics } from "@/hooks/use-reports";
 import type { ReportFilters } from "@/pages/reports/types";
 import { AmountText } from "@/components/shared/AmountText";
 import { cn } from "@/lib/utils";
+import { CategoryIcon } from '@/lib/category-icon';
 import { parseLocalDate } from "@/lib/date";
 import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
@@ -734,14 +735,16 @@ export default function DashboardPage() {
                         className="flex size-9 shrink-0 items-center justify-center rounded-lg"
                         style={{
                           backgroundColor: transaction.category?.color
-                            ? `${transaction.category.color}20`
+                            ? `${transaction.category.color}1a`
                             : undefined,
+                          border: transaction.category?.color
+                            ? `1px solid ${transaction.category.color}`
+                            : undefined,
+                          color: transaction.category?.color,
                         }}
                       >
                         {transaction.category?.icon ? (
-                          <span className="text-sm">
-                            {transaction.category.icon}
-                          </span>
+                          <CategoryIcon name={transaction.category.icon} size={16} />
                         ) : (
                           <CreditCard className="size-4" />
                         )}

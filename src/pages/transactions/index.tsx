@@ -23,6 +23,7 @@ import {
   PageHeader,
   DataTable,
   ServerPagination,
+  CategoryPill,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -179,7 +180,6 @@ export default function TransactionsPage() {
     (id) => duplicateTransaction.mutate(id),
     isReadOnly,
   );
-  console.log("🚀 ~ TransactionsPage ~ columns:", { columns });
 
   const allMonthTxns = data?.data ?? [];
   let filteredTxns = allMonthTxns;
@@ -430,24 +430,25 @@ export default function TransactionsPage() {
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {filteredCategories.map((category) => {
-                          const isSelected = params.categoryIds.includes(
-                            category.id,
-                          );
+                          const isSelected = params.categoryIds.includes(category.id)
                           return (
-                            <Badge
+                            <button
                               key={category.id}
-                              variant={isSelected ? "default" : "outline"}
-                              className={cn(
-                                "cursor-pointer transition-colors",
-                                isSelected
-                                  ? "hover:bg-primary/80"
-                                  : "hover:bg-muted",
-                              )}
+                              type="button"
                               onClick={() => toggleCategory(category.id)}
+                              className={cn(
+                                'transition-opacity',
+                                isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'
+                              )}
                             >
-                              {category.icon} {category.name}
-                            </Badge>
-                          );
+                              <CategoryPill
+                                name={category.name}
+                                icon={category.icon}
+                                color={category.color}
+                                size="sm"
+                              />
+                            </button>
+                          )
                         })}
                       </div>
                     </div>
