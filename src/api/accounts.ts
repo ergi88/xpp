@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from "uuid";
 import { adapter } from "./client";
 import { currenciesApi } from "./currencies";
 import {
@@ -190,13 +190,15 @@ export const accountsApi = {
     const enrichedAccounts = accounts.map((account) =>
       enrichAccount(account, currencyMap),
     );
-    const aggregateAccounts = enrichedAccounts.filter((account) =>
-      isAccountIncludedInBaseAggregates(account, baseCurrency),
+    const aggregateAccounts = enrichedAccounts.filter(
+      (account) =>
+        account.isActive &&
+        !EXCLUDED_BASE_AGGREGATE_ACCOUNT_TYPES.has(account.type),
     );
-    const total_balance = aggregateAccounts.reduce(
-      (sum, a) => sum + a.currentBalance,
-      0,
-    );
+    const total_balance = aggregateAccounts.reduce((sum, a) => {
+      const rate = a.currency?.rate ?? 1;
+      return sum + a.currentBalance * rate;
+    }, 0);
     const summary: AccountsSummary = {
       total_balance,
       ...toAggregateCurrencyMeta(baseCurrency),

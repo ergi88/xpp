@@ -6,6 +6,9 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const TransactionsPage = lazy(() => import("@/pages/transactions"));
 const TransactionCreatePage = lazy(() => import("@/pages/transactions/create"));
+const TransactionViewPage = lazy(
+  () => import("@/pages/transactions/[id]/index"),
+);
 const TransactionEditPage = lazy(
   () => import("@/pages/transactions/[id]/edit"),
 );
@@ -27,6 +30,7 @@ const TagCreatePage = lazy(() => import("@/pages/tags/create"));
 const TagEditPage = lazy(() => import("@/pages/tags/[id]/edit"));
 const DebtsPage = lazy(() => import("@/pages/debts"));
 const DebtCreatePage = lazy(() => import("@/pages/debts/create"));
+const DebtViewPage = lazy(() => import("@/pages/debts/[id]/index"));
 const DebtEditPage = lazy(() => import("@/pages/debts/[id]/edit"));
 const RecurringPage = lazy(() => import("@/pages/recurring"));
 const RecurringCreatePage = lazy(() => import("@/pages/recurring/create"));
@@ -65,6 +69,10 @@ export const router = createBrowserRouter(
           element: withSuspense(TransactionCreatePage),
         },
         {
+          path: "transactions/:id",
+          element: withSuspense(TransactionViewPage),
+        },
+        {
           path: "transactions/:id/edit",
           element: withSuspense(TransactionEditPage),
         },
@@ -98,6 +106,7 @@ export const router = createBrowserRouter(
         { path: "tags/:id/edit", element: withSuspense(TagEditPage) },
         { path: "debts", element: withSuspense(DebtsPage) },
         { path: "debts/create", element: withSuspense(DebtCreatePage) },
+        { path: "debts/:id", element: withSuspense(DebtViewPage) },
         { path: "debts/:id/edit", element: withSuspense(DebtEditPage) },
         { path: "recurring", element: withSuspense(RecurringPage) },
         {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -71,27 +71,36 @@ export function RecurringForm({
     const { data: categories } = useCategories()
     const { data: tags } = useTags()
 
+    const formDefaults = useMemo(() => ({
+        type: 'expense' as const,
+        account_id: '',
+        to_account_id: null,
+        category_id: null,
+        amount: 0,
+        to_amount: null,
+        description: '',
+        frequency: 'monthly' as const,
+        interval: 1,
+        day_of_week: null,
+        day_of_month: 1,
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: null,
+        is_active: true,
+        tag_ids: [],
+        ...defaultValues,
+    }), [defaultValues])
+
     const form = useForm<RecurringFormData>({
         resolver: zodResolver(recurringSchema),
-        defaultValues: {
-            type: 'expense',
-            account_id: '',
-            to_account_id: null,
-            category_id: null,
-            amount: 0,
-            to_amount: null,
-            description: '',
-            frequency: 'monthly',
-            interval: 1,
-            day_of_week: null,
-            day_of_month: 1,
-            start_date: new Date().toISOString().split('T')[0],
-            end_date: null,
-            is_active: true,
-            tag_ids: [],
-            ...defaultValues,
-        },
+        defaultValues: formDefaults,
     })
+
+    // Reset form when defaults change (e.g. when source transaction loads
+    // for ?from_transaction= prefill or when editing an existing template).
+    useEffect(() => {
+        form.reset(formDefaults)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formDefaults])
 
     const type = form.watch('type')
     const frequency = form.watch('frequency')

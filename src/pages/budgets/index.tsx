@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { ListPage } from "@/components/shared";
 import { createBudgetColumns } from "@/components/features/budgets";
-import { useBudgets, useDeleteBudget } from "@/hooks";
+import { useBudgetsWithProgress, useDeleteBudget } from "@/hooks";
 
 export default function BudgetsPage() {
     const [search, setSearch] = useState("");
-    const { data: budgets, isLoading } = useBudgets();
+    const { data: budgets, isLoading } = useBudgetsWithProgress();
     const deleteBudget = useDeleteBudget();
     const isReadOnly = false;
 

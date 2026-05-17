@@ -4,45 +4,46 @@ import { createCurrencyColumns } from "@/components/features/currencies";
 import { useCurrencies, useDeleteCurrency, useSetBaseCurrency } from "@/hooks";
 
 export default function CurrenciesPage() {
-    const [search, setSearch] = useState("");
-    const { data: currencies, isLoading } = useCurrencies();
-    const deleteCurrency = useDeleteCurrency();
-    const setBaseCurrency = useSetBaseCurrency();
-    const isReadOnly = false;
+  const [search, setSearch] = useState("");
+  const { data: currencies, isLoading } = useCurrencies();
 
-    const columns = createCurrencyColumns({
-        onDelete: (id) => deleteCurrency.mutate(id),
-        onSetBase: (id) => setBaseCurrency.mutate(id),
-        isSettingBase: setBaseCurrency.isPending,
-        currencyCount: currencies?.length ?? 0,
-        isReadOnly,
+  const deleteCurrency = useDeleteCurrency();
+  const setBaseCurrency = useSetBaseCurrency();
+  const isReadOnly = false;
+
+  const columns = createCurrencyColumns({
+    onDelete: (id) => deleteCurrency.mutate(id),
+    onSetBase: (id) => setBaseCurrency.mutate(id),
+    isSettingBase: setBaseCurrency.isPending,
+    currencyCount: currencies?.length ?? 0,
+    isReadOnly,
+  });
+
+  const filteredCurrencies = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return currencies ?? [];
+
+    return (currencies ?? []).filter((c) => {
+      const code = c.code ?? "";
+      const name = c.name ?? "";
+      return [code, name].some((v) => v.toLowerCase().includes(q));
     });
+  }, [search, currencies]);
 
-    const filteredCurrencies = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        if (!q) return currencies ?? [];
-
-        return (currencies ?? []).filter((c) => {
-            const code = c.code ?? "";
-            const name = c.name ?? "";
-            return [code, name].some((v) => v.toLowerCase().includes(q));
-        });
-    }, [search, currencies]);
-
-    return (
-        <ListPage
-            title="Currencies"
-            description="Manage currencies and exchange rates"
-            createLink="/currencies/create"
-            createLabel="New Currency"
-            search={{
-                value: search,
-                onChange: setSearch,
-                placeholder: "Search currencies",
-            }}
-            data={filteredCurrencies}
-            columns={columns}
-            isLoading={isLoading}
-        />
-    );
+  return (
+    <ListPage
+      title="Currencies"
+      description="Manage currencies and exchange rates"
+      createLink="/currencies/create"
+      createLabel="New Currency"
+      search={{
+        value: search,
+        onChange: setSearch,
+        placeholder: "Search currencies",
+      }}
+      data={filteredCurrencies}
+      columns={columns}
+      isLoading={isLoading}
+    />
+  );
 }

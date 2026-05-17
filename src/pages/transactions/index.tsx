@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   useQueryStates,
   parseAsInteger,
   parseAsString,
   parseAsArrayOf,
   parseAsStringLiteral,
+  parseAsBoolean,
 } from "nuqs";
 import {
   Plus,
@@ -26,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -71,37 +73,35 @@ const TYPE_FILTERS: {
 ];
 
 function TransactionItems({ row }: { row: Row<Transaction> }) {
-  const items = row.original.items;
+  const children = row.original.children;
   const decimals = row.original.account.currency?.decimals ?? 2;
   const symbol = row.original.account.currency?.symbol;
-  if (!items || items.length === 0) return null;
+  if (!children || children.length === 0) return null;
 
   return (
     <div className="px-4 py-3 ml-10">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-muted-foreground text-xs">
-            <th className="text-left font-medium pb-2">Item</th>
-            <th className="text-right font-medium pb-2 w-20">Qty</th>
-            <th className="text-right font-medium pb-2 w-24">Price</th>
-            <th className="text-right font-medium pb-2 w-24">Total</th>
+            <th className="text-left font-medium pb-2">Description</th>
+            <th className="text-left font-medium pb-2">Attribution</th>
+            <th className="text-right font-medium pb-2 w-24">Amount</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item, idx) => (
-            <tr key={item.id ?? idx} className="border-t border-border/50">
-              <td className="py-1.5">{item.name}</td>
-              <td className="py-1.5 text-right font-mono">{item.quantity}</td>
-              <td className="py-1.5 text-right font-mono">
-                <AmountText
-                  value={item.pricePerUnit}
-                  decimals={decimals}
-                  currency={symbol}
-                />
+          {children.map((c) => (
+            <tr key={c.id} className="border-t border-border/50">
+              <td className="py-1.5">
+                {c.description || (
+                  <span className="text-muted-foreground italic">—</span>
+                )}
+              </td>
+              <td className="py-1.5">
+                {c.debtId ? "$ Debt payment" : (c.category?.name ?? "—")}
               </td>
               <td className="py-1.5 text-right font-mono font-medium">
                 <AmountText
-                  value={item.totalPrice}
+                  value={c.amount}
                   decimals={decimals}
                   currency={symbol}
                 />
@@ -137,9 +137,12 @@ const transactionSearchParams = {
   navMode: parseAsStringLiteral(["month", "day"] as const).withDefault("month"),
   navDate: parseAsString.withDefault(firstDayOfCurrentMonth()),
   accountIds: parseAsArrayOf(parseAsString).withDefault([]),
+  showExcluded: parseAsBoolean.withDefault(false),
+  showSplitChildren: parseAsBoolean.withDefault(false),
 };
 
 export default function TransactionsPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useQueryStates(transactionSearchParams);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -147,7 +150,10 @@ export default function TransactionsPage() {
   // Always fetch full month — day mode filters client-side from this cache
   const monthDateRange = getDateRange("month", params.navDate);
 
-  // Fetch only by date range + sort — all other filters applied locally
+  // Fetch only by date range + sort — all other filters applied locally.
+  // Force-include children when a category filter is active so the per-child
+  // category match can hit (parent's pre-split category is stale).
+  const hasCategoryFilter = params.categoryIds.length > 0;
   const fetchFilters = {
     per_page: 9999,
     page: 1,
@@ -155,6 +161,8 @@ export default function TransactionsPage() {
     sort_direction: params.sortDir,
     start_date: monthDateRange.start_date,
     end_date: monthDateRange.end_date,
+    include_excluded: params.showExcluded,
+    include_split_children: params.showSplitChildren || hasCategoryFilter,
   };
 
   const { data, isLoading } = useTransactions(fetchFilters);
@@ -171,6 +179,7 @@ export default function TransactionsPage() {
     (id) => duplicateTransaction.mutate(id),
     isReadOnly,
   );
+  console.log("🚀 ~ TransactionsPage ~ columns:", { columns });
 
   const allMonthTxns = data?.data ?? [];
   let filteredTxns = allMonthTxns;
@@ -182,10 +191,21 @@ export default function TransactionsPage() {
     filteredTxns = filteredTxns.filter(
       (t) => t.account && params.accountIds.includes(t.account.id),
     );
-  if (params.categoryIds.length > 0)
+  if (params.categoryIds.length > 0) {
+    // Drop parents that have children — their children carry the real
+    // attribution and would double-count.
+    const parentIdsWithChildren = new Set<string>();
+    for (const t of filteredTxns) {
+      if (!t.parentId && t.children && t.children.length > 0)
+        parentIdsWithChildren.add(t.id);
+    }
     filteredTxns = filteredTxns.filter(
-      (t) => t.category && params.categoryIds.includes(t.category.id),
+      (t) =>
+        !parentIdsWithChildren.has(t.id) &&
+        t.category &&
+        params.categoryIds.includes(t.category.id),
     );
+  }
   if (params.tagIds.length > 0)
     filteredTxns = filteredTxns.filter((t) =>
       t.tags.some((tag) => params.tagIds.includes(tag.id)),
@@ -220,6 +240,7 @@ export default function TransactionsPage() {
     (currentPage - 1) * perPage,
     currentPage * perPage,
   );
+  console.log("🚀 ~ TransactionsPage ~ transactions:", { transactions });
   const meta =
     totalCount > 0
       ? {
@@ -235,12 +256,16 @@ export default function TransactionsPage() {
   const activeFiltersCount = [
     params.categoryIds.length > 0,
     params.tagIds.length > 0,
+    params.showExcluded,
+    params.showSplitChildren,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setParams({
       categoryIds: null,
       tagIds: null,
+      showExcluded: null,
+      showSplitChildren: null,
       page: 1,
     });
   };
@@ -428,6 +453,39 @@ export default function TransactionsPage() {
                     </div>
                   )}
 
+                  {/* Visibility toggles */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Visibility
+                    </label>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={params.showExcluded}
+                          onCheckedChange={(checked) =>
+                            setParams({
+                              showExcluded: checked === true ? true : null,
+                              page: 1,
+                            })
+                          }
+                        />
+                        Show excluded
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={params.showSplitChildren}
+                          onCheckedChange={(checked) =>
+                            setParams({
+                              showSplitChildren: checked === true ? true : null,
+                              page: 1,
+                            })
+                          }
+                        />
+                        Show split children
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Tags */}
                   {tags && tags.length > 0 && (
                     <div>
@@ -510,8 +568,12 @@ export default function TransactionsPage() {
         }
         renderSubComponent={TransactionItems}
         getRowCanExpand={(row) =>
-          (row.original.itemsCount ?? row.original.items?.length ?? 0) > 1
+          (row.original.childrenCount ?? row.original.children?.length ?? 0) > 0
         }
+        getRowClassName={(row) =>
+          row.original.isExcluded ? "opacity-60" : undefined
+        }
+        onRowClick={(row) => navigate(`/transactions/${row.original.id}`)}
         manualPagination
       />
 

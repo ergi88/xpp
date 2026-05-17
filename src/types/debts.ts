@@ -19,6 +19,7 @@ export interface Debt extends BaseEntity {
     isPaidOff: boolean
     isActive: boolean
     currency?: Currency
+    originTransactionId?: string | null
 }
 
 

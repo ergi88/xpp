@@ -42,6 +42,8 @@ export const recurringSchema = z.object({
     is_active: z.boolean().default(true),
 
     tag_ids: z.array(z.string().min(1)).default([]),
+
+    created_from_transaction_id: z.string().min(1).nullable().optional(),
 }).superRefine((data, ctx) => {
     // Require category for income/expense
     if ((data.type === 'income' || data.type === 'expense') && !data.category_id) {

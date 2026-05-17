@@ -124,6 +124,14 @@ export function useDebtCollection() {
     })
 }
 
+export function useDebtTransactions(debtId: string | number) {
+    return useQuery({
+        queryKey: [...QUERY_KEY, debtId, 'transactions'],
+        queryFn: () => debtsApi.getTransactionsForDebt(debtId),
+        enabled: !!debtId,
+    })
+}
+
 export function useReopenDebt() {
     const queryClient = useQueryClient()
 

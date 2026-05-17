@@ -1,16 +1,13 @@
 import {
   useForm,
-  useFieldArray,
   useWatch,
   type Resolver,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  useCallback,
   useEffect,
   useMemo,
-  useRef,
-  type KeyboardEvent,
+  useState,
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,19 +24,48 @@ import {
   transactionSchema,
   TransactionFormValues,
 } from "@/schemas/transactions";
-import { useAccounts, useCategories, useTags } from "@/hooks";
+import {
+  useAccounts,
+  useCategories,
+  useTags,
+  useDebts,
+} from "@/hooks";
 import { cn } from "@/lib/utils";
 import {
-  Plus,
-  Trash2,
   ArrowDownLeft,
   ArrowUpRight,
   ArrowLeftRight,
+  Banknote,
+  HandCoins,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AccountSelect } from "@/components/shared/AccountSelect";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { FormWrapper } from "@/components/shared/FormWrapper";
+import { AmountText } from "@/components/shared/AmountText";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+export interface PendingDebt {
+  name: string;
+  debtType: "i_owe" | "owed_to_me";
+}
 
 const TRANSACTION_TYPES = [
   {
@@ -64,7 +90,7 @@ const TRANSACTION_TYPES = [
 
 interface TransactionFormProps {
   defaultValues?: Partial<TransactionFormValues>;
-  onSubmit: (data: TransactionFormValues) => void;
+  onSubmit: (data: TransactionFormValues, pendingDebt?: PendingDebt | null) => void;
   onTypeChange?: (type: TransactionFormValues["type"]) => void;
   isSubmitting?: boolean;
   submitLabel?: string;
@@ -83,6 +109,15 @@ export function TransactionForm({
   });
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
+  const { data: debts } = useDebts();
+
+  const [pickerMode, setPickerMode] = useState<"category" | "debt">(
+    defaultValues?.debt_id ? "debt" : "category",
+  );
+  const [createDebtOpen, setCreateDebtOpen] = useState(false);
+  const [newDebtName, setNewDebtName] = useState("");
+  // Pending debt: held until transaction is created, then linked as origin
+  const [pendingDebt, setPendingDebt] = useState<PendingDebt | null>(null);
 
   const formDefaults = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -95,8 +130,10 @@ export function TransactionForm({
       to_amount: defaultValues?.to_amount ?? null,
       description: defaultValues?.description ?? "",
       date: defaultValues?.date || today,
-      items: defaultValues?.items ?? [],
       tag_ids: defaultValues?.tag_ids ?? [],
+      is_excluded: defaultValues?.is_excluded ?? false,
+      is_one_time: defaultValues?.is_one_time ?? false,
+      debt_id: defaultValues?.debt_id ?? null,
     };
   }, [defaultValues]);
 
@@ -105,21 +142,14 @@ export function TransactionForm({
     defaultValues: formDefaults,
   });
 
-  // Reset form when defaults change (e.g., when editing and data loads)
   useEffect(() => {
     form.reset(formDefaults);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formDefaults]);
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "items",
-  });
-
   const transactionType = useWatch({ control: form.control, name: "type" });
   const accountId = useWatch({ control: form.control, name: "account_id" });
   const categoryId = useWatch({ control: form.control, name: "category_id" });
-  const items = useWatch({ control: form.control, name: "items" });
   const amount = useWatch({ control: form.control, name: "amount" });
   const toAccountId = useWatch({
     control: form.control,
@@ -129,21 +159,18 @@ export function TransactionForm({
   const selectedTagIds =
     useWatch({ control: form.control, name: "tag_ids" }) ?? [];
 
-  // Filter categories based on transaction type and sort by popularity
   const filteredCategories = useMemo(() => {
     return (categories?.filter((c) => c.type === transactionType) ?? []).sort(
       (a, b) => (b.transactionsCount ?? 0) - (a.transactionsCount ?? 0),
     );
   }, [categories, transactionType]);
 
-  // Auto-select first account if none selected
   useEffect(() => {
     if (!accountId && accounts && accounts.length > 0) {
       form.setValue("account_id", accounts[0].id);
     }
   }, [accountId, accounts, form]);
 
-  // Auto-select most popular category if none selected (only for income/expense)
   useEffect(() => {
     if (
       !categoryId &&
@@ -154,115 +181,26 @@ export function TransactionForm({
     }
   }, [categoryId, transactionType, filteredCategories, form]);
 
-  // Calculate items total
-  const itemsTotal =
-    items?.reduce((sum, item) => {
-      const qty = Number(item?.quantity) || 0;
-      const price = Number(item?.price_per_unit) || 0;
-      return sum + qty * price;
-    }, 0) ?? 0;
-
-  // Sync amount with items total
-  useEffect(() => {
-    if (items && items.length > 0 && itemsTotal > 0) {
-      form.setValue("amount", itemsTotal, { shouldValidate: false });
-    }
-  }, [itemsTotal, items, form]);
-
-  // Reset category when type changes
   useEffect(() => {
     if (transactionType === "transfer") {
       form.setValue("category_id", null);
     }
   }, [transactionType, form]);
 
-  // Refs for fast navigation
-  const itemRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-
-  const addItem = useCallback(() => {
-    append({ name: "", quantity: 1, price_per_unit: 0 });
-    // Focus on new row's name field after render
-    setTimeout(() => {
-      const inputs = document.querySelectorAll("[data-item-name]");
-      const lastInput = inputs[inputs.length - 1] as HTMLInputElement;
-      lastInput?.focus();
-    }, 0);
-  }, [append]);
-
-  const handleKeyDown = useCallback(
-    (
-      e: KeyboardEvent<HTMLInputElement>,
-      index: number,
-      field: "name" | "quantity" | "price_per_unit",
-    ) => {
-      // Enter on last field of row or Tab on price adds new row
-      if (e.key === "Enter" && field === "price_per_unit") {
-        e.preventDefault();
-        addItem();
-      }
-
-      // Backspace on empty name removes row
-      if (e.key === "Backspace" && field === "name") {
-        const value = (e.target as HTMLInputElement).value;
-        if (value === "" && fields.length > 1) {
-          e.preventDefault();
-          remove(index);
-          // Focus previous row
-          setTimeout(() => {
-            const inputs = document.querySelectorAll("[data-item-name]");
-            const prevInput = inputs[
-              Math.max(0, index - 1)
-            ] as HTMLInputElement;
-            prevInput?.focus();
-          }, 0);
-        }
-      }
-
-      // Arrow down - next row same field
-      if (e.key === "ArrowDown" && index < fields.length - 1) {
-        e.preventDefault();
-        const nextInput = document.querySelector(
-          `[data-item-${field}][data-index="${index + 1}"]`,
-        ) as HTMLInputElement;
-        nextInput?.focus();
-      }
-
-      // Arrow up - previous row same field
-      if (e.key === "ArrowUp" && index > 0) {
-        e.preventDefault();
-        const prevInput = document.querySelector(
-          `[data-item-${field}][data-index="${index - 1}"]`,
-        ) as HTMLInputElement;
-        prevInput?.focus();
-      }
-    },
-    [addItem, remove, fields.length],
-  );
-
   const selectedAccount = accounts?.find((a) => a.id === accountId);
   const selectedToAccount = accounts?.find((a) => a.id === toAccountId);
 
-  // Calculate balance preview
   const balancePreview = useMemo(() => {
     if (!selectedAccount) return null;
-
     const currentBalance = selectedAccount.currentBalance;
     const txAmount = Number(amount) || 0;
-
     let newBalance = currentBalance;
-    if (transactionType === "income") {
-      newBalance = currentBalance + txAmount;
-    } else if (
-      transactionType === "expense" ||
-      transactionType === "transfer"
-    ) {
+    if (transactionType === "income") newBalance = currentBalance + txAmount;
+    else if (transactionType === "expense" || transactionType === "transfer")
       newBalance = currentBalance - txAmount;
-    }
-
     const insufficientFunds =
       (transactionType === "expense" || transactionType === "transfer") &&
       newBalance < 0;
-
     return {
       currentBalance,
       newBalance,
@@ -272,26 +210,56 @@ export function TransactionForm({
     };
   }, [selectedAccount, amount, transactionType]);
 
-  // Balance preview for destination account (transfer)
   const toBalancePreview = useMemo(() => {
     if (!selectedToAccount || transactionType !== "transfer") return null;
-
     const currentBalance = selectedToAccount.currentBalance;
     const txAmount = Number(toAmount) || Number(amount) || 0;
-    const newBalance = currentBalance + txAmount;
-
     return {
       currentBalance,
-      newBalance,
+      newBalance: currentBalance + txAmount,
       currency: selectedToAccount.currency?.symbol ?? "",
       decimals: selectedToAccount.currency?.decimals ?? 2,
     };
   }, [selectedToAccount, toAmount, amount, transactionType]);
 
+  // Infer debt type from transaction type:
+  // income → i_owe (received money → owe it back)
+  // expense → owed_to_me (paid for someone → they owe me)
+  const inferredDebtType: PendingDebt["debtType"] =
+    transactionType === "income" ? "i_owe" : "owed_to_me";
+
+  const handleConfirmNewDebt = () => {
+    if (!newDebtName.trim()) return;
+    const debt: PendingDebt = {
+      name: newDebtName.trim(),
+      debtType: inferredDebtType,
+    };
+    setPendingDebt(debt);
+    // Sentinel value — truthy so it passes "must have category or debt" check,
+    // but never persisted; stripped before the actual API call.
+    form.setValue("debt_id", "__new_debt__");
+    setCreateDebtOpen(false);
+    setNewDebtName("");
+  };
+
+  const clearPendingDebt = () => {
+    setPendingDebt(null);
+    form.setValue("debt_id", null);
+  };
+
+  const handleFormSubmit = (data: TransactionFormValues) => {
+    if (pendingDebt) {
+      // Strip the sentinel so the page receives null debt_id
+      onSubmit({ ...data, debt_id: null }, pendingDebt);
+    } else {
+      onSubmit(data, null);
+    }
+  };
+
   return (
     <FormWrapper>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Transaction Type Tabs */}
           <div className="flex gap-2 p-1 bg-muted rounded-lg">
             {TRANSACTION_TYPES.map(({ value, label, icon: Icon, color }) => (
@@ -325,20 +293,15 @@ export function TransactionForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {transactionType === "transfer"
-                      ? "From Account"
-                      : "Account"}
+                    {transactionType === "transfer" ? "From Account" : "Account"}
                   </FormLabel>
-                  <AccountSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
+                  <AccountSelect value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* To Account (Transfer only) */}
+            {/* To Account (Transfer) or Category/Debt (Income/Expense) */}
             {transactionType === "transfer" ? (
               <FormField
                 control={form.control}
@@ -356,21 +319,126 @@ export function TransactionForm({
                 )}
               />
             ) : (
-              /* Category (Income/Expense only) */
               <FormField
                 control={form.control}
                 name="category_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <CategorySelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      type={transactionType as "income" | "expense"}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field: categoryField }) => {
+                  const compatibleDebts = (debts ?? []).filter((d) => {
+                    if (!selectedAccount?.currency?.id) return true;
+                    return d.currencyId === selectedAccount.currency.id;
+                  });
+                  return (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>
+                          {pickerMode === "debt" ? "Debt" : "Category"}
+                        </FormLabel>
+                        <Select
+                          value={pickerMode}
+                          onValueChange={(v) => {
+                            const next = v as "category" | "debt";
+                            setPickerMode(next);
+                            if (next === "category") {
+                              form.setValue("debt_id", null);
+                              setPendingDebt(null);
+                            } else {
+                              categoryField.onChange(null);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem value="debt">Debt</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {pickerMode === "category" ? (
+                        <CategorySelect
+                          value={categoryField.value}
+                          onChange={categoryField.onChange}
+                          type={transactionType as "income" | "expense"}
+                        />
+                      ) : pendingDebt ? (
+                        /* Pending new debt indicator */
+                        <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/50">
+                          <Badge variant="outline" className="text-xs gap-1">
+                            {pendingDebt.debtType === "i_owe" ? (
+                              <Banknote className="size-3 text-red-600" />
+                            ) : (
+                              <HandCoins className="size-3 text-green-600" />
+                            )}
+                            New: {pendingDebt.name}
+                          </Badge>
+                          <button
+                            type="button"
+                            onClick={clearPendingDebt}
+                            className="ml-auto text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <FormField
+                          control={form.control}
+                          name="debt_id"
+                          render={({ field: debtField }) => (
+                            <Select
+                              value={debtField.value ?? ""}
+                              onValueChange={(v) => {
+                                if (v === "__new__") {
+                                  setCreateDebtOpen(true);
+                                  return;
+                                }
+                                debtField.onChange(v || null);
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pick a debt or create new" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {compatibleDebts.map((d) => {
+                                  const Icon =
+                                    d.debtType === "i_owe" ? Banknote : HandCoins;
+                                  const color =
+                                    d.debtType === "i_owe"
+                                      ? "text-red-600"
+                                      : "text-green-600";
+                                  return (
+                                    <SelectItem key={d.id} value={d.id}>
+                                      <div className="flex items-center gap-2 w-full">
+                                        <Icon className={cn("size-3.5 shrink-0", color)} />
+                                        <span className="flex-1 truncate">{d.name}</span>
+                                        <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                                          <AmountText
+                                            value={d.remainingDebt}
+                                            decimals={d.currency?.decimals ?? 2}
+                                            currency={d.currency?.symbol}
+                                          />
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                                <SelectItem value="__new__">
+                                  <span className="text-primary font-medium">
+                                    + Create new debt
+                                  </span>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             )}
           </div>
@@ -388,9 +456,7 @@ export function TransactionForm({
               <div className="flex-1">
                 <span className="text-muted-foreground">Balance: </span>
                 <span className="font-mono font-medium">
-                  {balancePreview.currentBalance.toFixed(
-                    balancePreview.decimals,
-                  )}{" "}
+                  {balancePreview.currentBalance.toFixed(balancePreview.decimals)}{" "}
                   {balancePreview.currency}
                 </span>
               </div>
@@ -402,8 +468,7 @@ export function TransactionForm({
                     "font-mono font-medium",
                     balancePreview.insufficientFunds
                       ? "text-destructive"
-                      : balancePreview.newBalance >
-                          balancePreview.currentBalance
+                      : balancePreview.newBalance > balancePreview.currentBalance
                         ? "text-green-600"
                         : "text-foreground",
                   )}
@@ -426,9 +491,7 @@ export function TransactionForm({
               <div className="flex-1">
                 <span className="text-muted-foreground">To Balance: </span>
                 <span className="font-mono font-medium">
-                  {toBalancePreview.currentBalance.toFixed(
-                    toBalancePreview.decimals,
-                  )}{" "}
+                  {toBalancePreview.currentBalance.toFixed(toBalancePreview.decimals)}{" "}
                   {toBalancePreview.currency}
                 </span>
               </div>
@@ -436,9 +499,7 @@ export function TransactionForm({
               <div className="flex-1 text-right">
                 <span className="text-muted-foreground">After: </span>
                 <span className="font-mono font-medium text-green-600">
-                  {toBalancePreview.newBalance.toFixed(
-                    toBalancePreview.decimals,
-                  )}{" "}
+                  {toBalancePreview.newBalance.toFixed(toBalancePreview.decimals)}{" "}
                   {toBalancePreview.currency}
                 </span>
               </div>
@@ -461,21 +522,13 @@ export function TransactionForm({
                     )}
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      placeholder="0.00"
-                      {...field}
-                      disabled={items && items.length > 0}
-                    />
+                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* To Amount (Transfer only) or Date */}
             {transactionType === "transfer" ? (
               <FormField
                 control={form.control}
@@ -492,9 +545,7 @@ export function TransactionForm({
                         {...field}
                         value={field.value ?? ""}
                         onChange={(e) =>
-                          field.onChange(
-                            e.target.value ? Number(e.target.value) : null,
-                          )
+                          field.onChange(e.target.value ? Number(e.target.value) : null)
                         }
                       />
                     </FormControl>
@@ -519,7 +570,6 @@ export function TransactionForm({
             )}
           </div>
 
-          {/* Date for transfer */}
           {transactionType === "transfer" && (
             <FormField
               control={form.control}
@@ -555,6 +605,58 @@ export function TransactionForm({
             )}
           />
 
+          {/* Flags */}
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <FormField
+              control={form.control}
+              name="is_excluded"
+              render={({ field }) => {
+                const isOneTime = form.watch("is_one_time");
+                return (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value ?? false}
+                        disabled={!!isOneTime}
+                        onCheckedChange={(v) => field.onChange(!!v)}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel>Exclude from reports</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Hidden from every aggregate. Account balance still counts it.
+                      </p>
+                    </div>
+                  </FormItem>
+                );
+              }}
+            />
+            <FormField
+              control={form.control}
+              name="is_one_time"
+              render={({ field }) => {
+                const isExcluded = form.watch("is_excluded");
+                return (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value ?? false}
+                        disabled={!!isExcluded}
+                        onCheckedChange={(v) => field.onChange(!!v)}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel>Mark as one-time</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Counted in raw totals but skipped from averages and projections.
+                      </p>
+                    </div>
+                  </FormItem>
+                );
+              }}
+            />
+          </div>
+
           {/* Tags */}
           {tags && tags.length > 0 && (
             <FormField
@@ -572,9 +674,7 @@ export function TransactionForm({
                           variant={isSelected ? "default" : "outline"}
                           className={cn(
                             "cursor-pointer transition-colors",
-                            isSelected
-                              ? "hover:bg-primary/80"
-                              : "hover:bg-muted",
+                            isSelected ? "hover:bg-primary/80" : "hover:bg-muted",
                           )}
                           onClick={() => {
                             const newTagIds = isSelected
@@ -594,142 +694,6 @@ export function TransactionForm({
             />
           )}
 
-          {/* Items (Expense only typically, but allow for Income) */}
-          {transactionType !== "transfer" && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <FormLabel>Items</FormLabel>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addItem}
-                >
-                  <Plus className="size-4 mr-1" />
-                  Add Item
-                </Button>
-              </div>
-
-              {fields.length > 0 && (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="text-left p-2 font-medium">Name</th>
-                        <th className="text-left p-2 font-medium w-20">Qty</th>
-                        <th className="text-left p-2 font-medium w-28">
-                          Price
-                        </th>
-                        <th className="text-right p-2 font-medium w-28">
-                          Total
-                        </th>
-                        <th className="w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fields.map((field, index) => {
-                        const qty = Number(items?.[index]?.quantity) || 0;
-                        const price =
-                          Number(items?.[index]?.price_per_unit) || 0;
-                        const total = qty * price;
-
-                        return (
-                          <tr key={field.id} className="border-t">
-                            <td className="p-1">
-                              <Input
-                                {...form.register(`items.${index}.name`)}
-                                placeholder="Item name"
-                                className="h-8 border-0 shadow-none focus-visible:ring-1"
-                                data-item-name
-                                data-index={index}
-                                onKeyDown={(e) =>
-                                  handleKeyDown(e, index, "name")
-                                }
-                              />
-                            </td>
-                            <td className="p-1">
-                              <Input
-                                {...form.register(`items.${index}.quantity`)}
-                                type="number"
-                                step="1"
-                                min={1}
-                                placeholder="1"
-                                className="h-8 border-0 shadow-none focus-visible:ring-1"
-                                data-item-quantity
-                                data-index={index}
-                                onKeyDown={(e) =>
-                                  handleKeyDown(e, index, "quantity")
-                                }
-                              />
-                            </td>
-                            <td className="p-1">
-                              <Input
-                                {...form.register(
-                                  `items.${index}.price_per_unit`,
-                                )}
-                                type="number"
-                                step="0.01"
-                                min={0}
-                                placeholder="0.00"
-                                className="h-8 border-0 shadow-none focus-visible:ring-1"
-                                data-item-price_per_unit
-                                data-index={index}
-                                onKeyDown={(e) =>
-                                  handleKeyDown(e, index, "price_per_unit")
-                                }
-                              />
-                            </td>
-                            <td className="p-2 text-right font-mono text-muted-foreground">
-                              {total.toFixed(
-                                selectedAccount?.currency?.decimals ?? 2,
-                              )}
-                            </td>
-                            <td className="p-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => remove(index)}
-                                className="text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot className="border-t bg-muted/30">
-                      <tr>
-                        <td colSpan={4} className="p-2 text-right font-medium">
-                          Total:
-                        </td>
-                        <td className="p-2 text-right font-mono font-semibold">
-                          {itemsTotal.toFixed(
-                            selectedAccount?.currency?.decimals ?? 2,
-                          )}
-                        </td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-
-              {fields.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg border-dashed">
-                  No items. Click "Add Item" or enter amount manually.
-                </p>
-              )}
-
-              <FormField
-                control={form.control}
-                name="items"
-                render={() => <FormMessage />}
-              />
-            </div>
-          )}
-
           <Button
             type="submit"
             disabled={isSubmitting || balancePreview?.insufficientFunds}
@@ -739,6 +703,50 @@ export function TransactionForm({
           </Button>
         </form>
       </Form>
+
+      {/* Create new debt dialog — only asks for name; amount/currency derived from transaction */}
+      <Dialog open={createDebtOpen} onOpenChange={setCreateDebtOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new debt</DialogTitle>
+            <DialogDescription>
+              {transactionType === "income"
+                ? "Income → 'I owe' debt. This transaction will be the origin (money you received that you'll pay back)."
+                : "Expense → 'Owed to me' debt. This transaction will be the origin (money you paid that someone will repay)."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Label htmlFor="new-debt-name">Debt name</Label>
+            <Input
+              id="new-debt-name"
+              value={newDebtName}
+              onChange={(e) => setNewDebtName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleConfirmNewDebt()}
+              placeholder="e.g. Loan from John"
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground pt-1">
+              Amount and currency will be taken from this transaction.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setCreateDebtOpen(false); setNewDebtName(""); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!newDebtName.trim()}
+              onClick={handleConfirmNewDebt}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </FormWrapper>
   );
 }

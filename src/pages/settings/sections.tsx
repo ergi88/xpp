@@ -30,7 +30,8 @@ import {
   useUpdateSettings,
 } from "@/hooks";
 import { useTheme } from "@/hooks/use-theme";
-import { ExternalLink, Fingerprint, Loader2, CheckCircle2 } from "lucide-react";
+import { ExternalLink, Fingerprint, Loader2, CheckCircle2, AlertTriangle, Copy, Check } from "lucide-react";
+import { GAS_SCRIPT, GAS_SCRIPT_VERSION } from "@/lib/gas-script";
 import {
   STORAGE_KEYS,
   sha256,
@@ -626,6 +627,99 @@ export function AppUpdateCard() {
         <Button variant="outline" onClick={handleForceRefresh} className="gap-2">
           Force refresh
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const GAS_ACK_KEY = "xpp_gas_script_ack";
+
+export function GASScriptUpdateCard() {
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem(GAS_ACK_KEY) === String(GAS_SCRIPT_VERSION),
+  );
+  const [copied, setCopied] = useState(false);
+
+  if (dismissed) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard
+      .writeText(GAS_SCRIPT)
+      .catch(() => {
+        const el = document.createElement("textarea");
+        el.value = GAS_SCRIPT;
+        el.style.cssText = "position:fixed;opacity:0";
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      });
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDismiss = () => {
+    localStorage.setItem(GAS_ACK_KEY, String(GAS_SCRIPT_VERSION));
+    setDismissed(true);
+  };
+
+  return (
+    <Card className="border-amber-500/50 bg-amber-500/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="size-4 text-amber-600" />
+          Apps Script update required (v{GAS_SCRIPT_VERSION})
+        </CardTitle>
+        <CardDescription>
+          The backend script gained new column auto-creation logic. If you set
+          up before this update, redeploy your Apps Script — otherwise new
+          features (transaction flags, splits, links) won't save correctly.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <ol className="text-sm space-y-1 list-decimal pl-5">
+          <li>
+            Open your Apps Script editor (
+            <a
+              href="https://script.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline inline-flex items-center gap-0.5"
+            >
+              script.google.com <ExternalLink className="size-3" />
+            </a>
+            ).
+          </li>
+          <li>Copy the latest script below and replace the contents of <code className="rounded bg-muted px-1">Code.gs</code>.</li>
+          <li>
+            <strong>Deploy → Manage deployments</strong> → pencil/edit on your
+            active deployment → <strong>Version: New version</strong> →{" "}
+            <strong>Deploy</strong>.
+          </li>
+        </ol>
+        <div className="relative">
+          <pre className="max-h-32 overflow-hidden rounded border bg-muted px-3 py-2 text-xs text-muted-foreground leading-relaxed select-none">
+            {GAS_SCRIPT.slice(0, 260)}
+            {"…"}
+          </pre>
+          <div className="absolute inset-0 flex items-end justify-end p-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-7 gap-1.5 text-xs shadow-sm"
+              onClick={handleCopy}
+            >
+              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+              {copied ? "Copied" : "Copy script"}
+            </Button>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={handleDismiss}>
+            I already updated — dismiss
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -3,15 +3,7 @@ import { Account } from './accounts'
 import { Category } from './categories'
 import { Tag } from './tags'
 
-export type TransactionType = 'income' | 'expense' | 'transfer' | 'debt_payment' | 'debt_collection'
-
-export interface TransactionItem {
-    id?: string
-    name: string
-    quantity: number
-    pricePerUnit: number
-    totalPrice: number
-}
+export type TransactionType = 'income' | 'expense' | 'transfer'
 
 export interface Transaction extends BaseEntity {
     type: TransactionType
@@ -23,11 +15,24 @@ export interface Transaction extends BaseEntity {
     account: Account
     toAccount?: Account
     category?: Category
-    items: TransactionItem[]
-    itemsCount?: number
+    children?: Transaction[]
+    childrenCount?: number
     tags: Tag[]
+    // Phase 1 fields:
+    isExcluded: boolean
+    isOneTime: boolean
+    parentId: string | null
+    debtId: string | null
+    linkedTransactionId: string | null
+    recurringId: string | null
+    // Phase 5 fix: engine-generated transactions start unapproved.
+    // Legacy rows missing this column default to true (already-approved).
+    isApproved: boolean
 }
 
+// Legacy alias preserved for any straggler component reading `items` / `itemsCount` —
+// these point at children. Remove after a sweep confirms no readers remain.
+export type TransactionItem = Transaction
 
 export interface TransactionFilters {
     type?: 'income' | 'expense' | 'transfer'
@@ -43,6 +48,8 @@ export interface TransactionFilters {
     sort_direction?: 'asc' | 'desc'
     per_page?: number
     page?: number
+    include_excluded?: boolean
+    include_split_children?: boolean
 }
 
 export interface TransactionSummary {

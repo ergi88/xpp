@@ -1,4 +1,5 @@
 export * from './use-accounts'
+export * from './use-budgets-progress'
 export * from './use-budgets'
 export * from './use-categories'
 export * from './use-currencies'

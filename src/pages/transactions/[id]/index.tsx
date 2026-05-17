@@ -1,0 +1,395 @@
+import { useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Page } from '@/components/shared'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { AmountText } from '@/components/shared/AmountText'
+import {
+    useTransaction,
+    useDeleteTransaction,
+    useDuplicateTransaction,
+    useToggleTransactionFlag,
+    useSplitTransaction,
+    useUnsplitTransaction,
+    useLinkCounterpart,
+    useUnlinkCounterpart,
+} from '@/hooks'
+import {
+    Pencil,
+    Copy,
+    Trash2,
+    ArrowLeft,
+    ArrowDownLeft,
+    ArrowUpRight,
+    ArrowLeftRight,
+    Ban,
+    Star,
+    Split,
+    Link2,
+    Link2Off,
+    Repeat,
+    CheckCircle2,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { SplitEditor, PendingDebtForRow } from '@/components/features/transactions/SplitEditor'
+import { debtsApi } from '@/api/debts'
+import { CounterpartLinkPicker } from '@/components/features/transactions/CounterpartLinkPicker'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+
+const TYPE_CONFIG = {
+    income: { icon: ArrowDownLeft, color: 'text-green-600', label: 'Income' },
+    expense: { icon: ArrowUpRight, color: 'text-red-600', label: 'Expense' },
+    transfer: { icon: ArrowLeftRight, color: 'text-blue-600', label: 'Transfer' },
+}
+
+export default function TransactionViewPage() {
+    const { id } = useParams<{ id: string }>()
+    const navigate = useNavigate()
+    const { data: t, isLoading } = useTransaction(id!)
+    const deleteTransaction = useDeleteTransaction()
+    const duplicateTransaction = useDuplicateTransaction()
+    const toggleFlag = useToggleTransactionFlag()
+    const [splitMode, setSplitMode] = useState(false)
+    const [splitWithDebtPending, setSplitWithDebtPending] = useState(false)
+    const splitTransaction = useSplitTransaction()
+    const unsplitTransaction = useUnsplitTransaction()
+    const [linkPickerOpen, setLinkPickerOpen] = useState(false)
+    const linkCounterpart = useLinkCounterpart()
+    const unlinkCounterpart = useUnlinkCounterpart()
+
+    const handleDelete = () => {
+        if (!id) return
+        deleteTransaction.mutate(id, {
+            onSuccess: () => navigate('/transactions'),
+        })
+    }
+
+    if (isLoading) {
+        return (
+            <Page title="Transaction">
+                <div className="p-8">Loading...</div>
+            </Page>
+        )
+    }
+    if (!t) {
+        return (
+            <Page title="Transaction">
+                <div className="p-8">Transaction not found.</div>
+            </Page>
+        )
+    }
+
+    const cfg = TYPE_CONFIG[t.type]
+    const Icon = cfg.icon
+    const decimals = t.account.currency?.decimals ?? 2
+    const symbol = t.account.currency?.symbol
+
+    return (
+        <Page title="Transaction">
+            <div className="max-w-3xl mx-auto p-4 space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Link to="/transactions" className="hover:underline flex items-center gap-1">
+                        <ArrowLeft className="size-3" />
+                        Transactions
+                    </Link>
+                    <span>/</span>
+                    <span>{new Date(t.date).toLocaleDateString()}</span>
+                </div>
+
+                {/* Hero */}
+                <Card>
+                    <CardContent className="p-6 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Icon className={cn('size-6', cfg.color)} />
+                            <div className="text-3xl font-bold font-mono">
+                                <AmountText value={t.amount} decimals={decimals} currency={symbol} />
+                            </div>
+                            <Badge variant="secondary" className={cn('ml-2', cfg.color)}>{cfg.label}</Badge>
+                        </div>
+                        {t.description && <p className="text-muted-foreground">{t.description}</p>}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {t.tags.map(tag => <Badge key={tag.id} variant="outline">#{tag.name}</Badge>)}
+                            {t.isOneTime && <Badge variant="secondary">★ One-time</Badge>}
+                            {t.isExcluded && <Badge variant="secondary">⊘ Excluded</Badge>}
+                            {!t.isApproved && (
+                                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                                    ⏳ Pending approval
+                                </Badge>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Details grid */}
+                <Card>
+                    <CardContent className="p-6 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <div className="text-muted-foreground">Account</div>
+                            <Link to={`/accounts/${t.account.id}`} className="hover:underline font-medium">
+                                {t.account.name}
+                            </Link>
+                        </div>
+                        {t.toAccount ? (
+                            <div>
+                                <div className="text-muted-foreground">To Account</div>
+                                <Link to={`/accounts/${t.toAccount.id}`} className="hover:underline font-medium">
+                                    {t.toAccount.name}
+                                </Link>
+                            </div>
+                        ) : t.category ? (
+                            <div>
+                                <div className="text-muted-foreground">Category</div>
+                                <span className="font-medium">{t.category.name}</span>
+                            </div>
+                        ) : null}
+                        <div>
+                            <div className="text-muted-foreground">Date</div>
+                            <div className="font-mono">{new Date(t.date).toLocaleDateString()}</div>
+                        </div>
+                        {t.createdAt && (
+                            <div>
+                                <div className="text-muted-foreground">Created</div>
+                                <div className="font-mono text-xs">{new Date(t.createdAt).toLocaleString()}</div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Connections panel (placeholders — wired in Phases 3–5) */}
+                {(t.recurringId || t.linkedTransactionId || t.debtId) && (
+                    <Card>
+                        <CardContent className="p-6 space-y-2 text-sm">
+                            <div className="font-medium">Connections</div>
+                            {t.recurringId && (
+                                <Link to={`/recurring/${t.recurringId}/edit`} className="block hover:underline">
+                                    ↻ From recurring template →
+                                </Link>
+                            )}
+                            {t.linkedTransactionId && (
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    to={`/transactions/${t.linkedTransactionId}`}
+                                    className="flex-1 hover:underline"
+                                  >
+                                    ⇄ Linked counterpart →
+                                  </Link>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => unlinkCounterpart.mutate(t.id)}
+                                    disabled={unlinkCounterpart.isPending}
+                                  >
+                                    <Link2Off className="size-3.5 mr-1" />
+                                    Unlink
+                                  </Button>
+                                </div>
+                            )}
+                            {t.debtId && (
+                                <Link to={`/debts/${t.debtId}/edit`} className="block hover:underline">
+                                    $ Debt payment for →
+                                </Link>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Split children read-only display */}
+                {t.children && t.children.length > 0 && !splitMode && (
+                  <Card>
+                    <CardContent className="p-6 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">Split into {t.children.length} children</div>
+                        <Button size="sm" variant="outline" onClick={() => setSplitMode(true)}>
+                          <Split className="size-4 mr-1" />
+                          Edit split
+                        </Button>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead className="text-xs text-muted-foreground">
+                          <tr>
+                            <th className="text-left py-1">Description</th>
+                            <th className="text-left py-1">Attribution</th>
+                            <th className="text-right py-1">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {t.children.map(c => (
+                            <tr key={c.id} className="border-t">
+                              <td className="py-1.5">{c.description || <span className="text-muted-foreground italic">—</span>}</td>
+                              <td className="py-1.5">
+                                {c.debtId ? <span>$ Debt</span> : (c.category?.name ?? <span className="text-muted-foreground italic">no category</span>)}
+                              </td>
+                              <td className="py-1.5 text-right font-mono">
+                                <AmountText value={c.amount} decimals={t.account.currency?.decimals ?? 2} currency={t.account.currency?.symbol} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Split editor */}
+                {splitMode && (
+                  <SplitEditor
+                    parent={t}
+                    isSubmitting={splitTransaction.isPending || splitWithDebtPending}
+                    onCancel={() => setSplitMode(false)}
+                    onUnsplit={() => {
+                      unsplitTransaction.mutate(t.id, {
+                        onSuccess: () => setSplitMode(false),
+                      })
+                    }}
+                    onSave={(children, pendingDebtsByRow) => {
+                      setSplitWithDebtPending(true)
+                      splitTransaction.mutate(
+                        { parentId: t.id, children },
+                        {
+                          onSuccess: async (result) => {
+                            const pending = Object.entries(pendingDebtsByRow) as [string, PendingDebtForRow][]
+                            for (const [idxStr, pd] of pending) {
+                              const child = result.children?.[Number(idxStr)]
+                              if (child) {
+                                await debtsApi.create({
+                                  name: pd.name,
+                                  debt_type: pd.debtType,
+                                  currency_id: t.account.currency!.id,
+                                  amount: child.amount,
+                                  origin_transaction_id: child.id,
+                                })
+                              }
+                            }
+                            setSplitWithDebtPending(false)
+                            setSplitMode(false)
+                          },
+                          onError: () => setSplitWithDebtPending(false),
+                        },
+                      )
+                    }}
+                  />
+                )}
+
+                {/* Action bar */}
+                <div className="flex flex-wrap gap-2 justify-end">
+                    <Button asChild variant="default">
+                        <Link to={`/transactions/${t.id}/edit`}>
+                            <Pencil className="size-4 mr-1" />
+                            Edit
+                        </Link>
+                    </Button>
+                    <Button variant="outline" onClick={() => duplicateTransaction.mutate(t.id)}>
+                        <Copy className="size-4 mr-1" />
+                        Duplicate
+                    </Button>
+                    <Button
+                        variant={t.isExcluded ? 'default' : 'outline'}
+                        onClick={() => toggleFlag.mutate({ id: t.id, flag: 'is_excluded', value: !t.isExcluded })}
+                        disabled={toggleFlag.isPending || t.isOneTime}
+                        title={t.isOneTime ? 'Cannot exclude a one-time transaction' : ''}
+                    >
+                        <Ban className="size-4 mr-1" />
+                        {t.isExcluded ? 'Included' : 'Exclude'}
+                    </Button>
+                    <Button
+                        variant={t.isOneTime ? 'default' : 'outline'}
+                        onClick={() => toggleFlag.mutate({ id: t.id, flag: 'is_one_time', value: !t.isOneTime })}
+                        disabled={toggleFlag.isPending || t.isExcluded}
+                        title={t.isExcluded ? 'Cannot mark excluded transaction as one-time' : ''}
+                    >
+                        <Star className="size-4 mr-1" />
+                        {t.isOneTime ? 'Recurring-like' : 'Mark one-time'}
+                    </Button>
+                    {!t.children?.length && !splitMode && (
+                        <Button variant="outline" onClick={() => setSplitMode(true)}>
+                            <Split className="size-4 mr-1" />
+                            Split
+                        </Button>
+                    )}
+                    {!t.linkedTransactionId && !t.parentId && t.type !== 'transfer' && (
+                        <Button variant="outline" onClick={() => setLinkPickerOpen(true)}>
+                            <Link2 className="size-4 mr-1" />
+                            Link counterpart
+                        </Button>
+                    )}
+                    {!t.parentId && (
+                        <Button asChild variant="outline">
+                            <Link to={`/recurring/create?from_transaction=${t.id}`}>
+                                <Repeat className="size-4 mr-1" />
+                                Create recurring
+                            </Link>
+                        </Button>
+                    )}
+                    {!t.isApproved && (
+                        <Button
+                            variant="default"
+                            onClick={() => toggleFlag.mutate({ id: t.id, flag: 'is_approved', value: true })}
+                            disabled={toggleFlag.isPending}
+                            className="bg-amber-600 hover:bg-amber-700"
+                        >
+                            <CheckCircle2 className="size-4 mr-1" />
+                            Approve
+                        </Button>
+                    )}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                variant="destructive"
+                                disabled={deleteTransaction.isPending}
+                            >
+                                <Trash2 className="size-4 mr-1" />
+                                {deleteTransaction.isPending ? 'Deleting...' : 'Delete'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {t.children && t.children.length > 0
+                                        ? `This will also delete ${t.children.length} split children and reverse their debt effects.`
+                                        : 'This will reverse the account balance and any linked debt effects.'}
+                                    {' '}This cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={deleteTransaction.isPending}>
+                                    Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleDelete}
+                                    disabled={deleteTransaction.isPending}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                    {deleteTransaction.isPending ? 'Deleting...' : 'Delete'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </div>
+            <CounterpartLinkPicker
+              source={t}
+              open={linkPickerOpen}
+              onOpenChange={setLinkPickerOpen}
+              isSubmitting={linkCounterpart.isPending}
+              onPick={(targetId) => {
+                linkCounterpart.mutate(
+                  { idA: t.id, idB: targetId },
+                  { onSuccess: () => setLinkPickerOpen(false) },
+                )
+              }}
+            />
+        </Page>
+    )
+}

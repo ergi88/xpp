@@ -37,7 +37,7 @@ import {
   useBalanceHistory,
   useAccounts,
   useCategorySummary,
-  useBudgets,
+  useBudgetsWithProgress,
   useDebtsWithSummary,
   useBalanceComparison,
   useUpcomingRecurring,
@@ -46,6 +46,7 @@ import { useOverviewMetrics } from "@/hooks/use-reports";
 import type { ReportFilters } from "@/pages/reports/types";
 import { AmountText } from "@/components/shared/AmountText";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/date";
 import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -204,7 +205,7 @@ export default function DashboardPage() {
     type: "expense",
     ...currentMonthFilters,
   });
-  const { data: budgets } = useBudgets();
+  const { data: budgets } = useBudgetsWithProgress();
   const { data: debtsData } = useDebtsWithSummary();
   const { data: overviewData } = useOverviewMetrics(reportFilters);
   const { data: balanceComparison } = useBalanceComparison();
@@ -218,13 +219,13 @@ export default function DashboardPage() {
     debtsData?.data?.filter((d) => !d.isPaidOff).slice(0, 4) ?? [];
   const debtSummary = debtsData?.summary;
 
-  const summary = monthData?.summary;
-
   const totalBalance = balance?.total_balance ?? 0;
   const currency = balance?.currency_code ?? balance?.currency ?? "USD";
   const decimals = balance?.decimals ?? 2;
-  const monthIncome = Number(summary?.income) || 0;
-  const monthExpense = Number(summary?.expense) || 0;
+  // Server summary already applies the Phase 2 filter chain (Task 2) plus
+  // base-currency aggregation — use it directly to preserve multi-currency math.
+  const monthIncome = monthData?.summary?.income ?? 0;
+  const monthExpense = monthData?.summary?.expense ?? 0;
 
   // Calculate percentage changes
   const balanceChange = useMemo(() => {
@@ -1078,13 +1079,15 @@ export default function DashboardPage() {
                     />
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(recurring.nextRunDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                      },
-                    )}
+                    {recurring.nextRunDate
+                      ? parseLocalDate(recurring.nextRunDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                          },
+                        )
+                      : "—"}
                   </p>
                 </Link>
               ))}

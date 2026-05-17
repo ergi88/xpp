@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { transactionsApi } from '@/api'
 import type { TransactionFilters } from '@/types'
-import type { TransactionFormValues } from '@/schemas'
+import type { TransactionFormValues, SplitChildFormData } from '@/schemas'
 type TransactionFormData = TransactionFormValues
 import { toast } from 'sonner'
 
@@ -108,5 +108,109 @@ export function useTransactionSummary(filters?: TransactionFilters) {
     return useQuery({
         queryKey: [...QUERY_KEY, 'summary', filters],
         queryFn: () => transactionsApi.getSummary(filters),
+    })
+}
+
+export function useToggleTransactionFlag() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (params: {
+            id: string | number
+            flag: 'is_excluded' | 'is_one_time' | 'is_approved'
+            value: boolean
+        }) => {
+            return transactionsApi.update(params.id, { [params.flag]: params.value })
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Transaction updated')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to update transaction')
+        },
+    })
+}
+
+export function useSplitTransaction() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (params: {
+            parentId: string | number
+            children: SplitChildFormData[]
+        }) => {
+            return transactionsApi.split(params.parentId, params.children)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            queryClient.invalidateQueries({ queryKey: ['debts'] })
+            toast.success('Transaction split saved')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to split transaction')
+        },
+    })
+}
+
+export function useUnsplitTransaction() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string | number) => transactionsApi.unsplit(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            queryClient.invalidateQueries({ queryKey: ['debts'] })
+            toast.success('Transaction unsplit')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to unsplit')
+        },
+    })
+}
+
+export function useLinkCounterpart() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (params: { idA: string | number; idB: string | number }) =>
+            transactionsApi.linkCounterpart(params.idA, params.idB),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Counterpart linked')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to link counterpart')
+        },
+    })
+}
+
+export function useUnlinkCounterpart() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string | number) => transactionsApi.unlinkCounterpart(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Counterpart unlinked')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to unlink')
+        },
     })
 }

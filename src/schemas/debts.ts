@@ -19,6 +19,10 @@ export const debtSchema = z.object({
   counterparty: z.string().max(255).optional(),
 
   description: z.string().max(1000).optional(),
+
+  origin_account_id: z.string().min(1).optional(),
+  origin_date: z.string().optional(),
+  origin_transaction_id: z.string().min(1).optional(),
 });
 
 export type DebtFormData = z.infer<typeof debtSchema>;
