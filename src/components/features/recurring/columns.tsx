@@ -32,6 +32,7 @@ import {
 import { AmountText } from "@/components/shared/AmountText";
 import { RecurringTransaction } from "@/types";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/date";
 
 const typeConfig = {
   income: { icon: ArrowDownLeft, color: "text-green-500", label: "Income" },
@@ -143,7 +144,11 @@ export const createRecurringColumns = ({
     accessorKey: "nextRunDate",
     header: "Next Run",
     cell: ({ row }) => {
-      const date = new Date(row.original.nextRunDate);
+      const raw = row.original.nextRunDate;
+      if (!raw) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      const date = parseLocalDate(raw);
       const isToday = date.toDateString() === new Date().toDateString();
       const isTomorrow =
         date.toDateString() === new Date(Date.now() + 86400000).toDateString();
@@ -159,7 +164,7 @@ export const createRecurringColumns = ({
           </p>
           {row.original.lastRunDate && (
             <p className="text-xs text-muted-foreground">
-              Last: {new Date(row.original.lastRunDate).toLocaleDateString()}
+              Last: {parseLocalDate(row.original.lastRunDate).toLocaleDateString()}
             </p>
           )}
         </div>

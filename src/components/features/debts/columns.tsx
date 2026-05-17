@@ -64,7 +64,12 @@ export const createDebtColumns = (
                         <Icon className={`size-5 ${config.textColor}`} />
                     </div>
                     <div>
-                        <p className="font-medium">{row.original.name}</p>
+                        <Link
+                            to={`/debts/${row.original.id}`}
+                            className="font-medium hover:underline"
+                        >
+                            {row.original.name}
+                        </Link>
                         {row.original.counterparty && (
                             <p className="text-xs text-muted-foreground">
                                 {row.original.counterparty}

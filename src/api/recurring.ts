@@ -10,6 +10,7 @@ import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
 import { transactionsApi } from './transactions'
 import { advanceNextRunDate } from '@/lib/recurring-schedule'
+import { toLocalDateString } from '@/lib/date'
 
 function toRecurring(
   r: Record<string, unknown>,
@@ -32,10 +33,14 @@ function toRecurring(
     interval: Number(r.interval ?? 1),
     dayOfWeek: r.day_of_week !== undefined && r.day_of_week !== '' ? Number(r.day_of_week) : undefined,
     dayOfMonth: r.day_of_month !== undefined && r.day_of_month !== '' ? Number(r.day_of_month) : undefined,
-    startDate: r.start_date as string,
-    endDate: r.end_date as string | undefined,
-    nextRunDate: r.next_run_date as string,
-    lastRunDate: r.last_run_date as string | undefined,
+    // GAS returns Date-typed cells as ISO strings shifted by the script's
+    // tz (e.g. "2026-05-13T22:00:00.000Z" for a CEST midnight on 05-14).
+    // Normalize every read so engine comparisons, lock keys, and form
+    // <input type="date"> bindings all speak the same YYYY-MM-DD language.
+    startDate: toLocalDateString(r.start_date),
+    endDate: r.end_date ? toLocalDateString(r.end_date) : undefined,
+    nextRunDate: toLocalDateString(r.next_run_date),
+    lastRunDate: r.last_run_date ? toLocalDateString(r.last_run_date) : undefined,
     isActive: r.is_active === 'true' || r.is_active === true,
     account: accountMap.get(r.account_id as string) as RecurringTransaction['account'],
     toAccount: r.to_account_id ? accountMap.get(r.to_account_id as string) as RecurringTransaction['toAccount'] : undefined,
@@ -66,6 +71,14 @@ async function runOne(r: RecurringTransaction): Promise<{ skipped: boolean }> {
     throw new Error(
       `Recurring ${r.id} has invalid type "${r.type}". Expected one of income/expense/transfer. Check the recurring sheet row.`,
     )
+  }
+
+  // Belt-and-suspenders against duplicate fires: if last_run_date is
+  // already >= next_run_date, this period was processed and the schedule
+  // never advanced (network blip on the update, or sheet ate the write).
+  // Refuse to fire again — caller can retry advancing via runNow.
+  if (r.lastRunDate && r.lastRunDate >= r.nextRunDate) {
+    return { skipped: true }
   }
 
   // Decide whether to create. Two dedup paths:
@@ -210,8 +223,8 @@ export const recurringApi = {
 
   getUpcoming: async (): Promise<RecurringTransaction[]> => {
     const all = await recurringApi.getAll()
-    const today = new Date().toISOString().slice(0, 10)
-    const in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+    const today = toLocalDateString(new Date())
+    const in30 = toLocalDateString(new Date(Date.now() + 30 * 86400000))
     return all.filter(r => r.isActive && r.nextRunDate >= today && r.nextRunDate <= in30)
       .sort((a, b) => a.nextRunDate.localeCompare(b.nextRunDate))
   },
@@ -226,7 +239,7 @@ export const recurringApi = {
       return 0
     }
     const all = await recurringApi.getAll()
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toLocalDateString(new Date())
     const due = all.filter(r => r.isActive && r.nextRunDate <= today)
     let count = 0
     // One iteration per template per call. Multi-period catch-up was

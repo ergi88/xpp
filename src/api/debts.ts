@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { adapter } from "./client";
+import { toLocalDateString } from "@/lib/date";
 import { currenciesApi } from "./currencies";
 import { getCurrencyMap } from "@/lib/currency";
 import { getBaseCurrencyMeta } from "./accounts";
@@ -38,6 +39,7 @@ function toDebt(
     isActive: remainingDebt > 0,
     createdAt: r.created_at as string | undefined,
     currency: currencyMap?.get(r.currency_id as string),
+    originTransactionId: (r.origin_transaction_id as string) || null,
   };
 }
 
@@ -90,6 +92,25 @@ export const debtsApi = {
   },
 
   create: async (data: DebtFormData): Promise<Debt> => {
+    // Resolve the origin transaction ID:
+    // - If origin_transaction_id is provided (debt created FROM an existing
+    //   transaction), use it directly.
+    // - If origin_account_id is provided (debt created standalone with an
+    //   account link), create the transaction now.
+    // - Otherwise, no origin transaction.
+    let originTransactionId = data.origin_transaction_id ?? '';
+    if (!originTransactionId && data.origin_account_id) {
+      const txnType = data.debt_type === 'i_owe' ? 'income' : 'expense';
+      const originTxn = await transactionsApi.create({
+        type: txnType,
+        account_id: data.origin_account_id,
+        amount: data.amount,
+        date: data.origin_date ?? toLocalDateString(new Date()),
+        description: data.name,
+      } as Parameters<typeof transactionsApi.create>[0]);
+      originTransactionId = originTxn.id;
+    }
+
     const [r, currencyMap] = await Promise.all([
       adapter.create("debts", {
         id: uuidv4(),
@@ -101,6 +122,7 @@ export const debtsApi = {
         due_date: data.due_date ?? "",
         counterparty: data.counterparty ?? "",
         description: data.description ?? "",
+        origin_transaction_id: originTransactionId,
         created_at: new Date().toISOString(),
       }),
       loadCurrencyMap(),
@@ -141,36 +163,68 @@ export const debtsApi = {
     await adapter.update("debts", String(id), { paid_amount: newPaid });
   },
 
+  // Creates an expense transaction (for i_owe debts) linked via debt_id so that
+  // applyTransactionEffects automatically advances paid_amount.
   makePayment: async (
     debtId: string | number,
     data: DebtPaymentFormData,
   ): Promise<Transaction> => {
     const debt = await debtsApi.getById(debtId);
-    const newPaid = debt.currentBalance + data.amount;
-    await adapter.update("debts", String(debtId), { paid_amount: newPaid });
     return transactionsApi.create({
       type: "expense",
       account_id: String(data.account_id),
       amount: data.amount,
       date: data.date,
+      debt_id: String(debtId),
       description: data.description ?? `Payment for ${debt.name}`,
-    });
+    } as Parameters<typeof transactionsApi.create>[0]);
   },
 
+  // Creates an income transaction (for owed_to_me debts) linked via debt_id so
+  // that applyTransactionEffects automatically advances paid_amount.
   collectPayment: async (
     debtId: string | number,
     data: DebtPaymentFormData,
   ): Promise<Transaction> => {
     const debt = await debtsApi.getById(debtId);
-    const newPaid = debt.currentBalance + data.amount;
-    await adapter.update("debts", String(debtId), { paid_amount: newPaid });
     return transactionsApi.create({
       type: "income",
       account_id: String(data.account_id),
       amount: data.amount,
       date: data.date,
+      debt_id: String(debtId),
       description: data.description ?? `Collection for ${debt.name}`,
-    });
+    } as Parameters<typeof transactionsApi.create>[0]);
+  },
+
+  // Returns all transactions associated with a debt:
+  // - the origin transaction (if debt.originTransactionId is set)
+  // - all payment/collection transactions that have debt_id = debtId
+  getTransactionsForDebt: async (debtId: string | number): Promise<{
+    origin: Transaction | null;
+    payments: Transaction[];
+  }> => {
+    const debt = await debtsApi.getById(debtId);
+    const allTxns = (await transactionsApi.getAll({ per_page: 99999 })).data;
+
+    const payments = allTxns.filter(
+      (t) => t.debtId === String(debtId),
+    );
+
+    let origin: Transaction | null = null;
+    if (debt.originTransactionId) {
+      origin = allTxns.find((t) => t.id === debt.originTransactionId) ?? null;
+      if (!origin) {
+        // Fallback: fetch directly in case it was filtered out
+        try {
+          origin = await transactionsApi.getById(debt.originTransactionId);
+        } catch {
+          origin = null;
+        }
+      }
+    }
+
+    return { origin, payments };
   },
 
   reopen: async (id: string | number): Promise<Debt> => {

@@ -19,16 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { debtSchema, DebtFormData } from "@/schemas";
-import { useCurrencies } from "@/hooks";
+import { useCurrencies, useAccounts } from "@/hooks";
 import { Banknote, HandCoins } from "lucide-react";
+import { toLocalDateString } from "@/lib/date";
 import { FormWrapper } from "@/components/shared/FormWrapper";
+import { AmountText } from "@/components/shared/AmountText";
 
 interface DebtFormProps {
   defaultValues?: Partial<DebtFormData>;
   onSubmit: (data: DebtFormData) => void;
   isSubmitting?: boolean;
   submitLabel?: string;
+  showOriginTransaction?: boolean;
 }
 
 const DEBT_TYPES = [
@@ -53,8 +57,13 @@ export function DebtForm({
   onSubmit,
   isSubmitting,
   submitLabel = "Save",
+  showOriginTransaction = false,
 }: DebtFormProps) {
   const { data: currencies, isLoading: currenciesLoading } = useCurrencies();
+  const { data: accounts, isLoading: accountsLoading } = useAccounts({
+    active: true,
+    exclude_debts: true,
+  });
 
   const form = useForm<DebtFormData>({
     resolver: zodResolver(debtSchema),
@@ -66,9 +75,32 @@ export function DebtForm({
       due_date: "",
       counterparty: "",
       description: "",
+      origin_account_id: undefined,
+      origin_date: toLocalDateString(new Date()),
       ...defaultValues,
     },
   });
+
+  const debtType = form.watch("debt_type");
+  const hasOriginAccount = !!form.watch("origin_account_id");
+  const [createOriginTx, setCreateOriginTx] = React.useState(false);
+
+  function handleOriginToggle(checked: boolean) {
+    setCreateOriginTx(checked);
+    if (!checked) {
+      form.setValue("origin_account_id", undefined);
+    }
+  }
+
+  const originLabel =
+    debtType === "i_owe"
+      ? "Account that received the funds"
+      : "Account that paid";
+
+  const originDescription =
+    debtType === "i_owe"
+      ? "Records an income transaction — money/value you received that created this debt"
+      : "Records an expense transaction — money you paid that created this debt";
 
   return (
     <FormWrapper>
@@ -242,6 +274,85 @@ export function DebtForm({
             )}
           />
 
+          {showOriginTransaction && (
+            <div className="rounded-lg border p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Link origin transaction</p>
+                  <p className="text-xs text-muted-foreground">
+                    {debtType === "i_owe"
+                      ? "Record the income that created this debt"
+                      : "Record the expense that created this debt"}
+                  </p>
+                </div>
+                <Switch
+                  checked={createOriginTx}
+                  onCheckedChange={handleOriginToggle}
+                />
+              </div>
+
+              {createOriginTx && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="origin_account_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{originLabel}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value ?? ""}
+                          disabled={accountsLoading}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {accounts?.map((account) => (
+                              <SelectItem
+                                key={account.id}
+                                value={account.id.toString()}
+                              >
+                                <div className="flex items-center justify-between gap-4 w-full">
+                                  <span>{account.name}</span>
+                                  <span className="text-muted-foreground text-xs font-mono">
+                                    <AmountText
+                                      value={account.currentBalance}
+                                      decimals={account.currency?.decimals ?? 2}
+                                      currency={account.currency?.symbol}
+                                    />
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>{originDescription}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="origin_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Transaction Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
           <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? "Saving..." : submitLabel}
           </Button>
@@ -250,3 +361,6 @@ export function DebtForm({
     </FormWrapper>
   );
 }
+
+// React needs to be in scope for JSX
+import React from "react";

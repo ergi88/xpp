@@ -32,7 +32,8 @@ import {
     CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { SplitEditor } from '@/components/features/transactions/SplitEditor'
+import { SplitEditor, PendingDebtForRow } from '@/components/features/transactions/SplitEditor'
+import { debtsApi } from '@/api/debts'
 import { CounterpartLinkPicker } from '@/components/features/transactions/CounterpartLinkPicker'
 import {
     AlertDialog,
@@ -60,6 +61,7 @@ export default function TransactionViewPage() {
     const duplicateTransaction = useDuplicateTransaction()
     const toggleFlag = useToggleTransactionFlag()
     const [splitMode, setSplitMode] = useState(false)
+    const [splitWithDebtPending, setSplitWithDebtPending] = useState(false)
     const splitTransaction = useSplitTransaction()
     const unsplitTransaction = useUnsplitTransaction()
     const [linkPickerOpen, setLinkPickerOpen] = useState(false)
@@ -243,17 +245,37 @@ export default function TransactionViewPage() {
                 {splitMode && (
                   <SplitEditor
                     parent={t}
-                    isSubmitting={splitTransaction.isPending}
+                    isSubmitting={splitTransaction.isPending || splitWithDebtPending}
                     onCancel={() => setSplitMode(false)}
                     onUnsplit={() => {
                       unsplitTransaction.mutate(t.id, {
                         onSuccess: () => setSplitMode(false),
                       })
                     }}
-                    onSave={(children) => {
+                    onSave={(children, pendingDebtsByRow) => {
+                      setSplitWithDebtPending(true)
                       splitTransaction.mutate(
                         { parentId: t.id, children },
-                        { onSuccess: () => setSplitMode(false) },
+                        {
+                          onSuccess: async (result) => {
+                            const pending = Object.entries(pendingDebtsByRow) as [string, PendingDebtForRow][]
+                            for (const [idxStr, pd] of pending) {
+                              const child = result.children?.[Number(idxStr)]
+                              if (child) {
+                                await debtsApi.create({
+                                  name: pd.name,
+                                  debt_type: pd.debtType,
+                                  currency_id: t.account.currency!.id,
+                                  amount: child.amount,
+                                  origin_transaction_id: child.id,
+                                })
+                              }
+                            }
+                            setSplitWithDebtPending(false)
+                            setSplitMode(false)
+                          },
+                          onError: () => setSplitWithDebtPending(false),
+                        },
                       )
                     }}
                   />

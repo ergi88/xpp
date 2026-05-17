@@ -46,6 +46,7 @@ import { useOverviewMetrics } from "@/hooks/use-reports";
 import type { ReportFilters } from "@/pages/reports/types";
 import { AmountText } from "@/components/shared/AmountText";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/date";
 import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -1078,13 +1079,15 @@ export default function DashboardPage() {
                     />
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(recurring.nextRunDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                      },
-                    )}
+                    {recurring.nextRunDate
+                      ? parseLocalDate(recurring.nextRunDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                          },
+                        )
+                      : "—"}
                   </p>
                 </Link>
               ))}

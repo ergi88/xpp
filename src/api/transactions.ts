@@ -12,6 +12,7 @@ import { debtsApi } from './debts'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
 import type { TransactionFormValues as TransactionFormData, SplitChildFormData } from '@/schemas'
 import { toBool, toIdOrNull } from '@/lib/coerce'
+import { toLocalDateString } from '@/lib/date'
 import {
   collapseLinkedPairs,
   excludeSplitChildren,
@@ -56,16 +57,6 @@ async function loadLookups() {
     categoryMap: new Map(categories.map(c => [c.id, c])),
     tagMap: new Map(tags.map(t => [t.id, t])),
   }
-}
-
-function toLocalDateString(raw: unknown): string {
-  if (!raw) return ''
-  const d = new Date(raw as string)
-  if (isNaN(d.getTime())) return String(raw).slice(0, 10)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
 }
 
 function toTransaction(
