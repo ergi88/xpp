@@ -350,7 +350,7 @@ export default function TransactionsPage() {
   return (
     <Page title="Transactions">
       <PageHeader
-        title="Transactions"
+        title=""
         createLink={
           singleType
             ? `/transactions/create?type=${singleType}`
@@ -430,15 +430,19 @@ export default function TransactionsPage() {
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {filteredCategories.map((category) => {
-                          const isSelected = params.categoryIds.includes(category.id);
+                          const isSelected = params.categoryIds.includes(
+                            category.id,
+                          );
                           return (
                             <button
                               key={category.id}
                               type="button"
                               onClick={() => toggleCategory(category.id)}
                               className={cn(
-                                'transition-opacity',
-                                isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'
+                                "transition-opacity",
+                                isSelected
+                                  ? "opacity-100"
+                                  : "opacity-50 hover:opacity-75",
                               )}
                             >
                               <CategoryPill
@@ -448,7 +452,7 @@ export default function TransactionsPage() {
                                 size="sm"
                               />
                             </button>
-                          )
+                          );
                         })}
                       </div>
                     </div>

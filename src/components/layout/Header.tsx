@@ -1,4 +1,5 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { usePageTitle } from "@/lib/page-title-context";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ import type { AccountType } from "@/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
+  const pageTitle = usePageTitle();
   const { lock, hasAuth } = useAuth();
   const isMobile = useIsMobile();
   const hideAmounts = useHideAmounts();
@@ -56,9 +58,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 h-14 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="flex h-full items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
+        <div className="flex items-center gap-2 min-w-0">
+          <SidebarTrigger className="shrink-0" />
+          <Separator orientation="vertical" className="h-4 shrink-0" />
+          {pageTitle && (
+            <span className="font-semibold truncate text-[clamp(0.8rem,1.5vw,1.05rem)] leading-none">
+              {pageTitle}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3">

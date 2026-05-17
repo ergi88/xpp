@@ -26,6 +26,7 @@ import {
   CurrencyRatesCard,
   MobileFooterSettingsCard,
   GASScriptUpdateCard,
+  RepairSheetCard,
   ResetSetupCard,
   SecuritySettingsCard,
   SpreadsheetCard,
@@ -295,6 +296,7 @@ function GeneralTab() {
     <div className="space-y-6">
       <GASScriptUpdateCard />
       <SpreadsheetCard />
+      <RepairSheetCard />
       <ResetSetupCard />
     </div>
   );

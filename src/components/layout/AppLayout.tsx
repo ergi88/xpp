@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings, useRunDueRecurring } from "@/hooks";
 import { cn } from "@/lib/utils";
+import { PageTitleProvider } from "@/lib/page-title-context";
 
 export function AppLayout() {
   const isMobile = useIsMobile();
@@ -24,18 +25,20 @@ export function AppLayout() {
   const showFooter = isMobile && footerEnabled;
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <PWAUpdateBanner />
-        <Header />
-        <main
-          className={cn("flex-1 overflow-y-auto p-6", showFooter && "pb-24")}
-        >
-          <Outlet />
-        </main>
-        <MobileFooterNav />
-      </SidebarInset>
-    </SidebarProvider>
+    <PageTitleProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <PWAUpdateBanner />
+          <Header />
+          <main
+            className={cn("flex-1 overflow-y-auto p-6", showFooter && "pb-24")}
+          >
+            <Outlet />
+          </main>
+          <MobileFooterNav />
+        </SidebarInset>
+      </SidebarProvider>
+    </PageTitleProvider>
   );
 }

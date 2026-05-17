@@ -19,36 +19,43 @@ export function PageHeader({
   backLink,
   actions,
 }: Props) {
+  if (!actions && !createLink && !backLink) {
+    return null;
+  }
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {backLink && (
-            <Button variant="ghost" size="icon" asChild>
-              <Link to={backLink}>
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
-          <div>
+      {backLink && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {backLink && (
+              <Button variant="ghost" asChild>
+                <Link to={backLink}>
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </Link>
+              </Button>
+            )}
+            {/* <div>
             <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
             {description && (
               <p className="text-muted-foreground mt-1">{description}</p>
             )}
+          </div> */}
           </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2 mt-4">
-        {actions}
-        {createLink && (
-          <Button asChild>
-            <Link to={createLink}>
-              <Plus className="mr-2 h-4 w-4" />
-              {createLabel}
-            </Link>
-          </Button>
-        )}
-      </div>
+      )}
+      {(actions || createLink) && (
+        <div className={`flex items-center gap-2 ${backLink ? "mt-4" : ""}`}>
+          {actions}
+          {createLink && (
+            <Button asChild>
+              <Link to={createLink}>
+                <Plus className="mr-2 h-4 w-4" />
+                {createLabel}
+              </Link>
+            </Button>
+          )}
+        </div>
+      )}
       <Separator className="mt-6" />
     </div>
   );
