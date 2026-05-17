@@ -260,7 +260,12 @@ function OrganizationTab() {
   const [active, setActive] = useState("categories");
 
   return (
-    <Tabs value={active} onValueChange={setActive} className="space-y-4">
+    <Tabs
+      value={active}
+      mode="segmented"
+      onValueChange={setActive}
+      className="space-y-4"
+    >
       <TabsList className="h-auto flex-wrap md:flex-nowrap md:h-9 md:w-fit">
         <TabsTrigger value="categories">Categories</TabsTrigger>
         <TabsTrigger value="tags">Tags</TabsTrigger>
@@ -354,41 +359,41 @@ export default function SettingsPage() {
 
   return (
     <Page title="Settings">
-      <PageHeader
-        title="Settings"
-        description="Control your preferences and manage supporting data"
-      />
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="space-y-6"
-      >
-        <TabsList className="h-auto flex-wrap md:flex-nowrap md:h-9 md:w-fit">
-          {SETTINGS_TABS.map((tabItem) => (
-            <TabsTrigger key={tabItem.value} value={tabItem.value}>
-              {tabItem.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value="general">
-          <GeneralTab />
-        </TabsContent>
-        <TabsContent value="appearance">
-          <AppearanceTab />
-        </TabsContent>
-        <TabsContent value="security">
-          <SecurityTab />
-        </TabsContent>
-        <TabsContent value="organization">
-          <OrganizationTab />
-        </TabsContent>
-        <TabsContent value="currencies">
-          <CurrenciesTab />
-        </TabsContent>
-        <TabsContent value="data">
-          <DataTab />
-        </TabsContent>
-      </Tabs>
+      <div className="h-svh -mt-6">
+        <Tabs value={activeTab} mode="default" onValueChange={handleTabChange}>
+          <div className="sticky -top-6 -left-6 z-10 bg-background">
+            <TabsList className="h-12">
+              {SETTINGS_TABS.map((tabItem) => (
+                <TabsTrigger key={tabItem.value} value={tabItem.value}>
+                  {tabItem.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          <PageHeader
+            title="Settings"
+            description="Control your preferences and manage supporting data"
+          />
+          <TabsContent value="general">
+            <GeneralTab />
+          </TabsContent>
+          <TabsContent value="appearance">
+            <AppearanceTab />
+          </TabsContent>
+          <TabsContent value="security">
+            <SecurityTab />
+          </TabsContent>
+          <TabsContent value="organization">
+            <OrganizationTab />
+          </TabsContent>
+          <TabsContent value="currencies">
+            <CurrenciesTab />
+          </TabsContent>
+          <TabsContent value="data">
+            <DataTab />
+          </TabsContent>
+        </Tabs>
+      </div>
     </Page>
   );
 }
