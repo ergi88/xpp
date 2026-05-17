@@ -430,7 +430,7 @@ export default function TransactionsPage() {
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {filteredCategories.map((category) => {
-                          const isSelected = params.categoryIds.includes(category.id)
+                          const isSelected = params.categoryIds.includes(category.id);
                           return (
                             <button
                               key={category.id}
