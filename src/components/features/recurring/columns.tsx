@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AmountText } from "@/components/shared/AmountText";
+import { CategoryPill } from "@/components/shared";
 import { RecurringTransaction } from "@/types";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/date";
@@ -117,15 +118,12 @@ export const createRecurringColumns = ({
       if (!row.original.category)
         return <span className="text-muted-foreground">-</span>;
       return (
-        <div className="flex items-center gap-2">
-          <span
-            className="w-5 h-5 rounded flex items-center justify-center text-xs text-white"
-            style={{ backgroundColor: row.original.category.color }}
-          >
-            {row.original.category.icon}
-          </span>
-          <span>{row.original.category.name}</span>
-        </div>
+        <CategoryPill
+          name={row.original.category.name}
+          icon={row.original.category.icon}
+          color={row.original.category.color}
+          size="sm"
+        />
       );
     },
   },

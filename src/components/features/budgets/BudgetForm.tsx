@@ -25,6 +25,7 @@ import { Category } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { FormWrapper } from '@/components/shared/FormWrapper'
+import { CategoryPill } from '@/components/shared'
 
 interface BudgetFormProps {
     defaultValues?: Partial<BudgetFormData>
@@ -261,14 +262,13 @@ export function BudgetForm({
                                                             }}
                                                         />
                                                     </FormControl>
-                                                    <FormLabel className="flex items-center gap-2 font-normal cursor-pointer">
-                                                        <span
-                                                            className="w-5 h-5 rounded flex items-center justify-center text-xs text-white"
-                                                            style={{ backgroundColor: category.color }}
-                                                        >
-                                                            {category.icon}
-                                                        </span>
-                                                        {category.name}
+                                                    <FormLabel className="flex items-center font-normal cursor-pointer">
+                                                        <CategoryPill
+                                                            name={category.name}
+                                                            icon={category.icon}
+                                                            color={category.color}
+                                                            size="sm"
+                                                        />
                                                     </FormLabel>
                                                 </FormItem>
                                             )}

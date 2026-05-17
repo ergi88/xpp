@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { FormControl } from "@/components/ui/form";
 import { useCategories } from "@/hooks";
+import { CategoryPill } from './CategoryPill'
 
 interface CategorySelectProps {
   value?: string | null;
@@ -60,15 +61,12 @@ export function CategorySelect({
       <SelectContent>
         {filteredCategories.map((category) => (
           <SelectItem key={category.id} value={category.id.toString()}>
-            <div className="flex items-center gap-2">
-              <span
-                className="w-5 h-5 rounded flex items-center justify-center text-xs text-white"
-                style={{ backgroundColor: category.color }}
-              >
-                {category.icon}
-              </span>
-              <span>{category.name}</span>
-            </div>
+            <CategoryPill
+              name={category.name}
+              icon={category.icon}
+              color={category.color}
+              size="sm"
+            />
           </SelectItem>
         ))}
       </SelectContent>
