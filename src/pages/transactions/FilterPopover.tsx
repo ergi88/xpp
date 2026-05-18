@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Layers,
   LayoutGrid,
@@ -8,31 +8,35 @@ import {
   Hash,
   ArrowUpDown,
   Filter,
-} from 'lucide-react'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { CategoryPill } from '@/components/shared'
-import { cn } from '@/lib/utils'
-import type { Category } from '@/types/categories'
-import type { Tag as TagType } from '@/types/tags'
-import type { Account } from '@/types/accounts'
+} from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { CategoryPill } from "@/components/shared";
+import { cn } from "@/lib/utils";
+import type { Category } from "@/types/categories";
+import type { Tag as TagType } from "@/types/tags";
+import type { Account } from "@/types/accounts";
 
 // ─── FilterState ────────────────────────────────────────────────────────────
 
 export interface FilterState {
-  accountIds: string[]
-  categoryIds: string[]
-  tagIds: string[]
-  types: ('income' | 'expense' | 'transfer')[]
-  showExcluded: boolean
-  showSplitChildren: boolean
-  amountMin: string        // empty string = no filter
-  amountMax: string        // empty string = no filter
-  sortBy: 'date' | 'amount' | 'created_at'
-  sortDir: 'asc' | 'desc'
+  accountIds: string[];
+  categoryIds: string[];
+  tagIds: string[];
+  types: ("income" | "expense" | "transfer")[];
+  showExcluded: boolean;
+  showSplitChildren: boolean;
+  amountMin: string; // empty string = no filter
+  amountMax: string; // empty string = no filter
+  sortBy: "date" | "amount" | "created_at";
+  sortDir: "asc" | "desc";
 }
 
 export const EMPTY_FILTERS: FilterState = {
@@ -42,42 +46,52 @@ export const EMPTY_FILTERS: FilterState = {
   types: [],
   showExcluded: false,
   showSplitChildren: false,
-  amountMin: '',
-  amountMax: '',
-  sortBy: 'date',
-  sortDir: 'desc',
-}
+  amountMin: "",
+  amountMax: "",
+  sortBy: "date",
+  sortDir: "desc",
+};
 
 // ─── Nav items ───────────────────────────────────────────────────────────────
 
-type NavId = 'account' | 'type' | 'status' | 'amount' | 'category' | 'tag' | 'sort'
+type NavId =
+  | "account"
+  | "type"
+  | "status"
+  | "amount"
+  | "category"
+  | "tag"
+  | "sort";
 
 type NavItem = {
-  id: NavId
-  label: string
-  icon: React.ElementType
-}
+  id: NavId;
+  label: string;
+  icon: React.ElementType;
+};
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'account',  label: 'Account',  icon: Layers },
-  { id: 'type',     label: 'Type',     icon: LayoutGrid },
-  { id: 'status',   label: 'Status',   icon: Clock },
-  { id: 'amount',   label: 'Amount',   icon: DollarSign },
-  { id: 'category', label: 'Category', icon: Tag },
-  { id: 'tag',      label: 'Tag',      icon: Hash },
-  { id: 'sort',     label: 'Sort',     icon: ArrowUpDown },
-]
+  { id: "account", label: "Account", icon: Layers },
+  { id: "type", label: "Type", icon: LayoutGrid },
+  { id: "status", label: "Status", icon: Clock },
+  { id: "amount", label: "Amount", icon: DollarSign },
+  { id: "category", label: "Category", icon: Tag },
+  { id: "tag", label: "Tag", icon: Hash },
+  { id: "sort", label: "Sort", icon: ArrowUpDown },
+];
 
-const TYPE_OPTIONS: { value: 'income' | 'expense' | 'transfer'; label: string }[] = [
-  { value: 'income',   label: 'Income' },
-  { value: 'expense',  label: 'Expense' },
-  { value: 'transfer', label: 'Transfer' },
-]
+const TYPE_OPTIONS: {
+  value: "income" | "expense" | "transfer";
+  label: string;
+}[] = [
+  { value: "income", label: "Income" },
+  { value: "expense", label: "Expense" },
+  { value: "transfer", label: "Transfer" },
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function toggle<T>(arr: T[], item: T): T[] {
-  return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item]
+  return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
 }
 
 function countActiveFilters(f: FilterState): number {
@@ -88,9 +102,9 @@ function countActiveFilters(f: FilterState): number {
     f.types.length > 0,
     f.showExcluded,
     f.showSplitChildren,
-    f.amountMin !== '',
-    f.amountMax !== '',
-  ].filter(Boolean).length
+    f.amountMin !== "",
+    f.amountMax !== "",
+  ].filter(Boolean).length;
 }
 
 // ─── Sub-panels ──────────────────────────────────────────────────────────────
@@ -100,14 +114,14 @@ function AccountPanel({
   accounts,
   onChange,
 }: {
-  draft: FilterState
-  accounts: Account[]
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  accounts: Account[];
+  onChange: (d: FilterState) => void;
 }) {
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState("");
   const filtered = accounts.filter((a) =>
     a.name.toLowerCase().includes(search.toLowerCase()),
-  )
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -119,14 +133,22 @@ function AccountPanel({
       />
       <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
         {filtered.length === 0 && (
-          <p className="text-xs text-muted-foreground py-2">No accounts found.</p>
+          <p className="text-xs text-muted-foreground py-2">
+            No accounts found.
+          </p>
         )}
         {filtered.map((a) => (
-          <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer select-none py-0.5">
+          <label
+            key={a.id}
+            className="flex items-center gap-2 text-sm cursor-pointer select-none py-0.5"
+          >
             <Checkbox
               checked={draft.accountIds.includes(a.id)}
               onCheckedChange={() =>
-                onChange({ ...draft, accountIds: toggle(draft.accountIds, a.id) })
+                onChange({
+                  ...draft,
+                  accountIds: toggle(draft.accountIds, a.id),
+                })
               }
             />
             {a.name}
@@ -134,20 +156,23 @@ function AccountPanel({
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 function TypePanel({
   draft,
   onChange,
 }: {
-  draft: FilterState
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  onChange: (d: FilterState) => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
       {TYPE_OPTIONS.map((opt) => (
-        <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer select-none py-0.5">
+        <label
+          key={opt.value}
+          className="flex items-center gap-2 text-sm cursor-pointer select-none py-0.5"
+        >
           <Checkbox
             checked={draft.types.includes(opt.value)}
             onCheckedChange={() =>
@@ -158,15 +183,15 @@ function TypePanel({
         </label>
       ))}
     </div>
-  )
+  );
 }
 
 function StatusPanel({
   draft,
   onChange,
 }: {
-  draft: FilterState
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  onChange: (d: FilterState) => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -189,20 +214,22 @@ function StatusPanel({
         Show split children
       </label>
     </div>
-  )
+  );
 }
 
 function AmountPanel({
   draft,
   onChange,
 }: {
-  draft: FilterState
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  onChange: (d: FilterState) => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Min amount</label>
+        <label className="text-xs font-medium text-muted-foreground">
+          Min amount
+        </label>
         <Input
           type="number"
           placeholder="0.00"
@@ -212,7 +239,9 @@ function AmountPanel({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Max amount</label>
+        <label className="text-xs font-medium text-muted-foreground">
+          Max amount
+        </label>
         <Input
           type="number"
           placeholder="0.00"
@@ -222,7 +251,7 @@ function AmountPanel({
         />
       </div>
     </div>
-  )
+  );
 }
 
 function CategoryPanel({
@@ -230,14 +259,14 @@ function CategoryPanel({
   categories,
   onChange,
 }: {
-  draft: FilterState
-  categories: Category[]
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  categories: Category[];
+  onChange: (d: FilterState) => void;
 }) {
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState("");
   const filtered = categories.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
-  )
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -249,29 +278,39 @@ function CategoryPanel({
       />
       <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto pr-1">
         {filtered.length === 0 && (
-          <p className="text-xs text-muted-foreground py-2">No categories found.</p>
+          <p className="text-xs text-muted-foreground py-2">
+            No categories found.
+          </p>
         )}
         {filtered.map((c) => {
-          const isSelected = draft.categoryIds.includes(c.id)
+          const isSelected = draft.categoryIds.includes(c.id);
           return (
             <button
               key={c.id}
               type="button"
               onClick={() =>
-                onChange({ ...draft, categoryIds: toggle(draft.categoryIds, c.id) })
+                onChange({
+                  ...draft,
+                  categoryIds: toggle(draft.categoryIds, c.id),
+                })
               }
               className={cn(
-                'transition-opacity',
-                isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75',
+                "transition-opacity",
+                isSelected ? "opacity-100" : "opacity-50 hover:opacity-75",
               )}
             >
-              <CategoryPill name={c.name} icon={c.icon} color={c.color} size="sm" />
+              <CategoryPill
+                name={c.name}
+                icon={c.icon}
+                color={c.color}
+                size="sm"
+              />
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 function TagPanel({
@@ -279,9 +318,9 @@ function TagPanel({
   tags,
   onChange,
 }: {
-  draft: FilterState
-  tags: TagType[]
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  tags: TagType[];
+  onChange: (d: FilterState) => void;
 }) {
   return (
     <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
@@ -289,7 +328,10 @@ function TagPanel({
         <p className="text-xs text-muted-foreground py-2">No tags found.</p>
       )}
       {tags.map((t) => (
-        <label key={t.id} className="flex items-center gap-2 text-sm cursor-pointer select-none py-0.5">
+        <label
+          key={t.id}
+          className="flex items-center gap-2 text-sm cursor-pointer select-none py-0.5"
+        >
           <Checkbox
             checked={draft.tagIds.includes(t.id)}
             onCheckedChange={() =>
@@ -300,38 +342,40 @@ function TagPanel({
         </label>
       ))}
     </div>
-  )
+  );
 }
 
-const SORT_BY_OPTIONS: { value: FilterState['sortBy']; label: string }[] = [
-  { value: 'date',       label: 'Date' },
-  { value: 'amount',     label: 'Amount' },
-  { value: 'created_at', label: 'Created At' },
-]
+const SORT_BY_OPTIONS: { value: FilterState["sortBy"]; label: string }[] = [
+  { value: "date", label: "Date" },
+  { value: "amount", label: "Amount" },
+  { value: "created_at", label: "Created At" },
+];
 
 function SortPanel({
   draft,
   onChange,
 }: {
-  draft: FilterState
-  onChange: (d: FilterState) => void
+  draft: FilterState;
+  onChange: (d: FilterState) => void;
 }) {
-  const isAmount = draft.sortBy === 'amount'
+  const isAmount = draft.sortBy === "amount";
   const dirOptions = isAmount
     ? [
-        { value: 'desc' as const, label: 'Highest first' },
-        { value: 'asc'  as const, label: 'Lowest first' },
+        { value: "desc" as const, label: "Highest first" },
+        { value: "asc" as const, label: "Lowest first" },
       ]
     : [
-        { value: 'desc' as const, label: 'Newest first' },
-        { value: 'asc'  as const, label: 'Oldest first' },
-      ]
+        { value: "desc" as const, label: "Newest first" },
+        { value: "asc" as const, label: "Oldest first" },
+      ];
 
   return (
     <div className="flex flex-col gap-5">
       {/* Sort by */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sort by</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Sort by
+        </span>
         <div className="inline-flex rounded-md border overflow-hidden">
           {SORT_BY_OPTIONS.map((opt) => (
             <button
@@ -339,10 +383,10 @@ function SortPanel({
               type="button"
               onClick={() => onChange({ ...draft, sortBy: opt.value })}
               className={cn(
-                'flex-1 px-3 py-1.5 text-sm transition-colors',
+                "flex-1 px-3 py-1.5 text-sm transition-colors",
                 draft.sortBy === opt.value
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'bg-background hover:bg-muted text-foreground',
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "bg-background hover:bg-muted text-foreground",
               )}
             >
               {opt.label}
@@ -353,7 +397,9 @@ function SortPanel({
 
       {/* Sort direction */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Direction</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Direction
+        </span>
         <div className="inline-flex rounded-md border overflow-hidden">
           {dirOptions.map((opt) => (
             <button
@@ -361,10 +407,10 @@ function SortPanel({
               type="button"
               onClick={() => onChange({ ...draft, sortDir: opt.value })}
               className={cn(
-                'flex-1 px-3 py-1.5 text-sm transition-colors',
+                "flex-1 px-3 py-1.5 text-sm transition-colors",
                 draft.sortDir === opt.value
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'bg-background hover:bg-muted text-foreground',
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "bg-background hover:bg-muted text-foreground",
               )}
             >
               {opt.label}
@@ -373,17 +419,17 @@ function SortPanel({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface FilterPopoverProps {
-  filters: FilterState
-  accounts: Account[]
-  categories: Category[]
-  tags: TagType[]
-  onApply: (filters: FilterState) => void
+  filters: FilterState;
+  accounts: Account[];
+  categories: Category[];
+  tags: TagType[];
+  onApply: (filters: FilterState) => void;
 }
 
 export function FilterPopover({
@@ -393,27 +439,27 @@ export function FilterPopover({
   tags,
   onApply,
 }: FilterPopoverProps) {
-  const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<FilterState>(filters)
-  const [activeNav, setActiveNav] = useState<NavId>('account')
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<FilterState>(filters);
+  const [activeNav, setActiveNav] = useState<NavId>("account");
 
   // Sync draft when popover opens
   const handleOpenChange = (next: boolean) => {
-    if (next) setDraft(filters)
-    setOpen(next)
-  }
+    if (next) setDraft(filters);
+    setOpen(next);
+  };
 
   const handleApply = () => {
-    onApply(draft)
-    setOpen(false)
-  }
+    onApply(draft);
+    setOpen(false);
+  };
 
   const handleCancel = () => {
-    setDraft(filters)
-    setOpen(false)
-  }
+    setDraft(filters);
+    setOpen(false);
+  };
 
-  const activeFilterCount = countActiveFilters(filters)
+  const activeFilterCount = countActiveFilters(filters);
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -427,56 +473,61 @@ export function FilterPopover({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent
-        align="start"
-        className="p-0 w-[520px] h-100"
-      >
+      <PopoverContent align="start" className="p-0 w-dvw md:w-130 h-100">
         <div className="flex h-full">
           {/* Left sidebar nav */}
           <nav className="flex flex-col w-36 shrink-0 border-r bg-muted/30 py-2">
             {NAV_ITEMS.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setActiveNav(item.id)}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm transition-colors text-left',
+                    "flex items-center gap-2 px-3 py-2 text-sm transition-colors text-left",
                     activeNav === item.id
-                      ? 'bg-background font-medium text-foreground border-r-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                      ? "bg-background font-medium text-foreground border-r-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                   )}
                 >
                   <Icon className="size-3.5 shrink-0" />
                   {item.label}
                 </button>
-              )
+              );
             })}
           </nav>
 
           {/* Right content area */}
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex-1 overflow-y-auto p-4">
-              {activeNav === 'account' && (
-                <AccountPanel draft={draft} accounts={accounts} onChange={setDraft} />
+              {activeNav === "account" && (
+                <AccountPanel
+                  draft={draft}
+                  accounts={accounts}
+                  onChange={setDraft}
+                />
               )}
-              {activeNav === 'type' && (
+              {activeNav === "type" && (
                 <TypePanel draft={draft} onChange={setDraft} />
               )}
-              {activeNav === 'status' && (
+              {activeNav === "status" && (
                 <StatusPanel draft={draft} onChange={setDraft} />
               )}
-              {activeNav === 'amount' && (
+              {activeNav === "amount" && (
                 <AmountPanel draft={draft} onChange={setDraft} />
               )}
-              {activeNav === 'category' && (
-                <CategoryPanel draft={draft} categories={categories} onChange={setDraft} />
+              {activeNav === "category" && (
+                <CategoryPanel
+                  draft={draft}
+                  categories={categories}
+                  onChange={setDraft}
+                />
               )}
-              {activeNav === 'tag' && (
+              {activeNav === "tag" && (
                 <TagPanel draft={draft} tags={tags} onChange={setDraft} />
               )}
-              {activeNav === 'sort' && (
+              {activeNav === "sort" && (
                 <SortPanel draft={draft} onChange={setDraft} />
               )}
             </div>
@@ -494,5 +545,5 @@ export function FilterPopover({
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
