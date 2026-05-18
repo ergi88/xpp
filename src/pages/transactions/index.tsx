@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   useQueryStates,
@@ -152,6 +152,8 @@ export default function TransactionsPage() {
     (params.page - 1) * PER_PAGE,
     params.page * PER_PAGE,
   );
+  const transactionsRef = useRef<typeof transactions>([]);
+  transactionsRef.current = transactions;
   const meta =
     totalCount > 0
       ? {
@@ -209,18 +211,12 @@ export default function TransactionsPage() {
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        const pageSelectable = transactions.filter((t) => t.type !== "transfer");
-        if (checked) {
-          for (const t of pageSelectable) next.add(t.id);
-        } else {
-          for (const t of pageSelectable) next.delete(t.id);
-        }
-        return next;
-      });
+      const selectable = transactionsRef.current
+        .filter((t) => t.type === "income" || t.type === "expense")
+        .map((t) => t.id);
+      setSelectedIds(() => (checked ? new Set(selectable) : new Set()));
     },
-    [transactions],
+    [], // stable - reads from ref
   );
 
   const handleClearSelection = useCallback(() => {
@@ -241,25 +237,29 @@ export default function TransactionsPage() {
     sortDir: params.sortDir,
   };
 
-  const handleApplyFilters = (f: FilterState) => {
-    setParams({
-      accountIds: f.accountIds.length ? f.accountIds : null,
-      categoryIds: f.categoryIds.length ? f.categoryIds : null,
-      tagIds: f.tagIds.length ? f.tagIds : null,
-      types: f.types.length ? f.types : null,
-      showExcluded: f.showExcluded || null,
-      showSplitChildren: f.showSplitChildren || null,
-      amountMin: f.amountMin || null,
-      amountMax: f.amountMax || null,
-      sortBy: f.sortBy,
-      sortDir: f.sortDir,
-      page: 1,
-    });
-  };
+  const handleApplyFilters = useCallback(
+    (f: FilterState) => {
+      setParams({
+        accountIds: f.accountIds.length ? f.accountIds : null,
+        categoryIds: f.categoryIds.length ? f.categoryIds : null,
+        tagIds: f.tagIds.length ? f.tagIds : null,
+        types: f.types.length ? f.types : null,
+        showExcluded: f.showExcluded || null,
+        showSplitChildren: f.showSplitChildren || null,
+        amountMin: f.amountMin || null,
+        amountMax: f.amountMax || null,
+        sortBy: f.sortBy,
+        sortDir: f.sortDir,
+        page: 1,
+      });
+    },
+    [setParams],
+  );
 
-  const totalSelectableCount = transactions.filter(
-    (t) => t.type !== "transfer",
-  ).length;
+  const totalSelectableCount = useMemo(
+    () => transactions.filter((t) => t.type !== "transfer").length,
+    [transactions],
+  );
 
   return (
     <Page title="Transactions">
@@ -291,7 +291,6 @@ export default function TransactionsPage() {
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        defaultValue="transactions"
         mode="default"
       >
         <TabsList>
