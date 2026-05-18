@@ -240,7 +240,6 @@ export default function TransactionsPage() {
     (currentPage - 1) * perPage,
     currentPage * perPage,
   );
-  console.log("🚀 ~ TransactionsPage ~ transactions:", { transactions });
   const meta =
     totalCount > 0
       ? {

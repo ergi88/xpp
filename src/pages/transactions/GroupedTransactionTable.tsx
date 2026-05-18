@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Link2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,6 +75,12 @@ export function GroupedTransactionTable({
 }: GroupedTransactionTableProps) {
   const navigate = useNavigate();
 
+  const groups = useMemo(() => groupByDate(transactions), [transactions]);
+  const allSelectable = useMemo(
+    () => transactions.filter(isSelectable),
+    [transactions],
+  );
+
   if (transactions.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground text-sm">
@@ -81,11 +88,6 @@ export function GroupedTransactionTable({
       </div>
     );
   }
-
-  const groups = groupByDate(transactions);
-
-  // All selectable (income+expense) on current page
-  const allSelectable = transactions.filter(isSelectable);
   const allSelected =
     allSelectable.length > 0 &&
     allSelectable.every((t) => selectedIds.has(t.id));
@@ -134,6 +136,12 @@ export function GroupedTransactionTable({
         const groupCurrency = refTxn.account.currency?.symbol ?? "";
         const groupDecimals = refTxn.account.currency?.decimals ?? 2;
 
+        const hasMixedCurrencies = groupTxns.some(
+          (t) =>
+            (t.account.currency?.symbol ?? "") !==
+            (groupTxns[0]?.account.currency?.symbol ?? ""),
+        );
+
         return (
           <div key={date}>
             {/* Group header row */}
@@ -170,20 +178,26 @@ export function GroupedTransactionTable({
               </div>
               <div />
               <div className="text-right pr-3">
-                <AmountText
-                  value={groupTotal}
-                  decimals={groupDecimals}
-                  currency={groupCurrency}
-                  signDisplay="always"
-                  className={cn(
-                    "text-sm font-semibold",
-                    groupTotal > 0
-                      ? "text-green-600"
-                      : groupTotal < 0
-                        ? "text-red-600"
-                        : "text-muted-foreground",
-                  )}
-                />
+                {hasMixedCurrencies ? (
+                  <span className="text-right text-sm text-muted-foreground">
+                    —
+                  </span>
+                ) : (
+                  <AmountText
+                    value={groupTotal}
+                    decimals={groupDecimals}
+                    currency={groupCurrency}
+                    signDisplay="always"
+                    className={cn(
+                      "text-sm font-semibold",
+                      groupTotal > 0
+                        ? "text-green-600"
+                        : groupTotal < 0
+                          ? "text-red-600"
+                          : "text-muted-foreground",
+                    )}
+                  />
+                )}
               </div>
               <div />
             </div>
