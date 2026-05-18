@@ -26,7 +26,7 @@ export interface FilterState {
   accountIds: string[]
   categoryIds: string[]
   tagIds: string[]
-  types: string[]          // 'income' | 'expense' | 'transfer'
+  types: ('income' | 'expense' | 'transfer')[]
   showExcluded: boolean
   showSplitChildren: boolean
   amountMin: string        // empty string = no filter
@@ -50,8 +50,10 @@ export const EMPTY_FILTERS: FilterState = {
 
 // ─── Nav items ───────────────────────────────────────────────────────────────
 
+type NavId = 'account' | 'type' | 'status' | 'amount' | 'category' | 'tag' | 'sort'
+
 type NavItem = {
-  id: string
+  id: NavId
   label: string
   icon: React.ElementType
 }
@@ -66,7 +68,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'sort',     label: 'Sort',     icon: ArrowUpDown },
 ]
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS: { value: 'income' | 'expense' | 'transfer'; label: string }[] = [
   { value: 'income',   label: 'Income' },
   { value: 'expense',  label: 'Expense' },
   { value: 'transfer', label: 'Transfer' },
@@ -393,7 +395,7 @@ export function FilterPopover({
 }: FilterPopoverProps) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<FilterState>(filters)
-  const [activeNav, setActiveNav] = useState<string>('account')
+  const [activeNav, setActiveNav] = useState<NavId>('account')
 
   // Sync draft when popover opens
   const handleOpenChange = (next: boolean) => {
@@ -427,8 +429,7 @@ export function FilterPopover({
 
       <PopoverContent
         align="start"
-        className="p-0 w-[520px]"
-        style={{ height: '400px' }}
+        className="p-0 w-[520px] h-100"
       >
         <div className="flex h-full">
           {/* Left sidebar nav */}
