@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
   useQueryStates,
   parseAsInteger,
@@ -8,42 +8,23 @@ import {
   parseAsStringLiteral,
   parseAsBoolean,
 } from "nuqs";
-import {
-  Plus,
-  ArrowDownLeft,
-  ArrowUpRight,
-  ArrowLeftRight,
-  Filter,
-  ArrowUpDown,
-  X,
-} from "lucide-react";
-import { Row } from "@tanstack/react-table";
-import {
-  Page,
-  PageHeader,
-  DataTable,
-  ServerPagination,
-  CategoryPill,
-} from "@/components/shared";
+import { Plus, Download, Search } from "lucide-react";
+import { Page, PageHeader, ServerPagination } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import { TransactionWidgets } from "./TransactionWidgets";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { MultiSelectFilter } from "./MultiSelectFilter";
-import { createTransactionColumns } from "@/components/features/transactions";
-import { AmountText } from "@/components/shared/AmountText";
+  FilterPopover,
+  type FilterState,
+} from "./FilterPopover";
+import { GroupedTransactionTable } from "./GroupedTransactionTable";
+import { BulkActionBar } from "./BulkActionBar";
 import {
   useTransactions,
   useDeleteTransaction,
@@ -51,81 +32,14 @@ import {
   useCategories,
   useTags,
   useAccounts,
+  useBulkDeleteTransactions,
+  useBulkUpdateTransactions,
 } from "@/hooks";
-import { Transaction } from "@/types";
-import { cn } from "@/lib/utils";
-import { DateNavBlock } from "./DateNavBlock";
-import {
-  firstDayOfCurrentMonth,
-  getDateRange,
-  stepMonth,
-  stepDay,
-} from "./dateNavHelpers";
-
-const TYPE_FILTERS: {
-  value: "income" | "expense" | "transfer" | null;
-  label: string;
-  icon?: typeof ArrowDownLeft;
-}[] = [
-  { value: null, label: "All" },
-  { value: "income", label: "Income", icon: ArrowDownLeft },
-  { value: "expense", label: "Expense", icon: ArrowUpRight },
-  { value: "transfer", label: "Transfer", icon: ArrowLeftRight },
-];
-
-function TransactionItems({ row }: { row: Row<Transaction> }) {
-  const children = row.original.children;
-  const decimals = row.original.account.currency?.decimals ?? 2;
-  const symbol = row.original.account.currency?.symbol;
-  if (!children || children.length === 0) return null;
-
-  return (
-    <div className="px-4 py-3 ml-10">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-muted-foreground text-xs">
-            <th className="text-left font-medium pb-2">Description</th>
-            <th className="text-left font-medium pb-2">Attribution</th>
-            <th className="text-right font-medium pb-2 w-24">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {children.map((c) => (
-            <tr key={c.id} className="border-t border-border/50">
-              <td className="py-1.5">
-                {c.description || (
-                  <span className="text-muted-foreground italic">—</span>
-                )}
-              </td>
-              <td className="py-1.5">
-                {c.debtId ? "$ Debt payment" : (c.category?.name ?? "—")}
-              </td>
-              <td className="py-1.5 text-right font-mono font-medium">
-                <AmountText
-                  value={c.amount}
-                  decimals={decimals}
-                  currency={symbol}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const SORT_OPTIONS = [
-  { value: "date:desc", label: "Date (Newest)" },
-  { value: "date:asc", label: "Date (Oldest)" },
-  { value: "amount:desc", label: "Amount (High to Low)" },
-  { value: "amount:asc", label: "Amount (Low to High)" },
-  { value: "created_at:desc", label: "Date Added (Newest)" },
-  { value: "created_at:asc", label: "Date Added (Oldest)" },
-];
+import { firstDayOfCurrentMonth, getDateRange } from "./dateNavHelpers";
+import RecurringPage from "@/pages/recurring";
+import DebtsPage from "@/pages/debts";
 
 const transactionSearchParams = {
-  types: parseAsArrayOf(parseAsString).withDefault([]),
   sortBy: parseAsStringLiteral([
     "date",
     "amount",
@@ -135,26 +49,29 @@ const transactionSearchParams = {
   page: parseAsInteger.withDefault(1),
   categoryIds: parseAsArrayOf(parseAsString).withDefault([]),
   tagIds: parseAsArrayOf(parseAsString).withDefault([]),
-  navMode: parseAsStringLiteral(["month", "day"] as const).withDefault("month"),
-  navDate: parseAsString.withDefault(firstDayOfCurrentMonth()),
   accountIds: parseAsArrayOf(parseAsString).withDefault([]),
+  types: parseAsArrayOf(
+    parseAsStringLiteral(["income", "expense", "transfer"] as const),
+  ).withDefault([]),
   showExcluded: parseAsBoolean.withDefault(false),
   showSplitChildren: parseAsBoolean.withDefault(false),
+  navDate: parseAsString.withDefault(firstDayOfCurrentMonth()),
+  amountMin: parseAsString.withDefault(""),
+  amountMax: parseAsString.withDefault(""),
 };
 
+const PER_PAGE = 20;
+
 export default function TransactionsPage() {
-  const navigate = useNavigate();
   const [params, setParams] = useQueryStates(transactionSearchParams);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("transactions");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const dateRange = getDateRange(params.navMode, params.navDate);
-  // Always fetch full month — day mode filters client-side from this cache
+  // Fetch the full month worth of transactions
   const monthDateRange = getDateRange("month", params.navDate);
-
-  // Fetch only by date range + sort — all other filters applied locally.
-  // Force-include children when a category filter is active so the per-child
-  // category match can hit (parent's pre-split category is stale).
   const hasCategoryFilter = params.categoryIds.length > 0;
+
   const fetchFilters = {
     per_page: 9999,
     page: 1,
@@ -169,425 +86,298 @@ export default function TransactionsPage() {
   const { data, isLoading } = useTransactions(fetchFilters);
   const deleteTransaction = useDeleteTransaction();
   const duplicateTransaction = useDuplicateTransaction();
+  const bulkDelete = useBulkDeleteTransactions();
+  const bulkUpdate = useBulkUpdateTransactions();
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
   const { data: accountsData } = useAccounts({ active: true });
   const accounts = accountsData ?? [];
-  const isReadOnly = false;
 
-  const columns = createTransactionColumns(
-    (id) => deleteTransaction.mutate(id),
-    (id) => duplicateTransaction.mutate(id),
-    isReadOnly,
-  );
+  // Client-side filtering
+  let filtered = data?.data ?? [];
 
-  const allMonthTxns = data?.data ?? [];
-  let filteredTxns = allMonthTxns;
-  if (params.navMode === "day")
-    filteredTxns = filteredTxns.filter((t) => t.date === params.navDate);
-  if (params.types.length > 0)
-    filteredTxns = filteredTxns.filter((t) => params.types.includes(t.type));
-  if (params.accountIds.length > 0)
-    filteredTxns = filteredTxns.filter(
+  if (params.types.length > 0) {
+    filtered = filtered.filter((t) => params.types.includes(t.type));
+  }
+  if (params.accountIds.length > 0) {
+    filtered = filtered.filter(
       (t) => t.account && params.accountIds.includes(t.account.id),
     );
+  }
   if (params.categoryIds.length > 0) {
-    // Drop parents that have children — their children carry the real
-    // attribution and would double-count.
+    // Drop parents that have children — children carry the real attribution
     const parentIdsWithChildren = new Set<string>();
-    for (const t of filteredTxns) {
-      if (!t.parentId && t.children && t.children.length > 0)
+    for (const t of filtered) {
+      if (!t.parentId && t.children && t.children.length > 0) {
         parentIdsWithChildren.add(t.id);
+      }
     }
-    filteredTxns = filteredTxns.filter(
+    filtered = filtered.filter(
       (t) =>
         !parentIdsWithChildren.has(t.id) &&
         t.category &&
         params.categoryIds.includes(t.category.id),
     );
   }
-  if (params.tagIds.length > 0)
-    filteredTxns = filteredTxns.filter((t) =>
+  if (params.tagIds.length > 0) {
+    filtered = filtered.filter((t) =>
       t.tags.some((tag) => params.tagIds.includes(tag.id)),
     );
+  }
+  if (params.amountMin) {
+    const min = Number(params.amountMin);
+    if (!Number.isNaN(min)) {
+      filtered = filtered.filter((t) => t.amount >= min);
+    }
+  }
+  if (params.amountMax) {
+    const max = Number(params.amountMax);
+    if (!Number.isNaN(max)) {
+      filtered = filtered.filter((t) => t.amount <= max);
+    }
+  }
+  if (search.trim()) {
+    const q = search.trim().toLowerCase();
+    filtered = filtered.filter(
+      (t) =>
+        (t.description ?? "").toLowerCase().includes(q) ||
+        t.account.name.toLowerCase().includes(q) ||
+        (t.category?.name ?? "").toLowerCase().includes(q),
+    );
+  }
 
-  const summaryIncome = filteredTxns
-    .filter((t) => t.type === "income")
-    .reduce((s, t) => s + t.amount, 0);
-  const summaryExpense = filteredTxns
-    .filter((t) => t.type === "expense")
-    .reduce((s, t) => s + t.amount, 0);
-  const summaryTransfer = filteredTxns
-    .filter((t) => t.type === "transfer")
-    .reduce((s, t) => s + t.amount, 0);
-  const summaryRef = filteredTxns[0] ?? allMonthTxns[0];
-  const summary = data
-    ? {
-        income: summaryIncome,
-        expense: summaryExpense,
-        transfer: summaryTransfer,
-        balance: summaryIncome - summaryExpense,
-        transactions_count: filteredTxns.length,
-        currency: summaryRef?.account.currency?.symbol ?? "",
-        decimals: summaryRef?.account.currency?.decimals ?? 2,
-      }
-    : undefined;
-
-  const perPage = 20;
-  const currentPage = params.page;
-  const totalCount = filteredTxns.length;
-  const transactions = filteredTxns.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage,
+  // Client-side pagination
+  const totalCount = filtered.length;
+  const transactions = filtered.slice(
+    (params.page - 1) * PER_PAGE,
+    params.page * PER_PAGE,
   );
   const meta =
     totalCount > 0
       ? {
-          current_page: currentPage,
-          last_page: Math.ceil(totalCount / perPage),
-          per_page: perPage,
+          current_page: params.page,
+          last_page: Math.ceil(totalCount / PER_PAGE),
+          per_page: PER_PAGE,
           total: totalCount,
-          from: (currentPage - 1) * perPage + 1,
-          to: Math.min(currentPage * perPage, totalCount),
+          from: (params.page - 1) * PER_PAGE + 1,
+          to: Math.min(params.page * PER_PAGE, totalCount),
         }
       : undefined;
 
-  const activeFiltersCount = [
-    params.categoryIds.length > 0,
-    params.tagIds.length > 0,
+  // Clear selection when page/filters/tab change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [
+    params.page,
+    params.categoryIds,
+    params.tagIds,
+    params.accountIds,
+    params.types,
     params.showExcluded,
     params.showSplitChildren,
-  ].filter(Boolean).length;
+    params.amountMin,
+    params.amountMax,
+    params.navDate,
+    activeTab,
+    search,
+  ]);
 
-  const clearFilters = () => {
+  // Selection handlers
+  const handleSelectId = useCallback((id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const handleSelectGroup = useCallback(
+    (ids: string[], checked: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          for (const id of ids) next.add(id);
+        } else {
+          for (const id of ids) next.delete(id);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleSelectAll = useCallback(
+    (checked: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        const pageSelectable = transactions.filter((t) => t.type !== "transfer");
+        if (checked) {
+          for (const t of pageSelectable) next.add(t.id);
+        } else {
+          for (const t of pageSelectable) next.delete(t.id);
+        }
+        return next;
+      });
+    },
+    [transactions],
+  );
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  // FilterPopover current state
+  const currentFilters: FilterState = {
+    accountIds: params.accountIds,
+    categoryIds: params.categoryIds,
+    tagIds: params.tagIds,
+    types: params.types,
+    showExcluded: params.showExcluded,
+    showSplitChildren: params.showSplitChildren,
+    amountMin: params.amountMin,
+    amountMax: params.amountMax,
+    sortBy: params.sortBy,
+    sortDir: params.sortDir,
+  };
+
+  const handleApplyFilters = (f: FilterState) => {
     setParams({
-      categoryIds: null,
-      tagIds: null,
-      showExcluded: null,
-      showSplitChildren: null,
+      accountIds: f.accountIds.length ? f.accountIds : null,
+      categoryIds: f.categoryIds.length ? f.categoryIds : null,
+      tagIds: f.tagIds.length ? f.tagIds : null,
+      types: f.types.length ? f.types : null,
+      showExcluded: f.showExcluded || null,
+      showSplitChildren: f.showSplitChildren || null,
+      amountMin: f.amountMin || null,
+      amountMax: f.amountMax || null,
+      sortBy: f.sortBy,
+      sortDir: f.sortDir,
       page: 1,
     });
   };
 
-  const toggleCategory = (id: string) => {
-    const current = params.categoryIds;
-    const newIds = current.includes(id)
-      ? current.filter((c) => c !== id)
-      : [...current, id];
-    setParams({ categoryIds: newIds.length ? newIds : null, page: 1 });
-  };
-
-  const toggleTag = (id: string) => {
-    const current = params.tagIds;
-    const newIds = current.includes(id)
-      ? current.filter((t) => t !== id)
-      : [...current, id];
-    setParams({ tagIds: newIds.length ? newIds : null, page: 1 });
-  };
-
-  const toggleAccount = (id: string) => {
-    const current = params.accountIds;
-    const newIds = current.includes(id)
-      ? current.filter((a) => a !== id)
-      : [...current, id];
-    setParams({ accountIds: newIds.length ? newIds : null, page: 1 });
-  };
-
-  const handleNavPrev = () => {
-    const newDate =
-      params.navMode === "month"
-        ? stepMonth(params.navDate, -1)
-        : stepDay(params.navDate, -1);
-    setParams({ navDate: newDate, page: 1 });
-  };
-
-  const handleNavNext = () => {
-    const newDate =
-      params.navMode === "month"
-        ? stepMonth(params.navDate, 1)
-        : stepDay(params.navDate, 1);
-    setParams({ navDate: newDate, page: 1 });
-  };
-
-  const handleNavToggleMode = () => {
-    if (params.navMode === "month") {
-      const now = new Date();
-      const navD = new Date(params.navDate + "T00:00:00");
-      const isCurrentMonth =
-        now.getFullYear() === navD.getFullYear() &&
-        now.getMonth() === navD.getMonth();
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const dayDate = isCurrentMonth
-        ? `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
-        : params.navDate;
-      setParams({ navMode: "day", navDate: dayDate, page: 1 });
-    } else {
-      const d = new Date(params.navDate + "T00:00:00");
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const monthDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
-      setParams({ navMode: "month", navDate: monthDate, page: 1 });
-    }
-  };
-
-  const singleType = params.types.length === 1 ? params.types[0] : null;
-  const filteredCategories =
-    categories?.filter(
-      (c) =>
-        params.types.length === 0 ||
-        params.types.includes("transfer") ||
-        c.type === singleType,
-    ) ?? [];
-
-  const typeOptions = TYPE_FILTERS.filter((f) => f.value !== null).map((f) => ({
-    value: f.value as string,
-    label: f.label,
-    icon: f.icon ? <f.icon className="size-4" /> : undefined,
-  }));
-
-  const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }));
+  const totalSelectableCount = transactions.filter(
+    (t) => t.type !== "transfer",
+  ).length;
 
   return (
     <Page title="Transactions">
       <PageHeader
-        title=""
-        createLink={
-          singleType
-            ? `/transactions/create?type=${singleType}`
-            : "/transactions/create"
+        title="Transactions"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/transactions/import">
+                <Download className="size-4 mr-2" />
+                Import
+              </Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/transactions/create">
+                <Plus className="size-4 mr-2" />
+                New transaction
+              </Link>
+            </Button>
+          </div>
         }
-        createLabel="New Transaction"
       />
 
-      {/* Type + Account Filter Row */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <MultiSelectFilter
-          label="Type"
-          options={typeOptions}
-          selected={params.types}
-          onChange={(v) => setParams({ types: v.length ? v : null, page: 1 })}
-        />
-        {accounts.length > 0 && (
-          <MultiSelectFilter
-            label="Accounts"
-            options={accountOptions}
-            selected={params.accountIds}
-            onChange={(v) =>
-              setParams({ accountIds: v.length ? v : null, page: 1 })
-            }
-          />
-        )}
+      {/* Widgets row */}
+      <div className="flex justify-center mb-8 mt-4">
+        <TransactionWidgets />
       </div>
 
-      {/* Date Navigation */}
-      <DateNavBlock
-        navMode={params.navMode}
-        navDate={params.navDate}
-        type={singleType}
-        summary={summary}
-        accountIds={params.accountIds}
-        accounts={accounts}
-        onPrev={handleNavPrev}
-        onNext={handleNavNext}
-        onToggleMode={handleNavToggleMode}
-        totalCount={totalCount}
-      />
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        defaultValue="transactions"
+        mode="default"
+      >
+        <TabsList>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring</TabsTrigger>
+          <TabsTrigger value="debts">Debts</TabsTrigger>
+        </TabsList>
 
-      {/* Sort + Advanced Filters */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-2">
-          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <div className="flex items-center gap-2">
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="size-4 mr-2" />
-                  Filters
-                  {activeFiltersCount > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-2 px-1.5 py-0 text-xs"
-                    >
-                      {activeFiltersCount}
-                    </Badge>
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              {activeFiltersCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  <X className="size-4 mr-1" />
-                  Clear
-                </Button>
-              )}
+        <TabsContent value="transactions">
+          {/* Search + Filter row */}
+          <div className="flex gap-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search transactions…"
+                className="pl-9 h-10"
+              />
             </div>
-            <CollapsibleContent className="mt-4 space-y-4">
-              <Card>
-                <CardContent className="pt-4 space-y-4">
-                  {/* Categories */}
-                  {filteredCategories.length > 0 && (
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Categories
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {filteredCategories.map((category) => {
-                          const isSelected = params.categoryIds.includes(
-                            category.id,
-                          );
-                          return (
-                            <button
-                              key={category.id}
-                              type="button"
-                              onClick={() => toggleCategory(category.id)}
-                              className={cn(
-                                "transition-opacity",
-                                isSelected
-                                  ? "opacity-100"
-                                  : "opacity-50 hover:opacity-75",
-                              )}
-                            >
-                              <CategoryPill
-                                name={category.name}
-                                icon={category.icon}
-                                color={category.color}
-                                size="sm"
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+            <FilterPopover
+              filters={currentFilters}
+              accounts={accounts}
+              categories={categories ?? []}
+              tags={tags ?? []}
+              onApply={handleApplyFilters}
+            />
+          </div>
 
-                  {/* Visibility toggles */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Visibility
-                    </label>
-                    <div className="flex flex-wrap gap-4">
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={params.showExcluded}
-                          onCheckedChange={(checked) =>
-                            setParams({
-                              showExcluded: checked === true ? true : null,
-                              page: 1,
-                            })
-                          }
-                        />
-                        Show excluded
-                      </label>
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={params.showSplitChildren}
-                          onCheckedChange={(checked) =>
-                            setParams({
-                              showSplitChildren: checked === true ? true : null,
-                              page: 1,
-                            })
-                          }
-                        />
-                        Show split children
-                      </label>
-                    </div>
-                  </div>
+          {/* Grouped table */}
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              Loading…
+            </div>
+          ) : (
+            <GroupedTransactionTable
+              transactions={transactions}
+              selectedIds={selectedIds}
+              onSelectId={handleSelectId}
+              onSelectGroup={handleSelectGroup}
+              onSelectAll={handleSelectAll}
+              onDelete={(id) => deleteTransaction.mutate(id)}
+              onDuplicate={(id) => duplicateTransaction.mutate(id)}
+            />
+          )}
 
-                  {/* Tags */}
-                  {tags && tags.length > 0 && (
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Tags
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {tags.map((tag) => {
-                          const isSelected = params.tagIds.includes(tag.id);
-                          return (
-                            <Badge
-                              key={tag.id}
-                              variant={isSelected ? "default" : "outline"}
-                              className={cn(
-                                "cursor-pointer transition-colors",
-                                isSelected
-                                  ? "hover:bg-primary/80"
-                                  : "hover:bg-muted",
-                              )}
-                              onClick={() => toggleTag(tag.id)}
-                            >
-                              #{tag.name}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+          {meta && (
+            <ServerPagination
+              meta={meta}
+              onPageChange={(page) => setParams({ page })}
+              infoLabel="transactions"
+            />
+          )}
+        </TabsContent>
 
-        <Select
-          value={`${params.sortBy}:${params.sortDir}`}
-          onValueChange={(val) => {
-            const parts = val.split(":");
-            const sortDir = parts[parts.length - 1] as "asc" | "desc";
-            const sortBy = parts.slice(0, -1).join(":") as
-              | "date"
-              | "amount"
-              | "created_at";
-            setParams({ sortBy, sortDir, page: 1 });
-          }}
-        >
-          <SelectTrigger className="w-45 h-9">
-            <ArrowUpDown className="size-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <TabsContent value="recurring">
+          <RecurringPage />
+        </TabsContent>
 
-      <DataTable
-        data={transactions}
-        columns={columns}
-        isLoading={isLoading}
-        emptyTitle="No transactions found"
-        emptyDescription="Create your first transaction to start tracking"
-        emptyAction={
-          <Button asChild>
-            <Link
-              to={
-                singleType
-                  ? `/transactions/create?type=${singleType}`
-                  : "/transactions/create"
-              }
-            >
-              <Plus className="size-4" />
-              New Transaction
-            </Link>
-          </Button>
-        }
-        renderSubComponent={TransactionItems}
-        getRowCanExpand={(row) =>
-          (row.original.childrenCount ?? row.original.children?.length ?? 0) > 0
-        }
-        getRowClassName={(row) =>
-          row.original.isExcluded ? "opacity-60" : undefined
-        }
-        onRowClick={(row) => navigate(`/transactions/${row.original.id}`)}
-        manualPagination
+        <TabsContent value="debts">
+          <DebtsPage />
+        </TabsContent>
+      </Tabs>
+
+      {/* Floating bulk action bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        totalSelectableCount={totalSelectableCount}
+        categories={categories ?? []}
+        onClearSelection={handleClearSelection}
+        onBulkDelete={() => {
+          bulkDelete.mutate(Array.from(selectedIds), {
+            onSuccess: () => setSelectedIds(new Set()),
+          });
+        }}
+        onBulkEdit={({ categoryId }) => {
+          if (!categoryId) return;
+          bulkUpdate.mutate(
+            {
+              ids: Array.from(selectedIds),
+              data: { category_id: categoryId },
+            },
+            { onSuccess: () => setSelectedIds(new Set()) },
+          );
+        }}
       />
-
-      {meta && (
-        <ServerPagination
-          meta={meta}
-          onPageChange={(page) => setParams({ page })}
-          infoLabel="transactions"
-        />
-      )}
     </Page>
   );
 }
