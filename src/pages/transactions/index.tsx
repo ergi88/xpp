@@ -284,7 +284,7 @@ export default function TransactionsPage() {
       />
 
       {/* Widgets row */}
-      <div className="flex justify-center mb-8 mt-4">
+      <div className="mb-8 mt-4">
         <TransactionWidgets />
       </div>
 

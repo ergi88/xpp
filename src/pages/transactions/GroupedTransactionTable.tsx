@@ -57,9 +57,14 @@ function getTransactionLabel(t: Transaction): string {
   return t.category?.name ?? "—";
 }
 
+function getAvatarLetter(t: Transaction): string {
+  const label = getTransactionLabel(t);
+  return label.charAt(0).toUpperCase();
+}
+
 // Grid column template: mobile hides category col, desktop shows it
 const GRID =
-  "grid grid-cols-[40px_1fr_140px_48px] sm:grid-cols-[40px_1fr_180px_140px_48px]";
+  "grid grid-cols-[40px_1fr_140px] md:grid-cols-[40px_1fr_180px_140px]";
 
 export function GroupedTransactionTable({
   transactions,
@@ -141,6 +146,12 @@ export function GroupedTransactionTable({
             (groupTxns[0]?.account.currency?.symbol ?? ""),
         );
 
+        const sortedGroupTxns = [...groupTxns].sort((a, b) => {
+          const aStamp = a.createdAt ?? `${a.date}T00:00:00.000Z`;
+          const bStamp = b.createdAt ?? `${b.date}T00:00:00.000Z`;
+          return aStamp < bStamp ? 1 : aStamp > bStamp ? -1 : 0;
+        });
+
         return (
           <div key={date} className="p-2 bg-[#242424] m-2 rounded-lg">
             {/* Group header row */}
@@ -197,12 +208,12 @@ export function GroupedTransactionTable({
                   />
                 )}
               </div>
-              <div />
+              {/* <div /> */}
             </div>
 
             <div className="bg-[#171717] rounded-lg">
               {/* Transaction rows */}
-              {groupTxns.map((t) => {
+              {sortedGroupTxns.map((t) => {
                 const isTransfer = t.type === "transfer";
                 const isIncome = t.type === "income";
                 const label = getTransactionLabel(t);
@@ -257,10 +268,7 @@ export function GroupedTransactionTable({
                       >
                         {t.category ? (
                           <span style={{ color: t.category.color }}>
-                            <CategoryIcon
-                              name={t.category.icon}
-                              size={16}
-                            />
+                            <CategoryIcon name={t.category.icon} size={16} />
                           </span>
                         ) : (
                           <div className="size-8 rounded-full bg-muted text-xs font-bold uppercase flex items-center justify-center">
@@ -369,19 +377,19 @@ export function GroupedTransactionTable({
                           />
                         </div>
                       )}
+                      <div
+                        className="flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <TransactionActionMenu
+                          transaction={t}
+                          onDelete={onDelete}
+                          onDuplicate={onDuplicate}
+                        />
+                      </div>
                     </div>
 
                     {/* Action menu cell */}
-                    <div
-                      className="flex items-center justify-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <TransactionActionMenu
-                        transaction={t}
-                        onDelete={onDelete}
-                        onDuplicate={onDuplicate}
-                      />
-                    </div>
                   </div>
                 );
               })}

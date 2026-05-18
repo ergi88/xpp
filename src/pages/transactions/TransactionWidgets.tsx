@@ -1,26 +1,23 @@
 import { useTransactionSummary } from '@/hooks';
-import { FundWidget, type FundItem } from './FundWidget';
+import { FundWidget } from './FundWidget';
+import { TransactionSummaryCard, type SummaryCardData } from './TransactionSummaryCard';
 
-// Helper: today as YYYY-MM-DD
 function todayISO(): string {
   const d = new Date();
   return d.toISOString().slice(0, 10);
 }
 
-// Helper: N days ago as YYYY-MM-DD
 function nDaysAgoISO(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
 }
 
-// Helper: first day of current month as YYYY-MM-DD
 function startOfMonthISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-// Helper: first day of previous calendar month as YYYY-MM-DD
 function startOfPrevMonthISO(): string {
   const d = new Date();
   const year = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
@@ -28,21 +25,16 @@ function startOfPrevMonthISO(): string {
   return `${year}-${String(month).padStart(2, '0')}-01`;
 }
 
-// Helper: last day of previous calendar month as YYYY-MM-DD (= day before start of current month)
 function endOfPrevMonthISO(): string {
   const d = new Date();
-  // Set to day 0 of this month = last day of previous month
   d.setDate(0);
   return d.toISOString().slice(0, 10);
 }
 
-// Format money: if >= 1M show "1.2M", if >= 1K show "1.5K", else show "1234.56"
-// Prepend symbol; negative sign goes before symbol
 function formatMoney(amount: number, symbol: string, decimals: number): string {
   const negative = amount < 0;
   const abs = Math.abs(amount);
   let formatted: string;
-
   if (abs >= 1_000_000) {
     formatted = `${(abs / 1_000_000).toFixed(1)}M`;
   } else if (abs >= 1_000) {
@@ -50,12 +42,9 @@ function formatMoney(amount: number, symbol: string, decimals: number): string {
   } else {
     formatted = abs.toFixed(decimals);
   }
-
   return negative ? `-${symbol}${formatted}` : `${symbol}${formatted}`;
 }
 
-// Format change vs previous period as "+12%" or "-5%"
-// If previous is 0 and current > 0: "+∞%", if both 0: "0%"
 function changeLabel(current: number, previous: number): string {
   if (previous === 0 && current === 0) return '0%';
   if (previous === 0 && current > 0) return '+∞%';
@@ -64,6 +53,32 @@ function changeLabel(current: number, previous: number): string {
   const sign = pct >= 0 ? '+' : '';
   return `${sign}${pct.toFixed(0)}%`;
 }
+
+function buildCard(
+  label: string,
+  income: number,
+  expense: number,
+  prevIncome: number,
+  prevExpense: number,
+  symbol: string,
+  decimals: number,
+): SummaryCardData {
+  const net = income - expense;
+  const prevNet = prevIncome - prevExpense;
+  return {
+    label,
+    net: formatMoney(net, symbol, decimals),
+    netPositive: net >= 0,
+    change: changeLabel(net, prevNet),
+    changePositive: net >= prevNet,
+    income: formatMoney(income, symbol, decimals),
+    incomeChange: changeLabel(income, prevIncome),
+    expense: formatMoney(expense, symbol, decimals),
+    expenseChange: changeLabel(expense, prevExpense),
+  };
+}
+
+const CARD_CONTAINER = "h-[320px] rounded-[48px] border-2 border-[#E0DEDA] bg-[#FBFCF9] shadow-md dark:border-white/10 dark:bg-zinc-900 flex-1 overflow-hidden";
 
 export function TransactionWidgets() {
   const today = todayISO();
@@ -84,39 +99,32 @@ export function TransactionWidgets() {
   const symbol = daily?.currency ?? monthly?.currency ?? allTime?.currency ?? '$';
   const decimals = daily?.decimals ?? monthly?.decimals ?? allTime?.decimals ?? 2;
 
-  const dailyBalance = (daily?.income ?? 0) - (daily?.expense ?? 0);
-  const weeklyBalance = (weekly?.income ?? 0) - (weekly?.expense ?? 0);
-  const prevWeeklyBalance = (prevWeekly?.income ?? 0) - (prevWeekly?.expense ?? 0);
-  const monthlyBalance = (monthly?.income ?? 0) - (monthly?.expense ?? 0);
-  const prevMonthlyBalance = (prevMonthly?.income ?? 0) - (prevMonthly?.expense ?? 0);
-  const allTimeBalance = (allTime?.income ?? 0) - (allTime?.expense ?? 0);
-
-  const items: FundItem[] = [
-    {
-      id: 'daily',
-      label: 'Today',
-      value: formatMoney(dailyBalance, symbol, decimals),
-      change: changeLabel(dailyBalance, 0),
-    },
-    {
-      id: 'weekly',
-      label: 'This Week',
-      value: formatMoney(weeklyBalance, symbol, decimals),
-      change: changeLabel(weeklyBalance, prevWeeklyBalance),
-    },
-    {
-      id: 'monthly',
-      label: 'This Month',
-      value: formatMoney(monthlyBalance, symbol, decimals),
-      change: changeLabel(monthlyBalance, prevMonthlyBalance),
-    },
-    {
-      id: 'alltime',
-      label: 'All Time',
-      value: formatMoney(allTimeBalance, symbol, decimals),
-      change: changeLabel(allTimeBalance, 0),
-    },
+  const cards: SummaryCardData[] = [
+    buildCard('Today', daily?.income ?? 0, daily?.expense ?? 0, 0, 0, symbol, decimals),
+    buildCard('This Week', weekly?.income ?? 0, weekly?.expense ?? 0, prevWeekly?.income ?? 0, prevWeekly?.expense ?? 0, symbol, decimals),
+    buildCard('This Month', monthly?.income ?? 0, monthly?.expense ?? 0, prevMonthly?.income ?? 0, prevMonthly?.expense ?? 0, symbol, decimals),
+    buildCard('All Time', allTime?.income ?? 0, allTime?.expense ?? 0, 0, 0, symbol, decimals),
   ];
 
-  return <FundWidget data={items} />;
+  return (
+    <div className="w-full">
+      {/* Mobile: slider */}
+      <div className="lg:hidden">
+        <FundWidget
+          slides={cards.map((data) => (
+            <TransactionSummaryCard key={data.label} {...data} />
+          ))}
+        />
+      </div>
+
+      {/* Desktop: full-width row */}
+      <div className="hidden lg:flex gap-4">
+        {cards.map((data) => (
+          <div key={data.label} className={CARD_CONTAINER}>
+            <TransactionSummaryCard {...data} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
