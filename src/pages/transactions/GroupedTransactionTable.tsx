@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { CategoryPill } from "@/components/shared";
 import { AmountText } from "@/components/shared/AmountText";
+import { CategoryIcon } from "@/lib/category-icon";
 import { TransactionActionMenu } from "./TransactionActionMenu";
 import { Transaction } from "@/types";
 import { cn } from "@/lib/utils";
@@ -56,13 +57,9 @@ function getTransactionLabel(t: Transaction): string {
   return t.category?.name ?? "—";
 }
 
-function getAvatarLetter(t: Transaction): string {
-  const label = getTransactionLabel(t);
-  return label.charAt(0).toUpperCase();
-}
-
-// Grid column template shared across all rows
-const GRID = "grid grid-cols-[40px_1fr_180px_140px_48px]";
+// Grid column template: mobile hides category col, desktop shows it
+const GRID =
+  "grid grid-cols-[40px_1fr_140px_48px] sm:grid-cols-[40px_1fr_180px_140px_48px]";
 
 export function GroupedTransactionTable({
   transactions,
@@ -104,13 +101,15 @@ export function GroupedTransactionTable({
       >
         <div className="flex items-center justify-center">
           <Checkbox
-            checked={allSelected ? true : someSelected ? "indeterminate" : false}
+            checked={
+              allSelected ? true : someSelected ? "indeterminate" : false
+            }
             onCheckedChange={(checked) => onSelectAll(checked === true)}
             aria-label="Select all transactions"
           />
         </div>
         <div className="pl-2">Transaction</div>
-        <div>Category</div>
+        <div className="hidden sm:block">Category</div>
         <div className="text-right pr-3">Amount</div>
         <div />
       </div>
@@ -143,12 +142,12 @@ export function GroupedTransactionTable({
         );
 
         return (
-          <div key={date}>
+          <div key={date} className="p-2 bg-[#242424] m-2 rounded-lg">
             {/* Group header row */}
             <div
               className={cn(
                 GRID,
-                "items-center py-2 bg-muted/30 border-b text-sm font-semibold",
+                "items-center py-2 bg-muted/30 text-sm font-semibold",
               )}
             >
               <div className="flex items-center justify-center">
@@ -169,14 +168,13 @@ export function GroupedTransactionTable({
                   aria-label={`Select all transactions for ${date}`}
                 />
               </div>
-              <div className="pl-2 text-foreground">
+              <div className="pl-2 text-foreground flex-nowrap">
                 {formatGroupDate(date)}
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
                   · {groupTxns.length}{" "}
-                  {groupTxns.length === 1 ? "transaction" : "transactions"}
                 </span>
               </div>
-              <div />
+              <div className="hidden sm:block" />
               <div className="text-right pr-3">
                 {hasMixedCurrencies ? (
                   <span className="text-right text-sm text-muted-foreground">
@@ -202,168 +200,192 @@ export function GroupedTransactionTable({
               <div />
             </div>
 
-            {/* Transaction rows */}
-            {groupTxns.map((t) => {
-              const isTransfer = t.type === "transfer";
-              const isIncome = t.type === "income";
-              const label = getTransactionLabel(t);
-              const avatarLetter = getAvatarLetter(t);
-              const decimals = t.account.currency?.decimals ?? 2;
-              const currency = t.account.currency?.symbol ?? "";
+            <div className="bg-[#171717] rounded-lg">
+              {/* Transaction rows */}
+              {groupTxns.map((t) => {
+                const isTransfer = t.type === "transfer";
+                const isIncome = t.type === "income";
+                const label = getTransactionLabel(t);
+                const decimals = t.account.currency?.decimals ?? 2;
+                const currency = t.account.currency?.symbol ?? "";
 
-              const amountValue = isIncome ? t.amount : -t.amount;
-              const amountColor = isIncome
-                ? "text-green-600"
-                : isTransfer
-                  ? "text-blue-500"
-                  : "text-red-600";
+                const amountValue = isIncome ? t.amount : -t.amount;
+                const amountColor = isIncome
+                  ? "text-green-600"
+                  : isTransfer
+                    ? "text-blue-500"
+                    : "text-red-600";
 
-              return (
-                <div
-                  key={t.id}
-                  className={cn(
-                    GRID,
-                    "items-center py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/20 transition-colors",
-                    t.isExcluded && "opacity-60",
-                  )}
-                  onClick={() => navigate(`/transactions/${t.id}`)}
-                >
-                  {/* Checkbox cell */}
+                return (
                   <div
-                    className="flex items-center justify-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {isTransfer ? (
-                      <span className="size-4" />
-                    ) : (
-                      <Checkbox
-                        checked={selectedIds.has(t.id)}
-                        onCheckedChange={(checked) =>
-                          onSelectId(t.id, checked === true)
-                        }
-                        aria-label={`Select ${label}`}
-                      />
+                    key={t.id}
+                    className={cn(
+                      GRID,
+                      "items-center py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/20 transition-colors",
+                      t.isExcluded && "opacity-60",
                     )}
-                  </div>
-
-                  {/* Description + account + badges */}
-                  <div className="pl-2 flex items-start gap-2 min-w-0">
-                    {/* Avatar */}
-                    <div className="size-7 rounded-full bg-muted text-xs font-bold uppercase flex items-center justify-center shrink-0 mt-0.5">
-                      {avatarLetter}
+                    onClick={() => navigate(`/transactions/${t.id}`)}
+                  >
+                    {/* Checkbox cell */}
+                    <div
+                      className="flex items-center justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {isTransfer ? (
+                        <span className="size-4" />
+                      ) : (
+                        <Checkbox
+                          checked={selectedIds.has(t.id)}
+                          onCheckedChange={(checked) =>
+                            onSelectId(t.id, checked === true)
+                          }
+                          aria-label={`Select ${label}`}
+                        />
+                      )}
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      {/* Main label + inline badges */}
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="font-medium text-sm truncate">
-                          {label}
-                        </span>
-                        {/* Inline badges */}
-                        {(t.linkedTransactionId ||
-                          !t.isApproved ||
-                          t.isExcluded ||
-                          t.recurringId ||
-                          t.debtId) && (
-                          <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
-                            {t.linkedTransactionId && (
-                              <span title="Linked counterpart">
-                                <Link2 className="size-3" />
-                              </span>
-                            )}
-                            {!t.isApproved && (
-                              <span title="Pending approval" className="text-amber-600">
-                                ⏳
-                              </span>
-                            )}
-                            {t.isExcluded && (
-                              <span title="Excluded">⊘</span>
-                            )}
-                            {t.recurringId && (
-                              <span title="From recurring">↻</span>
-                            )}
-                            {t.debtId && (
-                              <span title="Debt payment">$</span>
-                            )}
+                    {/* Description + account + badges */}
+                    <div className="pl-2 flex items-start gap-2 min-w-0">
+                      {/* Avatar: category icon on colored bg, fallback to letter */}
+                      <div
+                        className="size-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        style={{
+                          backgroundColor: t.category?.color
+                            ? `${t.category.color}30`
+                            : undefined,
+                        }}
+                      >
+                        {t.category ? (
+                          <span style={{ color: t.category.color }}>
+                            <CategoryIcon
+                              name={t.category.icon}
+                              size={16}
+                            />
                           </span>
+                        ) : (
+                          <div className="size-8 rounded-full bg-muted text-xs font-bold uppercase flex items-center justify-center">
+                            {label.charAt(0).toUpperCase()}
+                          </div>
                         )}
                       </div>
 
-                      {/* Account sub-line */}
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {t.account.name}
-                      </div>
+                      <div className="min-w-0 flex-1">
+                        {/* Main label + inline badges */}
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="font-medium text-sm truncate">
+                            {label}
+                          </span>
+                          {/* Inline badges */}
+                          {(t.linkedTransactionId ||
+                            !t.isApproved ||
+                            t.isExcluded ||
+                            t.recurringId ||
+                            t.debtId) && (
+                            <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+                              {t.linkedTransactionId && (
+                                <span title="Linked counterpart">
+                                  <Link2 className="size-3" />
+                                </span>
+                              )}
+                              {!t.isApproved && (
+                                <span
+                                  title="Pending approval"
+                                  className="text-amber-600"
+                                >
+                                  ⏳
+                                </span>
+                              )}
+                              {t.isExcluded && <span title="Excluded">⊘</span>}
+                              {t.recurringId && (
+                                <span title="From recurring">↻</span>
+                              )}
+                              {t.debtId && <span title="Debt payment">$</span>}
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Tags */}
-                      {t.tags && t.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {t.tags.map((tag) => (
-                            <Badge
-                              key={tag.id}
-                              variant="outline"
-                              className="text-xs px-1.5 py-0 text-muted-foreground"
-                            >
-                              #{tag.name}
-                            </Badge>
-                          ))}
+                        {/* Sub-line: category (mobile only) · account */}
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {t.category && (
+                            <span className="sm:hidden">
+                              {t.category.name}
+                              <span className="mx-1">·</span>
+                            </span>
+                          )}
+                          {t.account.name}
+                        </div>
+
+                        {/* Tags */}
+                        {t.tags && t.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {t.tags.map((tag) => (
+                              <Badge
+                                key={tag.id}
+                                variant="outline"
+                                className="text-xs px-1.5 py-0 text-muted-foreground"
+                              >
+                                #{tag.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Category cell — hidden on mobile */}
+                    <div className="hidden sm:flex items-center">
+                      {t.category ? (
+                        <CategoryPill
+                          name={t.category.name}
+                          icon={t.category.icon}
+                          color={t.category.color}
+                          size="sm"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </div>
+
+                    {/* Amount cell */}
+                    <div className="flex items-center justify-end gap-1 pr-3">
+                      {!t.isApproved && (
+                        <Lock className="size-3 text-muted-foreground shrink-0" />
+                      )}
+                      <AmountText
+                        value={amountValue}
+                        decimals={decimals}
+                        currency={currency}
+                        signDisplay="always"
+                        className={cn("text-sm font-semibold", amountColor)}
+                      />
+                      {isTransfer && t.toAmount && t.toAccount && (
+                        <div className="text-xs text-muted-foreground font-mono ml-1">
+                          →{" "}
+                          <AmountText
+                            value={t.toAmount}
+                            decimals={t.toAccount.currency?.decimals ?? 2}
+                            currency={t.toAccount.currency?.symbol ?? ""}
+                            signDisplay="always"
+                          />
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Category cell */}
-                  <div className="flex items-center">
-                    {t.category ? (
-                      <CategoryPill
-                        name={t.category.name}
-                        icon={t.category.icon}
-                        color={t.category.color}
-                        size="sm"
+                    {/* Action menu cell */}
+                    <div
+                      className="flex items-center justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <TransactionActionMenu
+                        transaction={t}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
                       />
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
+                    </div>
                   </div>
-
-                  {/* Amount cell */}
-                  <div className="flex items-center justify-end gap-1 pr-3">
-                    {!t.isApproved && (
-                      <Lock className="size-3 text-muted-foreground shrink-0" />
-                    )}
-                    <AmountText
-                      value={amountValue}
-                      decimals={decimals}
-                      currency={currency}
-                      signDisplay="always"
-                      className={cn("text-sm font-semibold", amountColor)}
-                    />
-                    {isTransfer && t.toAmount && t.toAccount && (
-                      <div className="text-xs text-muted-foreground font-mono ml-1">
-                        →{" "}
-                        <AmountText
-                          value={t.toAmount}
-                          decimals={t.toAccount.currency?.decimals ?? 2}
-                          currency={t.toAccount.currency?.symbol ?? ""}
-                          signDisplay="always"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action menu cell */}
-                  <div
-                    className="flex items-center justify-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <TransactionActionMenu
-                      transaction={t}
-                      onDelete={onDelete}
-                      onDuplicate={onDuplicate}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         );
       })}
