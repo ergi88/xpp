@@ -5,6 +5,7 @@ import { AmountText } from '@/components/shared/AmountText'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight } from 'lucide-react'
+import { CategoryIcon } from '@/lib/category-icon'
 import { useExpensesByCategory } from '@/hooks'
 import type { ReportFilters } from '../types'
 
@@ -76,9 +77,13 @@ export function ExpensesByCategory({ filters }: ExpensesByCategoryProps) {
                                     {/* Icon */}
                                     <div
                                         className="flex items-center justify-center size-8 rounded-lg flex-shrink-0"
-                                        style={{ backgroundColor: category.color }}
+                                        style={{
+                                          border: `1px solid ${category.color}`,
+                                          backgroundColor: `${category.color}1a`,
+                                          color: category.color,
+                                        }}
                                     >
-                                        <span className="text-base">{category.icon}</span>
+                                        <CategoryIcon name={category.icon} size={16} />
                                     </div>
 
                                     {/* Content */}

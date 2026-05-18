@@ -140,37 +140,20 @@ export function AppSidebar() {
           <SidebarGroupLabel>Transactions</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <Collapsible
-                open={transactionsOpen}
-                onOpenChange={setTransactionsOpen}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip="Transactions">
-                      <Receipt />
-                      <span>Transactions</span>
-                      <ChevronDown
-                        className={`ml-auto transition-transform duration-200 ${transactionsOpen ? "" : "-rotate-90"}`}
-                      />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {transactionItems.map(({ to, icon: Icon, label }) => (
-                        <SidebarMenuSubItem key={to}>
-                          <SidebarMenuSubButton asChild isActive={isActive(to)}>
-                            <NavLink to={to}>
-                              <Icon />
-                              <span>{label}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+              {transactionItems.map(({ to, icon: Icon, label }) => (
+                <SidebarMenuItem key={to}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(to)}
+                    tooltip={label}
+                  >
+                    <NavLink to={to}>
+                      <Icon />
+                      <span>{label}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
-              </Collapsible>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

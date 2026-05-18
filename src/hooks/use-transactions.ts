@@ -214,3 +214,46 @@ export function useUnlinkCounterpart() {
         },
     })
 }
+
+export function useBulkDeleteTransactions() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (ids: string[]) => {
+            for (const id of ids) {
+                await transactionsApi.delete(id)
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Transactions deleted')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to delete transactions')
+        },
+    })
+}
+
+export function useBulkUpdateTransactions() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ ids, data }: { ids: string[]; data: { category_id?: string } }) => {
+            for (const id of ids) {
+                await transactionsApi.update(id, data as any)
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success('Transactions updated')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to update transactions')
+        },
+    })
+}

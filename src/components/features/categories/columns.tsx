@@ -22,6 +22,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Category } from '@/types'
+import { CategoryPill } from '@/components/shared'
 
 export const createCategoryColumns = (
     onDelete: (id: string) => void,
@@ -32,20 +33,12 @@ export const createCategoryColumns = (
         accessorKey: 'name',
         header: 'Category',
         cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div
-                    className="flex items-center justify-center size-10 rounded-lg text-lg"
-                    style={{ backgroundColor: row.original.color }}
-                >
-                    {row.original.icon}
-                </div>
-                <div>
-                    <p className="font-medium">{row.original.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">
-                        {row.original.type}
-                    </p>
-                </div>
-            </div>
+            <CategoryPill
+                name={row.original.name}
+                icon={row.original.icon}
+                color={row.original.color}
+                size="md"
+            />
         ),
     },
     {

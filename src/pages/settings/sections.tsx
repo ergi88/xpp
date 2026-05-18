@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,7 @@ import {
   useUpdateSettings,
 } from "@/hooks";
 import { useTheme } from "@/hooks/use-theme";
-import { ExternalLink, Fingerprint, Loader2, CheckCircle2, AlertTriangle, Copy, Check } from "lucide-react";
+import { ExternalLink, Fingerprint, Loader2, CheckCircle2, AlertTriangle, Copy, Check, Wrench } from "lucide-react";
 import { GAS_SCRIPT, GAS_SCRIPT_VERSION } from "@/lib/gas-script";
 import {
   STORAGE_KEYS,
@@ -40,6 +40,7 @@ import {
   clearAuthStorage,
 } from "@/lib/auth";
 import { settingsApi } from "@/api";
+import { gasAdapter } from "@/lib/sheets/gas-adapter";
 
 const pinSchema = z
   .object({
@@ -745,6 +746,141 @@ export function ResetSetupCard() {
           }}
         >
           Reset &amp; restart setup
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+type RepairStatus = 'idle' | 'running' | 'done' | 'error';
+
+interface RepairResult {
+  transactions: { updated: number; total: number };
+  debts: { updated: number; total: number };
+}
+
+async function repairTransactions(): Promise<{ updated: number; total: number }> {
+  const rows = await gasAdapter.getAll('transactions') as Record<string, unknown>[];
+  let updated = 0;
+  for (const r of rows) {
+    const patch: Record<string, string> = {};
+    if (r.is_excluded === undefined || r.is_excluded === '' || r.is_excluded === null)
+      patch.is_excluded = 'false';
+    if (r.is_one_time === undefined || r.is_one_time === '' || r.is_one_time === null)
+      patch.is_one_time = 'false';
+    if (r.is_approved === undefined || r.is_approved === '' || r.is_approved === null)
+      patch.is_approved = 'true';
+    if (r.parent_id === undefined || r.parent_id === null)
+      patch.parent_id = '';
+    if (r.debt_id === undefined || r.debt_id === null)
+      patch.debt_id = '';
+    if (r.linked_transaction_id === undefined || r.linked_transaction_id === null)
+      patch.linked_transaction_id = '';
+    if (r.recurring_id === undefined || r.recurring_id === null)
+      patch.recurring_id = '';
+    if (Object.keys(patch).length > 0) {
+      await gasAdapter.update('transactions', String(r.id), patch);
+      updated++;
+    }
+  }
+  return { updated, total: rows.length };
+}
+
+async function repairDebts(): Promise<{ updated: number; total: number }> {
+  const rows = await gasAdapter.getAll('debts') as Record<string, unknown>[];
+  let updated = 0;
+  for (const r of rows) {
+    const patch: Record<string, string> = {};
+    if (r.origin_transaction_id === undefined || r.origin_transaction_id === null)
+      patch.origin_transaction_id = '';
+    if (Object.keys(patch).length > 0) {
+      await gasAdapter.update('debts', String(r.id), patch);
+      updated++;
+    }
+  }
+  return { updated, total: rows.length };
+}
+
+export function RepairSheetCard() {
+  const [status, setStatus] = useState<RepairStatus>('idle');
+  const [result, setResult] = useState<RepairResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = useCallback(async () => {
+    setStatus('running');
+    setResult(null);
+    setError(null);
+    try {
+      const [transactions, debts] = await Promise.all([
+        repairTransactions(),
+        repairDebts(),
+      ]);
+      setResult({ transactions, debts });
+      setStatus('done');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setStatus('error');
+    }
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Wrench className="size-4" />
+          Repair Sheet Columns
+        </CardTitle>
+        <CardDescription>
+          Backfills default values for new columns added to the Transactions and
+          Debts sheets. Safe to run multiple times — only rows missing values are
+          updated.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p>
+            <span className="font-medium text-foreground">Transactions</span>{" "}
+            — backfills: <code className="rounded bg-muted px-1 text-xs">is_excluded</code>{" "}
+            <code className="rounded bg-muted px-1 text-xs">is_one_time</code>{" "}
+            <code className="rounded bg-muted px-1 text-xs">is_approved</code>{" "}
+            <code className="rounded bg-muted px-1 text-xs">parent_id</code>{" "}
+            <code className="rounded bg-muted px-1 text-xs">debt_id</code>{" "}
+            <code className="rounded bg-muted px-1 text-xs">linked_transaction_id</code>{" "}
+            <code className="rounded bg-muted px-1 text-xs">recurring_id</code>
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Debts</span>{" "}
+            — backfills: <code className="rounded bg-muted px-1 text-xs">origin_transaction_id</code>
+          </p>
+        </div>
+
+        {status === 'done' && result && (
+          <Alert>
+            <CheckCircle2 className="size-4" />
+            <AlertDescription>
+              Transactions: {result.transactions.updated} of {result.transactions.total} updated.{" "}
+              Debts: {result.debts.updated} of {result.debts.total} updated.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {status === 'error' && error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button
+          onClick={run}
+          disabled={status === 'running'}
+          className="gap-2"
+        >
+          {status === 'running' ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Wrench className="size-4" />
+          )}
+          {status === 'running' ? 'Repairing…' : 'Repair sheets'}
         </Button>
       </CardContent>
     </Card>

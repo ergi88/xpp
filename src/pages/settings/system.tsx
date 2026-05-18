@@ -5,6 +5,7 @@ import {
   AuthenticationSettingsCard,
   BaseCurrencyCard,
   CurrencyRatesCard,
+  RepairSheetCard,
   ResetSetupCard,
   SecuritySettingsCard,
   SpreadsheetCard,
@@ -22,6 +23,7 @@ export default function SystemSettingsPage() {
           <BaseCurrencyCard />
           <CurrencyRatesCard />
           <SpreadsheetCard />
+          <RepairSheetCard />
           <AppUpdateCard />
           <ResetSetupCard />
         </div>

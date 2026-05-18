@@ -32,6 +32,7 @@ import {
 import { Link } from "react-router-dom";
 import { AmountText } from "@/components/shared/AmountText";
 import { cn } from "@/lib/utils";
+import { CategoryIcon } from '@/lib/category-icon';
 
 const TYPE_CONFIG = {
   income: {
@@ -150,9 +151,20 @@ export function createTransactionColumns(
             );
           }
           return (
-            <span>
-              {account.name}
-              {category && ` · ${category.icon} ${category.name}`}
+            <span className="flex items-center gap-1 flex-wrap">
+              <span>{account.name}</span>
+              {category && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span
+                    className="inline-flex items-center gap-1 text-xs font-medium"
+                    style={{ color: category.color }}
+                  >
+                    <CategoryIcon name={category.icon} size={12} />
+                    {category.name}
+                  </span>
+                </>
+              )}
             </span>
           );
         };

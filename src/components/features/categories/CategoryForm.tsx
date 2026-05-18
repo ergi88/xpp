@@ -35,7 +35,7 @@ export function CategoryForm({
         defaultValues: {
             name: '',
             type: 'expense',
-            icon: '🏠',
+            icon: 'House',
             color: '#3B82F6',
             ...defaultValues,
         },
@@ -84,6 +84,7 @@ export function CategoryForm({
                                 value={field.value}
                                 onChange={field.onChange}
                                 error={form.formState.errors.icon?.message}
+                                color={watchedValues.color}
                             />
                         </FormItem>
                     )}

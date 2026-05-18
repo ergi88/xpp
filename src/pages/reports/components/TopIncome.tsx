@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AmountText } from '@/components/shared/AmountText'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronRight } from 'lucide-react'
+import { CategoryIcon } from '@/lib/category-icon'
 import { useTransactionReportTop } from '@/hooks'
 import type { ReportFilters } from '../types'
 
@@ -87,9 +88,13 @@ export function TopIncome({ filters, limit = 10 }: TopIncomeProps) {
                                 {/* Category icon */}
                                 <div
                                     className="flex items-center justify-center size-9 rounded-lg flex-shrink-0"
-                                    style={{ backgroundColor: transaction.category.color }}
+                                    style={{
+                                      border: `1px solid ${transaction.category.color}`,
+                                      backgroundColor: `${transaction.category.color}1a`,
+                                      color: transaction.category.color,
+                                    }}
                                 >
-                                    <span className="text-lg">{transaction.category.icon}</span>
+                                    <CategoryIcon name={transaction.category.icon} size={16} />
                                 </div>
 
                                 {/* Description and details */}
