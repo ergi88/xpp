@@ -5,10 +5,12 @@ import {
   ArrowLeftRight,
   ArrowUpRight,
   CreditCard,
+  HandCoins,
   Home,
   PiggyBank,
   Plus,
   Receipt,
+  Repeat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +63,18 @@ const ACTIONS = [
     label: "New account",
     to: "/accounts/create",
     icon: CreditCard,
+  },
+  {
+    id: "debt",
+    label: "New debt",
+    to: "/debts/create",
+    icon: HandCoins,
+  },
+  {
+    id: "recurring",
+    label: "New recurring",
+    to: "/recurring/create",
+    icon: Repeat,
   },
 ];
 
@@ -181,7 +195,7 @@ export function MobileFooterNav() {
                     <Button
                       asChild
                       variant="ghost"
-                      className="justify-start gap-3"
+                      className="justify-center gap-3 border border-muted"
                     >
                       <Link to={action.to}>
                         <ActionIcon className="size-4" />
