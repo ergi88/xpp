@@ -21,6 +21,7 @@ import {
 } from "@/hooks";
 import {
   AppearanceSettingsCard,
+  AppUpdateCard,
   AuthenticationSettingsCard,
   BaseCurrencyCard,
   CurrencyRatesCard,
@@ -294,6 +295,7 @@ function CurrenciesTab() {
 function GeneralTab() {
   return (
     <div className="space-y-6">
+      <AppUpdateCard />
       <GASScriptUpdateCard />
       <SpreadsheetCard />
       <RepairSheetCard />
