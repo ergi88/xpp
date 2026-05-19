@@ -34,7 +34,7 @@ function TabsList({
       className={cn(
         mode === "segmented"
           ? "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-0.75"
-          : "text-muted-foreground border-border flex h-10 w-full flex-nowrap items-end overflow-x-auto border-b",
+          : "text-muted-foreground border-border flex h-10 w-full flex-nowrap items-end overflow-x-auto overflow-y-hidden border-b",
         className,
       )}
       {...props}

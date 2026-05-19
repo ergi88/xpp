@@ -11,7 +11,7 @@ interface FundWidgetProps {
   initialIndex?: number;
 }
 
-const CARD_HEIGHT = 320;
+const CARD_HEIGHT = 170;
 const DRAG_BUFFER = 40;
 const VELOCITY_THRESHOLD = 0;
 
@@ -44,7 +44,7 @@ export const FundWidget: React.FC<FundWidgetProps> = ({
   return (
     <div className="w-full">
       <MotionConfig transition={SPRING_OPTIONS}>
-        <div className="relative h-[280px] w-full overflow-hidden rounded-[48px] border-2 border-[#E0DEDA] bg-[#FBFCF9] shadow-md select-none dark:border-white/10 dark:bg-zinc-900">
+        <div className="relative h-[170px] w-full overflow-hidden rounded-2xl border border-[#E0DEDA] bg-[#FBFCF9] shadow-md select-none dark:border-white/10 dark:bg-zinc-900">
           <motion.div
             drag="y"
             dragConstraints={{
@@ -58,12 +58,12 @@ export const FundWidget: React.FC<FundWidgetProps> = ({
             className="flex cursor-grab flex-col active:cursor-grabbing"
           >
             {slides.map((slide, i) => (
-              <div key={i} className="flex min-h-[320px] w-full">
+              <div key={i} className="flex min-h-[170px] w-full">
                 {slide}
               </div>
             ))}
           </motion.div>
-          <div className="absolute top-1/2 right-5 z-20 flex -translate-y-1/2 flex-col">
+          <div className="absolute top-1/2 right-1 z-20 flex -translate-y-1/2 flex-col">
             {slides.map((_, i) => (
               <button
                 key={i}

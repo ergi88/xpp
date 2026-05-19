@@ -23,7 +23,7 @@ export function PageHeader({
     return null;
   }
   return (
-    <div className="mb-8">
+    <div className="mb-2">
       {backLink && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

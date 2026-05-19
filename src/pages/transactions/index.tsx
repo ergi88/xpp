@@ -12,17 +12,9 @@ import { Plus, Download, Search } from "lucide-react";
 import { Page, PageHeader, ServerPagination } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TransactionWidgets } from "./TransactionWidgets";
-import {
-  FilterPopover,
-  type FilterState,
-} from "./FilterPopover";
+import { FilterPopover, type FilterState } from "./FilterPopover";
 import { GroupedTransactionTable } from "./GroupedTransactionTable";
 import { BulkActionBar } from "./BulkActionBar";
 import {
@@ -194,20 +186,17 @@ export default function TransactionsPage() {
     });
   }, []);
 
-  const handleSelectGroup = useCallback(
-    (ids: string[], checked: boolean) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (checked) {
-          for (const id of ids) next.add(id);
-        } else {
-          for (const id of ids) next.delete(id);
-        }
-        return next;
-      });
-    },
-    [],
-  );
+  const handleSelectGroup = useCallback((ids: string[], checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        for (const id of ids) next.add(id);
+      } else {
+        for (const id of ids) next.delete(id);
+      }
+      return next;
+    });
+  }, []);
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
@@ -284,15 +273,11 @@ export default function TransactionsPage() {
       />
 
       {/* Widgets row */}
-      <div className="mb-8 mt-4">
+      <div className="mb-2">
         <TransactionWidgets />
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        mode="default"
-      >
+      <Tabs value={activeTab} onValueChange={setActiveTab} mode="default">
         <TabsList>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
