@@ -132,6 +132,38 @@ export function useDebtTransactions(debtId: string | number) {
     })
 }
 
+export function useLinkOriginTransaction() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ id, transactionId }: { id: string | number; transactionId: string }) =>
+            debtsApi.update(id, { origin_transaction_id: transactionId } as Parameters<typeof debtsApi.update>[1]),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            toast.success('Origin transaction linked')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to link transaction')
+        },
+    })
+}
+
+export function useMergeDebts() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (debtIds: string[]) => debtsApi.merge(debtIds),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            toast.success('Debts merged')
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to merge debts')
+        },
+    })
+}
+
 export function useReopenDebt() {
     const queryClient = useQueryClient()
 

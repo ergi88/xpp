@@ -8,12 +8,12 @@ import {
 } from "@/components/ui/select";
 import { FormControl } from "@/components/ui/form";
 import { useCategories } from "@/hooks";
-import { CategoryPill } from './CategoryPill'
+import { CategoryPill } from "./CategoryPill";
 
 interface CategorySelectProps {
   value?: string | null;
   onChange: (value: string) => void;
-  type: "income" | "expense";
+  type?: "income" | "expense";
   placeholder?: string;
   disabled?: boolean;
   sortByPopularity?: boolean;
@@ -32,7 +32,7 @@ export function CategorySelect({
   const { data: categories } = useCategories();
 
   const filteredCategories = useMemo(() => {
-    const filtered = categories?.filter((c) => c.type === type) ?? [];
+    const filtered = type ? (categories?.filter((c) => c.type === type) ?? []) : (categories ?? []);
     if (sortByPopularity) {
       return filtered.sort(
         (a, b) => (b.transactionsCount ?? 0) - (a.transactionsCount ?? 0),

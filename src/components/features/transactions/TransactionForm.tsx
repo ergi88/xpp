@@ -1,14 +1,6 @@
-import {
-  useForm,
-  useWatch,
-  type Resolver,
-} from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,12 +16,7 @@ import {
   transactionSchema,
   TransactionFormValues,
 } from "@/schemas/transactions";
-import {
-  useAccounts,
-  useCategories,
-  useTags,
-  useDebts,
-} from "@/hooks";
+import { useAccounts, useCategories, useTags, useDebts } from "@/hooks";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownLeft,
@@ -90,7 +77,10 @@ const TRANSACTION_TYPES = [
 
 interface TransactionFormProps {
   defaultValues?: Partial<TransactionFormValues>;
-  onSubmit: (data: TransactionFormValues, pendingDebt?: PendingDebt | null) => void;
+  onSubmit: (
+    data: TransactionFormValues,
+    pendingDebt?: PendingDebt | null,
+  ) => void;
   onTypeChange?: (type: TransactionFormValues["type"]) => void;
   isSubmitting?: boolean;
   submitLabel?: string;
@@ -126,8 +116,8 @@ export function TransactionForm({
       account_id: defaultValues?.account_id ?? "",
       to_account_id: defaultValues?.to_account_id ?? null,
       category_id: defaultValues?.category_id ?? null,
-      amount: defaultValues?.amount ?? 0,
-      to_amount: defaultValues?.to_amount ?? null,
+      amount: defaultValues?.amount ?? undefined,
+      to_amount: defaultValues?.to_amount ?? undefined,
       description: defaultValues?.description ?? "",
       date: defaultValues?.date || today,
       tag_ids: defaultValues?.tag_ids ?? [],
@@ -144,6 +134,7 @@ export function TransactionForm({
 
   useEffect(() => {
     form.reset(formDefaults);
+    setPickerMode(formDefaults.debt_id ? "debt" : "category");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formDefaults]);
 
@@ -175,11 +166,12 @@ export function TransactionForm({
     if (
       !categoryId &&
       transactionType !== "transfer" &&
+      pickerMode === "category" &&
       filteredCategories.length > 0
     ) {
       form.setValue("category_id", filteredCategories[0].id);
     }
-  }, [categoryId, transactionType, filteredCategories, form]);
+  }, [categoryId, transactionType, filteredCategories, pickerMode, form]);
 
   useEffect(() => {
     if (transactionType === "transfer") {
@@ -238,6 +230,7 @@ export function TransactionForm({
     // Sentinel value — truthy so it passes "must have category or debt" check,
     // but never persisted; stripped before the actual API call.
     form.setValue("debt_id", "__new_debt__");
+    form.setValue("description", debt.name);
     setCreateDebtOpen(false);
     setNewDebtName("");
   };
@@ -248,18 +241,23 @@ export function TransactionForm({
   };
 
   const handleFormSubmit = (data: TransactionFormValues) => {
+    const submitData =
+      pickerMode === "debt" ? { ...data, category_id: null } : data;
     if (pendingDebt) {
       // Strip the sentinel so the page receives null debt_id
-      onSubmit({ ...data, debt_id: null }, pendingDebt);
+      onSubmit({ ...submitData, debt_id: null }, pendingDebt);
     } else {
-      onSubmit(data, null);
+      onSubmit(submitData, null);
     }
   };
 
   return (
     <FormWrapper>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form
+          onSubmit={form.handleSubmit(handleFormSubmit)}
+          className="space-y-6"
+        >
           {/* Transaction Type Tabs */}
           <div className="flex gap-2 p-1 bg-muted rounded-lg">
             {TRANSACTION_TYPES.map(({ value, label, icon: Icon, color }) => (
@@ -285,21 +283,21 @@ export function TransactionForm({
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  {transactionType === "transfer" ? "From Account" : "Account"}
+                </FormLabel>
+                <AccountSelect value={field.value} onChange={field.onChange} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="w-full">
             {/* Account */}
-            <FormField
-              control={form.control}
-              name="account_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {transactionType === "transfer" ? "From Account" : "Account"}
-                  </FormLabel>
-                  <AccountSelect value={field.value} onChange={field.onChange} />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* To Account (Transfer) or Category/Debt (Income/Expense) */}
             {transactionType === "transfer" ? (
@@ -328,11 +326,11 @@ export function TransactionForm({
                     return d.currencyId === selectedAccount.currency.id;
                   });
                   return (
-                    <FormItem>
+                    <FormItem className="flex gap-4 w-full">
                       <div className="flex items-center justify-between">
-                        <FormLabel>
+                        {/* <FormLabel>
                           {pickerMode === "debt" ? "Debt" : "Category"}
-                        </FormLabel>
+                        </FormLabel> */}
                         <Select
                           value={pickerMode}
                           onValueChange={(v) => {
@@ -394,6 +392,12 @@ export function TransactionForm({
                                   return;
                                 }
                                 debtField.onChange(v || null);
+                                const selectedDebt = (debts ?? []).find(
+                                  (d) => d.id === v,
+                                );
+                                if (selectedDebt) {
+                                  form.setValue("description", selectedDebt.name);
+                                }
                               }}
                             >
                               <FormControl>
@@ -404,7 +408,9 @@ export function TransactionForm({
                               <SelectContent>
                                 {compatibleDebts.map((d) => {
                                   const Icon =
-                                    d.debtType === "i_owe" ? Banknote : HandCoins;
+                                    d.debtType === "i_owe"
+                                      ? Banknote
+                                      : HandCoins;
                                   const color =
                                     d.debtType === "i_owe"
                                       ? "text-red-600"
@@ -412,8 +418,15 @@ export function TransactionForm({
                                   return (
                                     <SelectItem key={d.id} value={d.id}>
                                       <div className="flex items-center gap-2 w-full">
-                                        <Icon className={cn("size-3.5 shrink-0", color)} />
-                                        <span className="flex-1 truncate">{d.name}</span>
+                                        <Icon
+                                          className={cn(
+                                            "size-3.5 shrink-0",
+                                            color,
+                                          )}
+                                        />
+                                        <span className="flex-1 truncate">
+                                          {d.name}
+                                        </span>
                                         <span className="font-mono text-xs text-muted-foreground tabular-nums">
                                           <AmountText
                                             value={d.remainingDebt}
@@ -456,7 +469,9 @@ export function TransactionForm({
               <div className="flex-1">
                 <span className="text-muted-foreground">Balance: </span>
                 <span className="font-mono font-medium">
-                  {balancePreview.currentBalance.toFixed(balancePreview.decimals)}{" "}
+                  {balancePreview.currentBalance.toFixed(
+                    balancePreview.decimals,
+                  )}{" "}
                   {balancePreview.currency}
                 </span>
               </div>
@@ -468,7 +483,8 @@ export function TransactionForm({
                     "font-mono font-medium",
                     balancePreview.insufficientFunds
                       ? "text-destructive"
-                      : balancePreview.newBalance > balancePreview.currentBalance
+                      : balancePreview.newBalance >
+                          balancePreview.currentBalance
                         ? "text-green-600"
                         : "text-foreground",
                   )}
@@ -491,7 +507,9 @@ export function TransactionForm({
               <div className="flex-1">
                 <span className="text-muted-foreground">To Balance: </span>
                 <span className="font-mono font-medium">
-                  {toBalancePreview.currentBalance.toFixed(toBalancePreview.decimals)}{" "}
+                  {toBalancePreview.currentBalance.toFixed(
+                    toBalancePreview.decimals,
+                  )}{" "}
                   {toBalancePreview.currency}
                 </span>
               </div>
@@ -499,7 +517,9 @@ export function TransactionForm({
               <div className="flex-1 text-right">
                 <span className="text-muted-foreground">After: </span>
                 <span className="font-mono font-medium text-green-600">
-                  {toBalancePreview.newBalance.toFixed(toBalancePreview.decimals)}{" "}
+                  {toBalancePreview.newBalance.toFixed(
+                    toBalancePreview.decimals,
+                  )}{" "}
                   {toBalancePreview.currency}
                 </span>
               </div>
@@ -507,7 +527,6 @@ export function TransactionForm({
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Amount */}
             <FormField
               control={form.control}
               name="amount"
@@ -522,12 +541,19 @@ export function TransactionForm({
                     )}
                   </FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      placeholder="0.00"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {/* Amount */}
 
             {transactionType === "transfer" ? (
               <FormField
@@ -545,7 +571,9 @@ export function TransactionForm({
                         {...field}
                         value={field.value ?? ""}
                         onChange={(e) =>
-                          field.onChange(e.target.value ? Number(e.target.value) : null)
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : null,
+                          )
                         }
                       />
                     </FormControl>
@@ -624,7 +652,8 @@ export function TransactionForm({
                     <div className="space-y-0.5">
                       <FormLabel>Exclude from reports</FormLabel>
                       <p className="text-xs text-muted-foreground">
-                        Hidden from every aggregate. Account balance still counts it.
+                        Hidden from every aggregate. Account balance still
+                        counts it.
                       </p>
                     </div>
                   </FormItem>
@@ -648,7 +677,8 @@ export function TransactionForm({
                     <div className="space-y-0.5">
                       <FormLabel>Mark as one-time</FormLabel>
                       <p className="text-xs text-muted-foreground">
-                        Counted in raw totals but skipped from averages and projections.
+                        Counted in raw totals but skipped from averages and
+                        projections.
                       </p>
                     </div>
                   </FormItem>
@@ -674,7 +704,9 @@ export function TransactionForm({
                           variant={isSelected ? "default" : "outline"}
                           className={cn(
                             "cursor-pointer transition-colors",
-                            isSelected ? "hover:bg-primary/80" : "hover:bg-muted",
+                            isSelected
+                              ? "hover:bg-primary/80"
+                              : "hover:bg-muted",
                           )}
                           onClick={() => {
                             const newTagIds = isSelected
@@ -733,7 +765,10 @@ export function TransactionForm({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => { setCreateDebtOpen(false); setNewDebtName(""); }}
+              onClick={() => {
+                setCreateDebtOpen(false);
+                setNewDebtName("");
+              }}
             >
               Cancel
             </Button>

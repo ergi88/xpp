@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { Page, PageHeader } from "@/components/shared";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
@@ -130,7 +135,7 @@ function SettingsTableSection<T>({
   );
 }
 
-function CategoriesSection() {
+function CategoriesSection({ returnTo }: { returnTo: string }) {
   const [search, setSearch] = useState("");
   const { data: categories, isLoading } = useCategories();
   const deleteCategory = useDeleteCategory();
@@ -148,6 +153,7 @@ function CategoriesSection() {
     (id) => deleteCategory.mutate(id),
     typeCounts,
     isReadOnly,
+    { returnTo },
   );
 
   const filteredCategories = useMemo(() => {
@@ -179,13 +185,15 @@ function CategoriesSection() {
   );
 }
 
-function TagsSection() {
+function TagsSection({ returnTo }: { returnTo: string }) {
   const [search, setSearch] = useState("");
   const { data: tags, isLoading } = useTags();
   const deleteTag = useDeleteTag();
   const isReadOnly = false;
 
-  const columns = createTagColumns((id) => deleteTag.mutate(id), isReadOnly);
+  const columns = createTagColumns((id) => deleteTag.mutate(id), isReadOnly, {
+    returnTo,
+  });
 
   const filteredTags = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -258,14 +266,20 @@ function CurrenciesSection() {
   );
 }
 
-function OrganizationTab() {
-  const [active, setActive] = useState("categories");
+function OrganizationTab({
+  active,
+  onActiveChange,
+}: {
+  active: string;
+  onActiveChange: (value: string) => void;
+}) {
+  const returnTo = `/settings/organization?section=${active}`;
 
   return (
     <Tabs
       value={active}
       mode="segmented"
-      onValueChange={setActive}
+      onValueChange={onActiveChange}
       className="space-y-4"
     >
       <TabsList className="h-auto flex-wrap md:flex-nowrap md:h-9 md:w-fit">
@@ -273,10 +287,10 @@ function OrganizationTab() {
         <TabsTrigger value="tags">Tags</TabsTrigger>
       </TabsList>
       <TabsContent value="categories">
-        <CategoriesSection />
+        <CategoriesSection returnTo={returnTo} />
       </TabsContent>
       <TabsContent value="tags">
-        <TagsSection />
+        <TagsSection returnTo={returnTo} />
       </TabsContent>
     </Tabs>
   );
@@ -340,8 +354,11 @@ function DataTab() {
 export default function SettingsPage() {
   const { tab } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const resolved = TAB_ALIASES[tab ?? ""] ?? tab ?? "general";
   const activeTab = TAB_VALUES.includes(resolved) ? resolved : "general";
+  const activeOrganizationTab =
+    searchParams.get("section") === "tags" ? "tags" : "categories";
 
   useEffect(() => {
     if (!tab) return;
@@ -358,12 +375,25 @@ export default function SettingsPage() {
   }, [tab, navigate]);
 
   const handleTabChange = (value: string) => {
+    if (value === "organization") {
+      navigate(`/settings/organization?section=${activeOrganizationTab}`);
+      return;
+    }
+
+    setSearchParams((current) => {
+      current.delete("section");
+      return current;
+    });
     navigate(value === "general" ? "/settings" : `/settings/${value}`);
+  };
+
+  const handleOrganizationTabChange = (value: string) => {
+    setSearchParams({ section: value });
   };
 
   return (
     <Page title="Settings">
-      <div className="h-svh -mt-6">
+      <div className="-mt-6">
         <Tabs value={activeTab} mode="default" onValueChange={handleTabChange}>
           <div className="sticky -top-6 -left-6 z-10 bg-background">
             <TabsList className="h-12">
@@ -388,7 +418,10 @@ export default function SettingsPage() {
             <SecurityTab />
           </TabsContent>
           <TabsContent value="organization">
-            <OrganizationTab />
+            <OrganizationTab
+              active={activeOrganizationTab}
+              onActiveChange={handleOrganizationTabChange}
+            />
           </TabsContent>
           <TabsContent value="currencies">
             <CurrenciesTab />

@@ -235,6 +235,51 @@ export const debtsApi = {
     return toDebt(r, currencyMap);
   },
 
+  merge: async (debtIds: string[]): Promise<Debt> => {
+    if (debtIds.length < 2) throw new Error('Need at least 2 debts to merge')
+    const [allDebts, currencyMap] = await Promise.all([
+      Promise.all(debtIds.map((id) => debtsApi.getById(id))),
+      loadCurrencyMap(),
+    ])
+    // Primary = oldest by created_at
+    const sorted = [...allDebts].sort((a, b) =>
+      (a.createdAt ?? '').localeCompare(b.createdAt ?? ''),
+    )
+    const primary = sorted[0]
+    const others = sorted.slice(1)
+
+    const totalTarget = allDebts.reduce((s, d) => s + d.targetAmount, 0)
+    const totalPaid = allDebts.reduce((s, d) => s + d.currentBalance, 0)
+
+    // Reassign all payment + origin transactions from other debts to primary
+    const allTxns = (await transactionsApi.getAll({ per_page: 99999 })).data
+    await Promise.all(
+      others.flatMap((debt) => {
+        const updates: Promise<unknown>[] = allTxns
+          .filter((t) => t.debtId === debt.id)
+          .map((t) => adapter.update('transactions', t.id, { debt_id: primary.id }))
+        // Also link the origin transaction of the inferior debt to primary
+        if (debt.originTransactionId) {
+          const originTxn = allTxns.find((t) => t.id === debt.originTransactionId)
+          if (originTxn) {
+            updates.push(adapter.update('transactions', originTxn.id, { debt_id: primary.id }))
+          }
+        }
+        return updates
+      }),
+    )
+
+    // Update primary with summed amounts
+    const [updated] = await Promise.all([
+      adapter.update('debts', primary.id, {
+        target_amount: totalTarget,
+        paid_amount: totalPaid,
+      }),
+      ...others.map((d) => adapter.delete('debts', d.id)),
+    ])
+    return toDebt(updated, currencyMap)
+  },
+
   getSummary: async (): Promise<DebtSummary> => {
     const res = await debtsApi.getAllWithSummary();
     return res.summary!;
