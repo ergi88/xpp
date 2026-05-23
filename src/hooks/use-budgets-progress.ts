@@ -29,7 +29,7 @@ function calcProgress(
   budget: Budget,
   transactions: Transaction[],
   offset: number,
-): BudgetProgress & { period_start: string; period_end: string } {
+): BudgetProgress {
   const { periodStart, periodEnd } = getPeriodBounds(budget.period, budget.startDate, budget.endDate, offset)
   const matching = transactions.filter(t =>
     inPeriod(t.date, periodStart, periodEnd) && budgetMatchesTxn(budget, t),
@@ -71,30 +71,12 @@ export function useBudgetWithProgress(id: string, offset: number) {
         budgetsApi.getById(id),
         fetchFilteredExpenses(),
       ])
-      const { periodStart, periodEnd } = getPeriodBounds(
-        budget.period,
-        budget.startDate,
-        budget.endDate,
-        offset,
-      )
+      const progress = calcProgress(budget, filtered, offset)
       const matchingTxns = filtered.filter(t =>
-        inPeriod(t.date, periodStart, periodEnd) && budgetMatchesTxn(budget, t),
+        inPeriod(t.date, progress.period_start, progress.period_end) &&
+        budgetMatchesTxn(budget, t),
       )
-      const spent = matchingTxns.reduce((s, t) => s + t.amount, 0)
-      const remaining = Math.max(0, budget.amount - spent)
-      const percent = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
-      return {
-        budget,
-        progress: {
-          spent,
-          remaining,
-          percent,
-          is_exceeded: spent > budget.amount,
-          period_start: periodStart,
-          period_end: periodEnd,
-        } satisfies BudgetProgress & { period_start: string; period_end: string },
-        transactions: matchingTxns,
-      }
+      return { budget, progress, transactions: matchingTxns }
     },
     enabled: !!id,
   })
