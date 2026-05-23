@@ -1,15 +1,16 @@
 import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
 import { categoriesApi } from './categories'
+import { currenciesApi } from './currencies'
 import { tagsApi } from './tags'
-import type { Budget, BudgetFormData, Category, Tag } from '@/types'
+import type { Budget, BudgetFormData, Category, Currency, Tag } from '@/types'
 
 function toBudget(r: Record<string, unknown>): Omit<Budget, 'categories' | 'tags'> {
   return {
     id: r.id as string,
     name: r.name as string,
     amount: Number(r.amount),
-    currencyId: (r.currency_id as string) ?? null,
+    currencyId: (r.currency_id as string) || null,
     period: r.period as Budget['period'],
     periodLabel: r.period as string,
     startDate: (r.start_date as string) || null,
@@ -25,46 +26,51 @@ function resolveRelations(
   raw: Record<string, unknown>,
   categoriesById: Map<string, Category>,
   tagsById: Map<string, Tag>,
+  currenciesById: Map<string, Currency>,
 ): Budget {
   const categoryIds = String(raw.category_ids ?? '').split(',').filter(Boolean)
   const tagIds = String(raw.tag_ids ?? '').split(',').filter(Boolean)
+  const base = toBudget(raw)
   return {
-    ...toBudget(raw),
+    ...base,
+    currency: base.currencyId ? currenciesById.get(base.currencyId) : undefined,
     categories: categoryIds.map(id => categoriesById.get(id)).filter(Boolean) as Category[],
     tags: tagIds.map(id => tagsById.get(id)).filter(Boolean) as Tag[],
   } as Budget
 }
 
 async function buildLookups() {
-  const [allCategories, allTags] = await Promise.all([
+  const [allCategories, allTags, allCurrencies] = await Promise.all([
     categoriesApi.getAll(),
     tagsApi.getAll(),
+    currenciesApi.getAll(),
   ])
   const categoriesById = new Map(allCategories.map(c => [c.id, c]))
   const tagsById = new Map(allTags.map(t => [t.id, t]))
-  return { categoriesById, tagsById }
+  const currenciesById = new Map(allCurrencies.map(c => [c.id, c]))
+  return { categoriesById, tagsById, currenciesById }
 }
 
 export const budgetsApi = {
   getAll: async (): Promise<Budget[]> => {
-    const [rows, { categoriesById, tagsById }] = await Promise.all([
+    const [rows, { categoriesById, tagsById, currenciesById }] = await Promise.all([
       adapter.getAll('budgets'),
       buildLookups(),
     ])
-    return rows.map(r => resolveRelations(r, categoriesById, tagsById))
+    return rows.map(r => resolveRelations(r, categoriesById, tagsById, currenciesById))
   },
 
   getById: async (id: string | number): Promise<Budget> => {
-    const [r, { categoriesById, tagsById }] = await Promise.all([
+    const [r, { categoriesById, tagsById, currenciesById }] = await Promise.all([
       adapter.getById('budgets', String(id)),
       buildLookups(),
     ])
     if (!r) throw new Error('Budget not found')
-    return resolveRelations(r, categoriesById, tagsById)
+    return resolveRelations(r, categoriesById, tagsById, currenciesById)
   },
 
   create: async (data: BudgetFormData): Promise<Budget> => {
-    const [r, { categoriesById, tagsById }] = await Promise.all([
+    const [r, { categoriesById, tagsById, currenciesById }] = await Promise.all([
       adapter.create('budgets', {
         id: uuidv4(),
         name: data.name,
@@ -82,7 +88,7 @@ export const budgetsApi = {
       }),
       buildLookups(),
     ])
-    return resolveRelations(r, categoriesById, tagsById)
+    return resolveRelations(r, categoriesById, tagsById, currenciesById)
   },
 
   update: async (id: string | number, data: Partial<BudgetFormData>): Promise<Budget> => {
@@ -93,11 +99,11 @@ export const budgetsApi = {
     if (Array.isArray(data.tag_ids)) {
       payload.tag_ids = data.tag_ids.join(',')
     }
-    const [r, { categoriesById, tagsById }] = await Promise.all([
+    const [r, { categoriesById, tagsById, currenciesById }] = await Promise.all([
       adapter.update('budgets', String(id), payload),
       buildLookups(),
     ])
-    return resolveRelations(r, categoriesById, tagsById)
+    return resolveRelations(r, categoriesById, tagsById, currenciesById)
   },
 
   delete: (id: string | number): Promise<void> =>
