@@ -29,6 +29,12 @@ describe("parseNavConfig", () => {
     expect(parseNavConfig(JSON.stringify(custom))).toEqual(custom);
   });
 
+  it("returns DEFAULT_MAIN_NAV when array contains duplicate ids", () => {
+    expect(
+      parseNavConfig(JSON.stringify(["dashboard", "dashboard", "accounts", "budgets"]))
+    ).toEqual(DEFAULT_MAIN_NAV);
+  });
+
   it("DEFAULT_MAIN_NAV has exactly 4 items all in ALL_NAV_IDS", () => {
     expect(DEFAULT_MAIN_NAV).toHaveLength(4);
     DEFAULT_MAIN_NAV.forEach((id) => expect(ALL_NAV_IDS).toContain(id));

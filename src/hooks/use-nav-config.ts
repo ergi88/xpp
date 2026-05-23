@@ -54,6 +54,7 @@ export function parseNavConfig(raw: string | undefined): NavItemId[] {
     if (
       !Array.isArray(parsed) ||
       parsed.length !== 4 ||
+      new Set(parsed).size !== 4 ||
       !parsed.every((id) => ALL_NAV_IDS.includes(id as NavItemId))
     ) {
       return DEFAULT_MAIN_NAV;
@@ -89,6 +90,12 @@ export function useNavConfig() {
     debounceRef.current = setTimeout(() => {
       settingsApi.update({ mobile_nav_config: JSON.stringify(items) }).catch(() => {});
     }, 500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
 
   const pool = ALL_NAV_IDS.filter((id) => !mainNav.includes(id));
