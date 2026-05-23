@@ -53,8 +53,9 @@ export function parseNavConfig(raw: string | undefined): NavItemId[] {
     const parsed = JSON.parse(raw);
     if (
       !Array.isArray(parsed) ||
-      parsed.length !== 4 ||
-      new Set(parsed).size !== 4 ||
+      parsed.length < 1 ||
+      parsed.length > 4 ||
+      new Set(parsed).size !== parsed.length ||
       !parsed.every((id) => ALL_NAV_IDS.includes(id as NavItemId))
     ) {
       return DEFAULT_MAIN_NAV;

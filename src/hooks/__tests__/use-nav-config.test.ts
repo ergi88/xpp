@@ -14,8 +14,19 @@ describe("parseNavConfig", () => {
     expect(parseNavConfig("not-json")).toEqual(DEFAULT_MAIN_NAV);
   });
 
-  it("returns DEFAULT_MAIN_NAV when array has wrong length", () => {
-    expect(parseNavConfig(JSON.stringify(["dashboard", "transactions"]))).toEqual(DEFAULT_MAIN_NAV);
+  it("returns DEFAULT_MAIN_NAV when array is empty", () => {
+    expect(parseNavConfig(JSON.stringify([]))).toEqual(DEFAULT_MAIN_NAV);
+  });
+
+  it("returns DEFAULT_MAIN_NAV when array has more than 4 items", () => {
+    expect(
+      parseNavConfig(JSON.stringify(["dashboard", "transactions", "accounts", "budgets", "debts"]))
+    ).toEqual(DEFAULT_MAIN_NAV);
+  });
+
+  it("accepts valid 2-item array (partial nav config)", () => {
+    const partial = ["debts", "reports"];
+    expect(parseNavConfig(JSON.stringify(partial))).toEqual(partial);
   });
 
   it("returns DEFAULT_MAIN_NAV when array contains invalid ids", () => {

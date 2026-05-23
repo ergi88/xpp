@@ -333,13 +333,14 @@ export function MobileFooterNav() {
 
     if (isFromPool) {
       const realId = activeIdStr.replace("pool:", "") as NavItemId;
+      if (mainNav.includes(realId)) return;
       if (mainNav.length >= 4 || !over) return;
       const overIdStr = String(over.id);
       if (mainNav.includes(overIdStr as NavItemId)) {
         const overIndex = mainNav.indexOf(overIdStr as NavItemId);
         const newNav = [...mainNav];
         newNav.splice(overIndex, 0, realId);
-        setMainNav(newNav.slice(0, 4));
+        setMainNav(newNav);
       } else if (overIdStr === "main-nav-zone") {
         setMainNav([...mainNav, realId]);
       }
@@ -381,6 +382,10 @@ export function MobileFooterNav() {
     sheetRef.current?.snapTo(1);
     setIsEditMode(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isExpanded) setIsEditMode(false);
+  }, [isExpanded]);
 
   if (!isMobile || !enabled || keyboardVisible) return null;
 
