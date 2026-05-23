@@ -71,6 +71,14 @@ export default function BudgetViewPage() {
   const canNavigate = NAVIGABLE_PERIODS.has(budget.period)
   const currentPeriodLabel = periodLabel(budget.period, progress.period_start, progress.period_end)
 
+  const getSegWidth = (amount: number) =>
+    isExceeded && progress.spent > 0
+      ? (amount / progress.spent) * 100
+      : budget.amount > 0
+      ? (amount / budget.amount) * 100
+      : 0
+  const limitLinePct = isExceeded && progress.spent > 0 ? (budget.amount / progress.spent) * 100 : null
+
   return (
     <Page title={budget.name}>
       <div className="max-w-2xl mx-auto p-4 pb-12 space-y-4">
@@ -157,17 +165,23 @@ export default function BudgetViewPage() {
             </div>
 
             {/* Segmented bar (Apple storage style) */}
-            <div className={cn('flex h-4 w-full overflow-hidden rounded-full bg-muted', isExceeded && 'ring-1 ring-red-500')}>
+            <div className={cn('relative flex h-4 w-full overflow-hidden rounded-full bg-muted', isExceeded && 'ring-1 ring-red-500')}>
               {categoryTotals.map(s => (
                 <div
                   key={s.category.id}
-                  style={{ width: `${s.segPct}%`, backgroundColor: s.category.color }}
+                  style={{ width: `${getSegWidth(s.amount)}%`, backgroundColor: s.category.color }}
                   className={cn(
                     'h-full transition-opacity duration-200',
                     selectedCategoryId && selectedCategoryId !== s.category.id ? 'opacity-30' : 'opacity-100',
                   )}
                 />
               ))}
+              {limitLinePct !== null && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-white/80 z-10"
+                  style={{ left: `${limitLinePct}%` }}
+                />
+              )}
             </div>
 
             {/* Category breakdown rows */}
