@@ -43,6 +43,11 @@ export default function BudgetViewPage() {
     )
   }, [data, selectedCategoryId])
 
+  const sortedTransactions = useMemo(
+    () => visibleTransactions.slice().sort((a, b) => b.date.localeCompare(a.date)),
+    [visibleTransactions],
+  )
+
   if (isLoading) {
     return (
       <Page title="Budget">
@@ -216,8 +221,9 @@ export default function BudgetViewPage() {
             <div className="flex flex-wrap gap-1.5 px-1">
               <button
                 onClick={() => setSelectedCategoryId(null)}
+                aria-pressed={selectedCategoryId === null}
                 className={cn(
-                  'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                  'px-3 py-1 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   selectedCategoryId === null
                     ? 'bg-foreground text-background'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80',
@@ -233,13 +239,14 @@ export default function BudgetViewPage() {
                       selectedCategoryId === entry.category.id ? null : entry.category.id,
                     )
                   }
+                  aria-pressed={selectedCategoryId === entry.category.id}
                   style={
                     selectedCategoryId === entry.category.id
                       ? { backgroundColor: entry.category.color }
                       : undefined
                   }
                   className={cn(
-                    'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                    'px-3 py-1 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     selectedCategoryId === entry.category.id
                       ? 'text-white'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80',
@@ -264,10 +271,7 @@ export default function BudgetViewPage() {
           ) : (
             <Card>
               <CardContent className="p-0 divide-y divide-border">
-                {visibleTransactions
-                  .slice()
-                  .sort((a, b) => b.date.localeCompare(a.date))
-                  .map(t => (
+                {sortedTransactions.map(t => (
                     <Link
                       key={t.id}
                       to={`/transactions/${t.id}`}
