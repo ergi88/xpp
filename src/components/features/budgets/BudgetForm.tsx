@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -68,6 +69,16 @@ export function BudgetForm({
             ...defaultValues,
         },
     })
+
+    const explicitCurrencyId = defaultValues?.currency_id ?? null
+
+    useEffect(() => {
+        if (explicitCurrencyId) return
+        const base = currencies?.find(c => c.isBase)
+        if (base && !form.getValues('currency_id')) {
+            form.setValue('currency_id', base.id)
+        }
+    }, [currencies, explicitCurrencyId, form])
 
     const selectedTagIds = form.watch('tag_ids') ?? []
 
