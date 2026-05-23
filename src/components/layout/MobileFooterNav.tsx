@@ -7,6 +7,7 @@ import {
   CreditCard,
   Download,
   HandCoins,
+  Minus,
   PiggyBank,
   Plus,
   RefreshCw,
@@ -15,6 +16,26 @@ import {
   WifiOff,
 } from "lucide-react";
 import { Sheet, type SheetRef } from "react-modal-sheet";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import {
   Sheet as ShadSheet,
@@ -29,7 +50,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings } from "@/hooks";
 import { useSyncStatus } from "@/hooks/use-sync-status";
 import { usePWAInstall } from "@/hooks/use-pwa-install";
-import { useNavConfig, NAV_ITEM_REGISTRY } from "@/hooks/use-nav-config";
+import { useNavConfig, NAV_ITEM_REGISTRY, type NavItemId } from "@/hooks/use-nav-config";
 import { cn } from "@/lib/utils";
 
 const ACTIONS = [
@@ -108,6 +129,160 @@ function SyncFooter() {
   );
 }
 
+function SortableNavItem({
+  id,
+  isEditMode,
+  showLabels,
+  onRemove,
+}: {
+  id: NavItemId;
+  isEditMode: boolean;
+  showLabels: boolean;
+  onRemove: (id: NavItemId) => void;
+}) {
+  const item = NAV_ITEM_REGISTRY[id];
+  const Icon = item.icon;
+  const location = useLocation();
+  const isActive = item.end
+    ? location.pathname === item.to
+    : location.pathname.startsWith(item.to);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative flex flex-col items-center justify-center"
+    >
+      <button
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => onRemove(id)}
+        className="absolute -top-1 -left-1 z-10 size-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm"
+        aria-label={`Remove ${item.label}`}
+      >
+        <Minus className="size-2.5" />
+      </button>
+      <div
+        {...attributes}
+        {...listeners}
+        className={cn(
+          "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs transition-colors cursor-grab active:cursor-grabbing",
+          isActive ? "text-primary" : "text-muted-foreground"
+        )}
+      >
+        <Icon className="size-5" />
+        {showLabels && <span className="text-[11px]">{item.label}</span>}
+      </div>
+    </div>
+  );
+}
+
+function DraggablePoolItem({
+  id,
+  canAdd,
+  onAdd,
+}: {
+  id: NavItemId;
+  canAdd: boolean;
+  onAdd: (id: NavItemId) => void;
+}) {
+  const item = NAV_ITEM_REGISTRY[id];
+  const Icon = item.icon;
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `pool:${id}`,
+    disabled: !canAdd,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="relative"
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={() => canAdd && onAdd(id)}
+        className={cn(
+          "flex w-full flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs transition-colors",
+          canAdd
+            ? "text-foreground cursor-grab active:cursor-grabbing hover:bg-muted"
+            : "text-muted-foreground/40 cursor-not-allowed"
+        )}
+        title={!canAdd ? "Remove one item first" : undefined}
+        aria-label={canAdd ? `Add ${item.label} to main nav` : "Remove one item first"}
+      >
+        <Icon className="size-5" />
+        <span className="text-[11px]">{item.label}</span>
+      </button>
+      {canAdd && (
+        <span className="pointer-events-none absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Plus className="size-2" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PoolItem({ id }: { id: NavItemId }) {
+  const item = NAV_ITEM_REGISTRY[id];
+  const Icon = item.icon;
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) =>
+        cn(
+          "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors",
+          isActive && "text-primary bg-primary/5"
+        )
+      }
+      aria-label={item.label}
+    >
+      <Icon className="size-5" />
+      <span className="text-[11px]">{item.label}</span>
+    </NavLink>
+  );
+}
+
+function MainNavDropZone({
+  children,
+  isDraggingFromPool,
+}: {
+  children: React.ReactNode;
+  isDraggingFromPool: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: "main-nav-zone" });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "rounded-xl transition-colors",
+        isDraggingFromPool && isOver && "bg-primary/5 ring-1 ring-primary/20"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function MobileFooterNav() {
   const isMobile = useIsMobile();
   const keyboardVisible = useKeyboardVisible();
@@ -115,7 +290,7 @@ export function MobileFooterNav() {
   const { data: settings } = useSettings();
   const enabled = settings?.mobile_footer_enabled ?? true;
   const showLabels = settings?.mobile_footer_labels ?? true;
-  const { mainNav, pool } = useNavConfig();
+  const { mainNav, pool, setMainNav } = useNavConfig();
 
   const sheetRef = useRef<SheetRef | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -133,6 +308,63 @@ export function MobileFooterNav() {
   }, []);
   const EXPANDED_HEIGHT = Math.round(windowHeight * 0.58);
 
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [activeId, setActiveId] = useState<NavItemId | null>(null);
+  const [isDraggingFromPool, setIsDraggingFromPool] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  function handleDragStart({ active }: DragStartEvent) {
+    const idStr = String(active.id);
+    const isPool = idStr.startsWith("pool:");
+    setIsDraggingFromPool(isPool);
+    setActiveId((isPool ? idStr.replace("pool:", "") : idStr) as NavItemId);
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveId(null);
+    setIsDraggingFromPool(false);
+
+    const activeIdStr = String(active.id);
+    const isFromPool = activeIdStr.startsWith("pool:");
+
+    if (isFromPool) {
+      const realId = activeIdStr.replace("pool:", "") as NavItemId;
+      if (mainNav.length >= 4 || !over) return;
+      const overIdStr = String(over.id);
+      if (mainNav.includes(overIdStr as NavItemId)) {
+        const overIndex = mainNav.indexOf(overIdStr as NavItemId);
+        const newNav = [...mainNav];
+        newNav.splice(overIndex, 0, realId);
+        setMainNav(newNav.slice(0, 4));
+      } else if (overIdStr === "main-nav-zone") {
+        setMainNav([...mainNav, realId]);
+      }
+      return;
+    }
+
+    if (!over || active.id === over.id) return;
+    const oldIndex = mainNav.indexOf(active.id as NavItemId);
+    const newIndex = mainNav.indexOf(over.id as NavItemId);
+    if (oldIndex !== -1 && newIndex !== -1) {
+      setMainNav(arrayMove(mainNav, oldIndex, newIndex));
+    }
+  }
+
+  function handleRemove(id: NavItemId) {
+    setMainNav(mainNav.filter((item) => item !== id));
+  }
+
+  function handleAdd(id: NavItemId) {
+    if (mainNav.length >= 4) return;
+    setMainNav([...mainNav, id]);
+  }
+
+  const canAdd = mainNav.length < 4;
+
   const preferredAction = useMemo(() => {
     const path = location.pathname;
     if (path.startsWith("/budgets")) return "budget";
@@ -147,6 +379,7 @@ export function MobileFooterNav() {
 
   useEffect(() => {
     sheetRef.current?.snapTo(1);
+    setIsEditMode(false);
   }, [location.pathname]);
 
   if (!isMobile || !enabled || keyboardVisible) return null;
@@ -171,131 +404,186 @@ export function MobileFooterNav() {
       >
         <Sheet.Header disableDrag={false} />
         <Sheet.Content disableDrag={false} scrollRef={scrollRef} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          {/* Main nav row — always visible */}
-          <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2">
-            {/* Left 2 nav items */}
-            {mainNav.slice(0, 2).map((id) => {
-              const item = NAV_ITEM_REGISTRY[id];
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={id}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
-                      isActive && "text-primary"
-                    )
-                  }
-                  aria-label={item.label}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            {/* Edit button — only when expanded */}
+            {isExpanded && (
+              <div className="flex items-center justify-end px-4 pt-2 pb-0">
+                <button
+                  onClick={() => setIsEditMode((v) => !v)}
+                  className="text-xs font-medium text-primary px-1 py-0.5"
                 >
-                  <Icon className="size-5" />
-                  {showLabels && <span className="text-[11px]">{item.label}</span>}
-                </NavLink>
-              );
-            })}
+                  {isEditMode ? "Done" : "Edit"}
+                </button>
+              </div>
+            )}
 
-            {/* Plus — always center col 3 */}
-            <ShadSheet>
-              <SheetTrigger asChild>
-                <Button
-                  size="icon"
-                  className="mx-auto size-12 rounded-full shadow-lg"
-                  aria-label="Quick actions"
-                >
-                  <Plus className="size-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="bottom"
-                className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
-              >
-                <SheetHeader>
-                  <SheetTitle>Quick actions</SheetTitle>
-                  <SheetDescription>
-                    Start a new transaction or add supporting data.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="flex flex-col gap-2 px-4 pb-4">
-                  {orderedActions.map((action) => {
-                    const ActionIcon = action.icon;
+            {/* Main nav row — always visible */}
+            <SortableContext items={mainNav} strategy={horizontalListSortingStrategy}>
+              <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
+                <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2">
+                  {/* Left 2 nav items */}
+                  {mainNav.slice(0, 2).map((id) => {
+                    const item = NAV_ITEM_REGISTRY[id];
+                    const Icon = item.icon;
+                    if (isEditMode) {
+                      return (
+                        <SortableNavItem
+                          key={id}
+                          id={id}
+                          isEditMode={isEditMode}
+                          showLabels={showLabels}
+                          onRemove={handleRemove}
+                        />
+                      );
+                    }
                     return (
-                      <SheetClose key={action.id} asChild>
-                        <Button
-                          asChild
-                          variant="ghost"
-                          className="justify-center gap-3 border border-muted"
-                        >
-                          <Link to={action.to}>
-                            <ActionIcon className="size-4" />
-                            {action.label}
-                          </Link>
-                        </Button>
-                      </SheetClose>
+                      <NavLink
+                        key={id}
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
+                            isActive && "text-primary"
+                          )
+                        }
+                        aria-label={item.label}
+                      >
+                        <Icon className="size-5" />
+                        {showLabels && <span className="text-[11px]">{item.label}</span>}
+                      </NavLink>
+                    );
+                  })}
+
+                  {/* Plus — always center col 3, disabled in edit mode */}
+                  <ShadSheet>
+                    <SheetTrigger asChild>
+                      <Button
+                        size="icon"
+                        className="mx-auto size-12 rounded-full shadow-lg"
+                        aria-label="Quick actions"
+                        disabled={isEditMode}
+                      >
+                        <Plus className="size-5" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent
+                      side="bottom"
+                      className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+                    >
+                      <SheetHeader>
+                        <SheetTitle>Quick actions</SheetTitle>
+                        <SheetDescription>
+                          Start a new transaction or add supporting data.
+                        </SheetDescription>
+                      </SheetHeader>
+                      <div className="flex flex-col gap-2 px-4 pb-4">
+                        {orderedActions.map((action) => {
+                          const ActionIcon = action.icon;
+                          return (
+                            <SheetClose key={action.id} asChild>
+                              <Button
+                                asChild
+                                variant="ghost"
+                                className="justify-center gap-3 border border-muted"
+                              >
+                                <Link to={action.to}>
+                                  <ActionIcon className="size-4" />
+                                  {action.label}
+                                </Link>
+                              </Button>
+                            </SheetClose>
+                          );
+                        })}
+                      </div>
+                    </SheetContent>
+                  </ShadSheet>
+
+                  {/* Right 2 nav items */}
+                  {mainNav.slice(2, 4).map((id) => {
+                    const item = NAV_ITEM_REGISTRY[id];
+                    const Icon = item.icon;
+                    if (isEditMode) {
+                      return (
+                        <SortableNavItem
+                          key={id}
+                          id={id}
+                          isEditMode={isEditMode}
+                          showLabels={showLabels}
+                          onRemove={handleRemove}
+                        />
+                      );
+                    }
+                    return (
+                      <NavLink
+                        key={id}
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
+                            isActive && "text-primary"
+                          )
+                        }
+                        aria-label={item.label}
+                      >
+                        <Icon className="size-5" />
+                        {showLabels && <span className="text-[11px]">{item.label}</span>}
+                      </NavLink>
                     );
                   })}
                 </div>
-              </SheetContent>
-            </ShadSheet>
+              </MainNavDropZone>
+            </SortableContext>
 
-            {/* Right 2 nav items */}
-            {mainNav.slice(2, 4).map((id) => {
-              const item = NAV_ITEM_REGISTRY[id];
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={id}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
-                      isActive && "text-primary"
-                    )
-                  }
-                  aria-label={item.label}
-                >
-                  <Icon className="size-5" />
-                  {showLabels && <span className="text-[11px]">{item.label}</span>}
-                </NavLink>
-              );
-            })}
-          </div>
-
-          {/* Expanded content */}
-          {isExpanded && (
-            <div ref={scrollRef} className="flex flex-col overflow-y-auto">
-              {pool.length > 0 && (
-                <div className="px-4 pb-2">
-                  <div className="grid grid-cols-4 gap-1">
-                    {pool.map((id) => {
-                      const item = NAV_ITEM_REGISTRY[id];
-                      const Icon = item.icon;
-                      return (
-                        <NavLink
-                          key={id}
-                          to={item.to}
-                          end={item.end}
-                          className={({ isActive }) =>
-                            cn(
-                              "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors",
-                              isActive && "text-primary bg-primary/5"
-                            )
-                          }
-                          aria-label={item.label}
-                        >
-                          <Icon className="size-5" />
-                          <span className="text-[11px]">{item.label}</span>
-                        </NavLink>
-                      );
-                    })}
+            {/* Expanded content */}
+            {isExpanded && (
+              <div ref={scrollRef} className="flex flex-col overflow-y-auto">
+                {pool.length > 0 && (
+                  <div className="px-4 pb-2">
+                    <div className="grid grid-cols-4 gap-1">
+                      {pool.map((id) =>
+                        isEditMode ? (
+                          <DraggablePoolItem
+                            key={id}
+                            id={id}
+                            canAdd={canAdd}
+                            onAdd={handleAdd}
+                          />
+                        ) : (
+                          <PoolItem key={id} id={id} />
+                        )
+                      )}
+                    </div>
                   </div>
+                )}
+                <SyncFooter />
+              </div>
+            )}
+
+            {/* Drag overlay for pool items being dragged */}
+            <DragOverlay>
+              {activeId && isDraggingFromPool ? (
+                <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background px-2 py-3 text-xs shadow-lg ring-1 ring-border">
+                  {(() => {
+                    const item = NAV_ITEM_REGISTRY[activeId];
+                    const Icon = item.icon;
+                    return (
+                      <>
+                        <Icon className="size-5 text-foreground" />
+                        <span className="text-[11px] text-foreground">{item.label}</span>
+                      </>
+                    );
+                  })()}
                 </div>
-              )}
-              <SyncFooter />
-            </div>
-          )}
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </Sheet.Content>
       </Sheet.Container>
       <Sheet.Backdrop
