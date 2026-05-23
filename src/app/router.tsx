@@ -25,6 +25,7 @@ const CurrencyEditPage = lazy(() => import("@/pages/currencies/[id]/edit"));
 const BudgetsPage = lazy(() => import("@/pages/budgets"));
 const BudgetCreatePage = lazy(() => import("@/pages/budgets/create"));
 const BudgetEditPage = lazy(() => import("@/pages/budgets/[id]/edit"));
+const BudgetViewPage = lazy(() => import("@/pages/budgets/[id]/index"));
 const TagsPage = lazy(() => import("@/pages/tags"));
 const TagCreatePage = lazy(() => import("@/pages/tags/create"));
 const TagEditPage = lazy(() => import("@/pages/tags/[id]/edit"));
@@ -100,6 +101,7 @@ export const router = createBrowserRouter(
         },
         { path: "budgets", element: withSuspense(BudgetsPage) },
         { path: "budgets/create", element: withSuspense(BudgetCreatePage) },
+        { path: "budgets/:id", element: withSuspense(BudgetViewPage) },
         { path: "budgets/:id/edit", element: withSuspense(BudgetEditPage) },
         { path: "tags", element: withSuspense(TagsPage) },
         { path: "tags/create", element: withSuspense(TagCreatePage) },

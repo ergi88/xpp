@@ -26,6 +26,7 @@ export default function TransactionEditPage() {
               description: transaction.description ?? '',
               date: transaction.date,
               tag_ids: transaction.tags?.map(tag => tag.id) ?? [],
+              debt_id: transaction.debtId ?? null,
           }
         : undefined
 

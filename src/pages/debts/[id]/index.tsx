@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Receipt,
   CreditCard,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,11 +33,13 @@ import {
   useDebtPayment,
   useDebtCollection,
   useReopenDebt,
+  useLinkOriginTransaction,
 } from "@/hooks";
-import { DebtPaymentDialog } from "@/components/features/debts";
+import { DebtPaymentDialog, LinkOriginTransactionDialog } from "@/components/features/debts";
 import { useState } from "react";
 import { DebtPaymentFormData } from "@/schemas";
 import type { Transaction } from "@/types";
+import { formatDisplayDate } from "@/lib/date";
 
 function TransactionRow({
   txn,
@@ -63,7 +66,7 @@ function TransactionRow({
             {txn.description || txn.type}
           </p>
           <p className="text-xs text-muted-foreground">
-            {txn.date} · {txn.account?.name}
+            {formatDisplayDate(txn.date)} · {txn.account?.name}
           </p>
         </div>
       </div>
@@ -98,6 +101,8 @@ export default function DebtViewPage() {
   const [paymentMode, setPaymentMode] = useState<"payment" | "collection">(
     "payment",
   );
+  const [linkOriginOpen, setLinkOriginOpen] = useState(false);
+  const linkOriginTransaction = useLinkOriginTransaction();
 
   if (debtLoading) {
     return (
@@ -264,7 +269,7 @@ export default function DebtViewPage() {
 
           {debt.dueDate && (
             <p className="text-sm text-muted-foreground">
-              Due: {debt.dueDate}
+              Due: {formatDisplayDate(debt.dueDate)}
             </p>
           )}
 
@@ -321,10 +326,20 @@ export default function DebtViewPage() {
               label={isIOwe ? "Received" : "Paid"}
             />
           ) : (
-            <p className="text-sm text-muted-foreground italic">
-              No origin transaction — debt was created without a linked
-              transaction.
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-muted-foreground italic flex-1">
+                No origin transaction — debt was created without a linked
+                transaction.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setLinkOriginOpen(true)}
+              >
+                <Link2 className="size-3.5 mr-1.5" />
+                Link Transaction
+              </Button>
+            </div>
           )}
         </div>
 
@@ -360,6 +375,21 @@ export default function DebtViewPage() {
         isSubmitting={debtPayment.isPending || debtCollection.isPending}
         mode={paymentMode}
       />
+
+      {!txnData?.origin && (
+        <LinkOriginTransactionDialog
+          open={linkOriginOpen}
+          onOpenChange={setLinkOriginOpen}
+          debt={debt}
+          onLink={(txnId) => {
+            linkOriginTransaction.mutate(
+              { id: debt.id, transactionId: txnId },
+              { onSuccess: () => setLinkOriginOpen(false) },
+            );
+          }}
+          isLinking={linkOriginTransaction.isPending}
+        />
+      )}
     </Page>
   );
 }

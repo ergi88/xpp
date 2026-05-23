@@ -22,3 +22,10 @@ export function parseLocalDate(yyyymmdd: string): Date {
   const [y, m, d] = yyyymmdd.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
+
+export function formatDisplayDate(raw: unknown): string {
+  const iso = toLocalDateString(raw)
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}

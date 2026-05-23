@@ -8,7 +8,7 @@ import {
   parseAsStringLiteral,
   parseAsBoolean,
 } from "nuqs";
-import { Plus, Download, Search } from "lucide-react";
+import { Plus, Download, Search, CheckSquare, Square } from "lucide-react";
 import { Page, PageHeader, ServerPagination } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,7 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("transactions");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showCheckboxes, setShowCheckboxes] = useState(false);
 
   // Fetch the full month worth of transactions
   const monthDateRange = getDateRange("month", params.navDate);
@@ -144,6 +145,7 @@ export default function TransactionsPage() {
     (params.page - 1) * PER_PAGE,
     params.page * PER_PAGE,
   );
+  console.log("🚀 ~ TransactionsPage ~ transactions:", { transactions });
   const transactionsRef = useRef<typeof transactions>([]);
   transactionsRef.current = transactions;
   const meta =
@@ -303,6 +305,19 @@ export default function TransactionsPage() {
               tags={tags ?? []}
               onApply={handleApplyFilters}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="md:hidden shrink-0 h-10 w-10"
+              title={showCheckboxes ? "Hide checkboxes" : "Show checkboxes"}
+              onClick={() => setShowCheckboxes((v) => !v)}
+            >
+              {showCheckboxes ? (
+                <CheckSquare className="size-5" />
+              ) : (
+                <Square className="size-5" />
+              )}
+            </Button>
           </div>
 
           {/* Grouped table */}
@@ -319,6 +334,7 @@ export default function TransactionsPage() {
               onSelectAll={handleSelectAll}
               onDelete={(id) => deleteTransaction.mutate(id)}
               onDuplicate={(id) => duplicateTransaction.mutate(id)}
+              showCheckboxes={showCheckboxes}
             />
           )}
 
@@ -344,20 +360,22 @@ export default function TransactionsPage() {
       <BulkActionBar
         selectedCount={selectedIds.size}
         totalSelectableCount={totalSelectableCount}
-        categories={categories ?? []}
         onClearSelection={handleClearSelection}
         onBulkDelete={() => {
           bulkDelete.mutate(Array.from(selectedIds), {
             onSuccess: () => setSelectedIds(new Set()),
           });
         }}
-        onBulkEdit={({ categoryId }) => {
-          if (!categoryId) return;
+        onBulkEdit={({ categoryId, isOneTime, isExcluded }) => {
+          const data: Record<string, unknown> = {};
+          if (categoryId) data.category_id = categoryId;
+          if (isOneTime !== null && isOneTime !== undefined)
+            data.is_one_time = isOneTime;
+          if (isExcluded !== null && isExcluded !== undefined)
+            data.is_excluded = isExcluded;
+          if (Object.keys(data).length === 0) return;
           bulkUpdate.mutate(
-            {
-              ids: Array.from(selectedIds),
-              data: { category_id: categoryId },
-            },
+            { ids: Array.from(selectedIds), data },
             { onSuccess: () => setSelectedIds(new Set()) },
           );
         }}

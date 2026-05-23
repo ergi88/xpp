@@ -1,3 +1,5 @@
 export { DebtForm } from './DebtForm'
 export { DebtPaymentDialog } from './DebtPaymentDialog'
 export { createDebtColumns } from './columns'
+export { LinkOriginTransactionDialog } from './LinkOriginTransactionDialog'
+export { MergeDebtsDialog } from './MergeDebtsDialog'

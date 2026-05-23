@@ -18,6 +18,7 @@ interface GroupedTransactionTableProps {
   onSelectAll: (checked: boolean) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  showCheckboxes?: boolean;
 }
 
 // Only income/expense transactions participate in selection
@@ -62,10 +63,6 @@ function getAvatarLetter(t: Transaction): string {
   return label.charAt(0).toUpperCase();
 }
 
-// Grid column template: mobile hides category col, desktop shows it
-const GRID =
-  "grid grid-cols-[40px_1fr_140px] md:grid-cols-[40px_1fr_180px_140px]";
-
 export function GroupedTransactionTable({
   transactions,
   selectedIds,
@@ -74,7 +71,14 @@ export function GroupedTransactionTable({
   onSelectAll,
   onDelete,
   onDuplicate,
+  showCheckboxes = true,
 }: GroupedTransactionTableProps) {
+  const GRID = showCheckboxes
+    ? "grid grid-cols-[40px_1fr_140px] md:grid-cols-[40px_1fr_180px_140px]"
+    : "grid grid-cols-[1fr_140px] md:grid-cols-[40px_1fr_180px_140px]";
+  const checkboxCellClass = showCheckboxes
+    ? "flex items-center justify-center"
+    : "hidden md:flex items-center justify-center";
   const navigate = useNavigate();
 
   const groups = useMemo(() => groupByDate(transactions), [transactions]);
@@ -104,7 +108,7 @@ export function GroupedTransactionTable({
           "items-center px-0 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wide",
         )}
       >
-        <div className="flex items-center justify-center">
+        <div className={checkboxCellClass}>
           <Checkbox
             checked={
               allSelected ? true : someSelected ? "indeterminate" : false
@@ -161,7 +165,7 @@ export function GroupedTransactionTable({
                 "items-center py-2 bg-muted/30 text-sm font-semibold",
               )}
             >
-              <div className="flex items-center justify-center">
+              <div className={checkboxCellClass}>
                 <Checkbox
                   checked={
                     groupAllSelected
@@ -239,7 +243,7 @@ export function GroupedTransactionTable({
                   >
                     {/* Checkbox cell */}
                     <div
-                      className="flex items-center justify-center"
+                      className={checkboxCellClass}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isTransfer ? (
