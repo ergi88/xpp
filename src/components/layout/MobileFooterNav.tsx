@@ -4,6 +4,7 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
+  BarChart3,
   CreditCard,
   Download,
   HandCoins,
@@ -141,6 +142,7 @@ const FOLDER_LINKS = [
   { to: "/budgets", label: "Budgets", icon: PiggyBank },
   { to: "/debts", label: "Debts", icon: HandCoins },
   { to: "/recurring", label: "Recurring", icon: Repeat },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
 interface FolderNavItemProps {
