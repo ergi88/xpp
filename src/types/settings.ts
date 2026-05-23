@@ -5,4 +5,5 @@ export interface Settings {
   lock_timeout_minutes: number;
   mobile_footer_enabled: boolean;
   mobile_footer_labels: boolean;
+  mobile_nav_config?: string;
 }

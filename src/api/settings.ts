@@ -12,6 +12,7 @@ const defaults: Settings = {
   lock_timeout_minutes: 5,
   mobile_footer_enabled: true,
   mobile_footer_labels: true,
+  mobile_nav_config: undefined,
 };
 
 async function writeToSheet(key: string, value: string): Promise<void> {
@@ -78,6 +79,9 @@ export const settingsApi = {
         updates.mobile_footer_enabled = map.mobile_footer_enabled !== "false";
       if (map.mobile_footer_labels !== undefined)
         updates.mobile_footer_labels = map.mobile_footer_labels !== "false";
+
+      if (map.mobile_nav_config !== undefined)
+        updates.mobile_nav_config = map.mobile_nav_config;
 
       if (Object.keys(updates).length > 0) {
         const current = await settingsApi.get();
