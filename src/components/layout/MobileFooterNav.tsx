@@ -114,17 +114,24 @@ export function MobileFooterNav() {
   const location = useLocation();
   const { data: settings } = useSettings();
   const enabled = settings?.mobile_footer_enabled ?? true;
+  const showLabels = settings?.mobile_footer_labels ?? true;
   const { mainNav, pool } = useNavConfig();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sheetRef = useRef<SheetRef>(null as any);
+  const sheetRef = useRef<SheetRef | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [snapIndex, setSnapIndex] = useState(1);
   const isExpanded = snapIndex === 0;
 
   const COLLAPSED_HEIGHT = 76;
-  const EXPANDED_HEIGHT = Math.round(
-    typeof window !== "undefined" ? window.innerHeight * 0.58 : 500
+  const [windowHeight, setWindowHeight] = useState(
+    typeof window !== "undefined" ? window.innerHeight : 800
   );
+  useEffect(() => {
+    const handleResize = () => setWindowHeight(window.innerHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const EXPANDED_HEIGHT = Math.round(windowHeight * 0.58);
 
   const preferredAction = useMemo(() => {
     const path = location.pathname;
@@ -163,7 +170,7 @@ export function MobileFooterNav() {
         className="bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-t"
       >
         <Sheet.Header disableDrag={false} />
-        <Sheet.Content disableDrag={false} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <Sheet.Content disableDrag={false} scrollRef={scrollRef} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           {/* Main nav row — always visible */}
           <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2">
             {/* Left 2 nav items */}
@@ -184,7 +191,7 @@ export function MobileFooterNav() {
                   aria-label={item.label}
                 >
                   <Icon className="size-5" />
-                  <span className="text-[11px]">{item.label}</span>
+                  {showLabels && <span className="text-[11px]">{item.label}</span>}
                 </NavLink>
               );
             })}
@@ -250,7 +257,7 @@ export function MobileFooterNav() {
                   aria-label={item.label}
                 >
                   <Icon className="size-5" />
-                  <span className="text-[11px]">{item.label}</span>
+                  {showLabels && <span className="text-[11px]">{item.label}</span>}
                 </NavLink>
               );
             })}
@@ -258,7 +265,7 @@ export function MobileFooterNav() {
 
           {/* Expanded content */}
           {isExpanded && (
-            <div className="flex flex-col overflow-y-auto">
+            <div ref={scrollRef} className="flex flex-col overflow-y-auto">
               {pool.length > 0 && (
                 <div className="px-4 pb-2">
                   <div className="grid grid-cols-4 gap-1">
