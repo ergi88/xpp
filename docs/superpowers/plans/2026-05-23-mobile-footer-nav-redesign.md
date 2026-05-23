@@ -1236,7 +1236,225 @@ Replace the `{/* Main nav row */}` header div with:
 
 > Remove the spacer div from Step 5 — it's now a clean single edit button row.
 
-- [ ] **Step 8: Verify TypeScript**
+- [ ] **Step 8: Add cross-container drag imports**
+
+In `src/components/layout/MobileFooterNav.tsx`, update the `@dnd-kit/core` import line to add `useDraggable`, `useDroppable`, and `DragOverlay`:
+
+```tsx
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+} from "@dnd-kit/core";
+```
+
+- [ ] **Step 9: Add `DraggablePoolItem` component**
+
+Add this component after `PoolItem` in `src/components/layout/MobileFooterNav.tsx`. This replaces `PoolItem` in edit mode — it uses `useDraggable` so items can be dragged into the main nav row.
+
+```tsx
+function DraggablePoolItem({
+  id,
+  canAdd,
+  onAdd,
+}: {
+  id: NavItemId;
+  canAdd: boolean;
+  onAdd: (id: NavItemId) => void;
+}) {
+  const item = NAV_ITEM_REGISTRY[id];
+  const Icon = item.icon;
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `pool:${id}`,
+    disabled: !canAdd,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="relative"
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={() => canAdd && onAdd(id)}
+        className={cn(
+          "flex w-full flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs transition-colors",
+          canAdd
+            ? "text-foreground cursor-grab active:cursor-grabbing hover:bg-muted"
+            : "text-muted-foreground/40 cursor-not-allowed"
+        )}
+        title={!canAdd ? "Remove one item first" : undefined}
+        aria-label={canAdd ? `Add ${item.label} to main nav` : "Remove one item first"}
+      >
+        <Icon className="size-5" />
+        <span className="text-[11px]">{item.label}</span>
+      </button>
+      {canAdd && (
+        <span className="pointer-events-none absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Plus className="size-2" />
+        </span>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 10: Add `MainNavDropZone` component**
+
+Add this component after `DraggablePoolItem`:
+
+```tsx
+function MainNavDropZone({
+  children,
+  isDraggingFromPool,
+}: {
+  children: React.ReactNode;
+  isDraggingFromPool: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: "main-nav-zone" });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "rounded-xl transition-colors",
+        isDraggingFromPool && isOver && "bg-primary/5 ring-1 ring-primary/20"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 11: Update `handleDragStart` and `handleDragEnd` for cross-container**
+
+Replace the existing `handleDragStart`, `handleDragEnd`, `handleRemove`, `handleAdd`, and `canAdd` declarations inside `MobileFooterNav` with:
+
+```tsx
+const [activeId, setActiveId] = useState<NavItemId | null>(null);
+const [isDraggingFromPool, setIsDraggingFromPool] = useState(false);
+
+const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+);
+
+function handleDragStart({ active }: DragStartEvent) {
+  const idStr = String(active.id);
+  const isPool = idStr.startsWith("pool:");
+  setIsDraggingFromPool(isPool);
+  setActiveId((isPool ? idStr.replace("pool:", "") : idStr) as NavItemId);
+}
+
+function handleDragEnd({ active, over }: DragEndEvent) {
+  setActiveId(null);
+  setIsDraggingFromPool(false);
+
+  const activeIdStr = String(active.id);
+  const isFromPool = activeIdStr.startsWith("pool:");
+
+  if (isFromPool) {
+    const realId = activeIdStr.replace("pool:", "") as NavItemId;
+    if (mainNav.length >= 4 || !over) return;
+    const overIdStr = String(over.id);
+    if (mainNav.includes(overIdStr as NavItemId)) {
+      const overIndex = mainNav.indexOf(overIdStr as NavItemId);
+      const newNav = [...mainNav];
+      newNav.splice(overIndex, 0, realId);
+      setMainNav(newNav.slice(0, 4));
+    } else if (overIdStr === "main-nav-zone") {
+      setMainNav([...mainNav, realId]);
+    }
+    return;
+  }
+
+  if (!over || active.id === over.id) return;
+  const oldIndex = mainNav.indexOf(active.id as NavItemId);
+  const newIndex = mainNav.indexOf(over.id as NavItemId);
+  if (oldIndex !== -1 && newIndex !== -1) {
+    setMainNav(arrayMove(mainNav, oldIndex, newIndex));
+  }
+}
+
+function handleRemove(id: NavItemId) {
+  setMainNav(mainNav.filter((item) => item !== id));
+}
+
+function handleAdd(id: NavItemId) {
+  if (mainNav.length >= 4) return;
+  setMainNav([...mainNav, id]);
+}
+
+const canAdd = mainNav.length < 4;
+```
+
+- [ ] **Step 12: Wrap the main nav grid in `MainNavDropZone`**
+
+In the JSX, wrap the `<div className="grid grid-cols-5 ...">` (inside `DndContext > SortableContext`) with `MainNavDropZone`:
+
+```tsx
+<SortableContext items={mainNav} strategy={horizontalListSortingStrategy}>
+  <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
+    <div className="grid grid-cols-5 items-center gap-1 px-2 pb-2">
+      {/* ... left items, Plus, right items ... */}
+    </div>
+  </MainNavDropZone>
+</SortableContext>
+```
+
+- [ ] **Step 13: Use `DraggablePoolItem` in edit mode, add `DragOverlay`**
+
+In the pool section (`{pool.length > 0 && ...}`), update the pool item renderer:
+
+```tsx
+{pool.map((id) =>
+  isEditMode ? (
+    <DraggablePoolItem
+      key={id}
+      id={id}
+      canAdd={canAdd}
+      onAdd={handleAdd}
+    />
+  ) : (
+    <PoolItem key={id} id={id} isEditMode={false} canAdd={canAdd} onAdd={handleAdd} />
+  )
+)}
+```
+
+Add `DragOverlay` as the last child inside the `DndContext`, just before its closing tag:
+
+```tsx
+<DragOverlay>
+  {activeId && isDraggingFromPool ? (
+    <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background px-2 py-3 text-xs shadow-lg ring-1 ring-border">
+      {(() => {
+        const item = NAV_ITEM_REGISTRY[activeId];
+        const Icon = item.icon;
+        return (
+          <>
+            <Icon className="size-5 text-foreground" />
+            <span className="text-[11px] text-foreground">{item.label}</span>
+          </>
+        );
+      })()}
+    </div>
+  ) : null}
+</DragOverlay>
+```
+
+- [ ] **Step 14: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | head -30
@@ -1244,7 +1462,7 @@ npx tsc --noEmit 2>&1 | head -30
 
 Expected: no errors.
 
-- [ ] **Step 9: Run all tests**
+- [ ] **Step 15: Run all tests**
 
 ```bash
 npx vitest run
@@ -1252,11 +1470,11 @@ npx vitest run
 
 Expected: all tests pass.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 16: Commit**
 
 ```bash
 git add src/components/layout/MobileFooterNav.tsx
-git commit -m "feat: add edit mode and DnD to MobileFooterNav (reorder, add/remove nav items)"
+git commit -m "feat: add edit mode and DnD to MobileFooterNav (reorder, cross-container drag/tap add/remove)"
 ```
 
 ---
@@ -1313,7 +1531,4 @@ git commit -m "fix: update AppLayout bottom padding for new nav collapsed height
 - ✅ AppLayout padding — Task 7
 - ✅ Quick-actions Plus sheet unchanged — Tasks 5, 6
 
-**Not implemented (out of scope):**
-- Drag from pool into main nav row (drag-to-add cross-container) — only tap-to-add is implemented. Full cross-container drag requires additional `useDroppable` zones on the main nav row and hit-testing logic; can be added as a follow-up.
-
-> **Note to implementer:** The spec mentioned drag-from-pool as an option alongside tap. This plan implements tap-to-add only. Cross-container drag is architecturally compatible (same `DndContext`) but adds significant complexity. Verify with user if drag-to-add from pool is required before implementing.
+- ✅ Drag-from-pool cross-container into main nav — Task 6 Steps 8–13
