@@ -50,17 +50,47 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings } from "@/hooks";
 import { useSyncStatus } from "@/hooks/use-sync-status";
 import { usePWAInstall } from "@/hooks/use-pwa-install";
-import { useNavConfig, NAV_ITEM_REGISTRY, type NavItemId } from "@/hooks/use-nav-config";
+import {
+  useNavConfig,
+  NAV_ITEM_REGISTRY,
+  type NavItemId,
+} from "@/hooks/use-nav-config";
 import { cn } from "@/lib/utils";
+import { useSafeAreaInsets } from "@/hooks/use-safe-area-insets";
 
 const ACTIONS = [
-  { id: "expense",   label: "New expense",   to: "/transactions/create?type=expense",  icon: ArrowUpRight },
-  { id: "income",    label: "New income",    to: "/transactions/create?type=income",   icon: ArrowDownLeft },
-  { id: "transfer",  label: "Transfer",      to: "/transactions/create?type=transfer", icon: ArrowLeftRight },
-  { id: "budget",    label: "New budget",    to: "/budgets/create",                    icon: PiggyBank },
-  { id: "account",   label: "New account",   to: "/accounts/create",                   icon: CreditCard },
-  { id: "debt",      label: "New debt",      to: "/debts/create",                      icon: HandCoins },
-  { id: "recurring", label: "New recurring", to: "/recurring/create",                  icon: Repeat },
+  {
+    id: "expense",
+    label: "New expense",
+    to: "/transactions/create?type=expense",
+    icon: ArrowUpRight,
+  },
+  {
+    id: "income",
+    label: "New income",
+    to: "/transactions/create?type=income",
+    icon: ArrowDownLeft,
+  },
+  {
+    id: "transfer",
+    label: "Transfer",
+    to: "/transactions/create?type=transfer",
+    icon: ArrowLeftRight,
+  },
+  { id: "budget", label: "New budget", to: "/budgets/create", icon: PiggyBank },
+  {
+    id: "account",
+    label: "New account",
+    to: "/accounts/create",
+    icon: CreditCard,
+  },
+  { id: "debt", label: "New debt", to: "/debts/create", icon: HandCoins },
+  {
+    id: "recurring",
+    label: "New recurring",
+    to: "/recurring/create",
+    icon: Repeat,
+  },
 ];
 
 function useKeyboardVisible() {
@@ -68,7 +98,8 @@ function useKeyboardVisible() {
   useEffect(() => {
     if (!window.visualViewport) return;
     const viewport = window.visualViewport;
-    const handleResize = () => setVisible(window.innerHeight - viewport.height > 120);
+    const handleResize = () =>
+      setVisible(window.innerHeight - viewport.height > 120);
     handleResize();
     viewport.addEventListener("resize", handleResize);
     return () => viewport.removeEventListener("resize", handleResize);
@@ -83,16 +114,18 @@ function SyncFooter() {
   const syncLabel = !isOnline
     ? "Offline"
     : isSyncing
-    ? "Syncing…"
-    : lastSyncTime
-    ? `Synced ${(() => {
-        const mins = Math.floor((Date.now() - lastSyncTime.getTime()) / 60000);
-        if (mins < 1) return "just now";
-        if (mins < 60) return `${mins}m ago`;
-        const h = Math.floor(mins / 60);
-        return h < 24 ? `${h}h ago` : `${Math.floor(h / 24)}d ago`;
-      })()}`
-    : "Never synced";
+      ? "Syncing…"
+      : lastSyncTime
+        ? `Synced ${(() => {
+            const mins = Math.floor(
+              (Date.now() - lastSyncTime.getTime()) / 60000,
+            );
+            if (mins < 1) return "just now";
+            if (mins < 60) return `${mins}m ago`;
+            const h = Math.floor(mins / 60);
+            return h < 24 ? `${h}h ago` : `${Math.floor(h / 24)}d ago`;
+          })()}`
+        : "Never synced";
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-3 border-t">
@@ -182,7 +215,7 @@ function SortableNavItem({
         {...listeners}
         className={cn(
           "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs transition-colors cursor-grab active:cursor-grabbing",
-          isActive ? "text-primary" : "text-muted-foreground"
+          isActive ? "text-primary" : "text-muted-foreground",
         )}
       >
         <Icon className="size-5" />
@@ -223,10 +256,12 @@ function DraggablePoolItem({
           "flex w-full flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs transition-colors",
           canAdd
             ? "text-foreground cursor-grab active:cursor-grabbing hover:bg-muted"
-            : "text-muted-foreground/40 cursor-not-allowed"
+            : "text-muted-foreground/40 cursor-not-allowed",
         )}
         title={!canAdd ? "Remove one item first" : undefined}
-        aria-label={canAdd ? `Add ${item.label} to main nav` : "Remove one item first"}
+        aria-label={
+          canAdd ? `Add ${item.label} to main nav` : "Remove one item first"
+        }
       >
         <Icon className="size-5" />
         <span className="text-[11px]">{item.label}</span>
@@ -250,7 +285,7 @@ function PoolItem({ id }: { id: NavItemId }) {
       className={({ isActive }) =>
         cn(
           "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors",
-          isActive && "text-primary bg-primary/5"
+          isActive && "text-primary bg-primary/5",
         )
       }
       aria-label={item.label}
@@ -275,7 +310,7 @@ function MainNavDropZone({
       ref={setNodeRef}
       className={cn(
         "rounded-xl transition-colors",
-        isDraggingFromPool && isOver && "bg-primary/5 ring-1 ring-primary/20"
+        isDraggingFromPool && isOver && "bg-primary/5 ring-1 ring-primary/20",
       )}
     >
       {children}
@@ -295,18 +330,27 @@ export function MobileFooterNav() {
   const sheetRef = useRef<SheetRef | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [snapIndex, setSnapIndex] = useState(1);
-  const isExpanded = snapIndex === 0;
+  const isExpanded = snapIndex === 2;
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom;
 
-  const COLLAPSED_HEIGHT = 76;
-  const [windowHeight, setWindowHeight] = useState(
-    typeof window !== "undefined" ? window.innerHeight : 800
-  );
-  useEffect(() => {
-    const handleResize = () => setWindowHeight(window.innerHeight);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-  const EXPANDED_HEIGHT = Math.round(windowHeight * 0.58);
+  // const COLLAPSED_HEIGHT = 76;
+  const snapPoints = [0, 76 + bottomInset, 1];
+  console.log("🚀 ~ MobileFooterNav ~ snapIndex:", {
+    snapIndex,
+    bottomInset,
+    snapPoints,
+    sheetRef: sheetRef.current,
+  });
+  // const [windowHeight, setWindowHeight] = useState(
+  //   typeof window !== "undefined" ? window.innerHeight : 800,
+  // );
+  // useEffect(() => {
+  //   const handleResize = () => setWindowHeight(window.innerHeight);
+  //   window.addEventListener("resize", handleResize);
+  //   return () => window.removeEventListener("resize", handleResize);
+  // }, []);
+  // const EXPANDED_HEIGHT = Math.round(windowHeight * 0.58);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeId, setActiveId] = useState<NavItemId | null>(null);
@@ -314,7 +358,9 @@ export function MobileFooterNav() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    }),
   );
 
   function handleDragStart({ active }: DragStartEvent) {
@@ -374,8 +420,11 @@ export function MobileFooterNav() {
   }, [location.pathname]);
 
   const orderedActions = useMemo(
-    () => [...ACTIONS].sort((a, b) => (a.id === preferredAction ? -1 : b.id === preferredAction ? 1 : 0)),
-    [preferredAction]
+    () =>
+      [...ACTIONS].sort((a, b) =>
+        a.id === preferredAction ? -1 : b.id === preferredAction ? 1 : 0,
+      ),
+    [preferredAction],
   );
 
   useEffect(() => {
@@ -394,21 +443,32 @@ export function MobileFooterNav() {
       ref={sheetRef}
       isOpen={true}
       onClose={() => sheetRef.current?.snapTo(1)}
-      snapPoints={[EXPANDED_HEIGHT, COLLAPSED_HEIGHT]}
+      snapPoints={snapPoints}
       initialSnap={1}
-      onSnap={setSnapIndex}
+      onSnap={(indx) => setSnapIndex(indx)}
       style={{ zIndex: 40 }}
+      detent="content"
+      disableDismiss
+      disableScrollLocking
+      modalEffectRootId="root"
     >
       <Sheet.Container
         style={{
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
           boxShadow: "0 -4px 24px rgba(0,0,0,0.08)",
+          background: "unset",
         }}
-        className="bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-t"
+        className="backdrop-blur supports-backdrop-filter:bg-background/90 border-t"
       >
-        <Sheet.Header disableDrag={false} />
-        <Sheet.Content disableDrag={false} scrollRef={scrollRef} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <Sheet.Header style={{ height: "4px" }} disableDrag={false}>
+          <div className="mx-auto mt-2 mb-1 h-1.5 w-10 rounded-full bg-muted" />
+        </Sheet.Header>
+        <Sheet.Content
+          disableDrag={false}
+          scrollRef={scrollRef}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -428,7 +488,10 @@ export function MobileFooterNav() {
             )}
 
             {/* Main nav row — always visible */}
-            <SortableContext items={mainNav} strategy={horizontalListSortingStrategy}>
+            <SortableContext
+              items={mainNav}
+              strategy={horizontalListSortingStrategy}
+            >
               <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
                 <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2">
                   {/* Left 2 nav items */}
@@ -454,13 +517,15 @@ export function MobileFooterNav() {
                         className={({ isActive }) =>
                           cn(
                             "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
-                            isActive && "text-primary"
+                            isActive && "text-primary",
                           )
                         }
                         aria-label={item.label}
                       >
                         <Icon className="size-5" />
-                        {showLabels && <span className="text-[11px]">{item.label}</span>}
+                        {showLabels && (
+                          <span className="text-[11px]">{item.label}</span>
+                        )}
                       </NavLink>
                     );
                   })}
@@ -532,13 +597,15 @@ export function MobileFooterNav() {
                         className={({ isActive }) =>
                           cn(
                             "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
-                            isActive && "text-primary"
+                            isActive && "text-primary",
                           )
                         }
                         aria-label={item.label}
                       >
                         <Icon className="size-5" />
-                        {showLabels && <span className="text-[11px]">{item.label}</span>}
+                        {showLabels && (
+                          <span className="text-[11px]">{item.label}</span>
+                        )}
                       </NavLink>
                     );
                   })}
@@ -547,29 +614,29 @@ export function MobileFooterNav() {
             </SortableContext>
 
             {/* Expanded content */}
-            {isExpanded && (
-              <div ref={scrollRef} className="flex flex-col overflow-y-auto">
-                {pool.length > 0 && (
-                  <div className="px-4 pb-2">
-                    <div className="grid grid-cols-4 gap-1">
-                      {pool.map((id) =>
-                        isEditMode ? (
-                          <DraggablePoolItem
-                            key={id}
-                            id={id}
-                            canAdd={canAdd}
-                            onAdd={handleAdd}
-                          />
-                        ) : (
-                          <PoolItem key={id} id={id} />
-                        )
-                      )}
-                    </div>
+            {/* {isExpanded && ( */}
+            <div ref={scrollRef} className="flex flex-col overflow-y-auto">
+              {pool.length > 0 && (
+                <div className="px-4 pb-2">
+                  <div className="grid grid-cols-4 gap-1">
+                    {pool.map((id) =>
+                      isEditMode ? (
+                        <DraggablePoolItem
+                          key={id}
+                          id={id}
+                          canAdd={canAdd}
+                          onAdd={handleAdd}
+                        />
+                      ) : (
+                        <PoolItem key={id} id={id} />
+                      ),
+                    )}
                   </div>
-                )}
-                <SyncFooter />
-              </div>
-            )}
+                </div>
+              )}
+              <SyncFooter />
+            </div>
+            {/* )} */}
 
             {/* Drag overlay for pool items being dragged */}
             <DragOverlay>
@@ -581,7 +648,9 @@ export function MobileFooterNav() {
                     return (
                       <>
                         <Icon className="size-5 text-foreground" />
-                        <span className="text-[11px] text-foreground">{item.label}</span>
+                        <span className="text-[11px] text-foreground">
+                          {item.label}
+                        </span>
                       </>
                     );
                   })()}
