@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import type { CategoryTotal } from '@/lib/budget-period'
-import { cn } from '@/lib/utils'
-import { AmountText } from './AmountText'
+import { useEffect, useRef, useState } from "react";
+import type { CategoryTotal } from "@/lib/budget-period";
+import { cn } from "@/lib/utils";
+import { AmountText } from "./AmountText";
 
 interface SegmentedProgressBarProps {
-  categoryTotals: CategoryTotal[]
-  budgetAmount: number
-  spent: number
-  isExceeded: boolean
-  selectedCategoryId?: string | null
-  onSegmentClick?: (id: string | null) => void
-  decimals?: number
-  currency?: string
-  className?: string
+  categoryTotals: CategoryTotal[];
+  budgetAmount: number;
+  spent: number;
+  isExceeded: boolean;
+  selectedCategoryId?: string | null;
+  onSegmentClick?: (id: string | null) => void;
+  decimals?: number;
+  currency?: string;
+  className?: string;
 }
 
 export function SegmentedProgressBar({
@@ -23,66 +23,70 @@ export function SegmentedProgressBar({
   selectedCategoryId,
   onSegmentClick,
   decimals = 2,
-  currency = '',
+  currency = "",
   className,
 }: SegmentedProgressBarProps) {
-  const [activeTooltipId, setActiveTooltipId] = useState<string | null>(null)
-  const wrapperRef = useRef<HTMLDivElement>(null)
+  const [activeTooltipId, setActiveTooltipId] = useState<string | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setActiveTooltipId(null)
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
+        setActiveTooltipId(null);
       }
     }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [])
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   const getWidth = (amount: number) =>
     isExceeded && spent > 0
       ? (amount / spent) * 100
       : budgetAmount > 0
-      ? (amount / budgetAmount) * 100
-      : 0
+        ? (amount / budgetAmount) * 100
+        : 0;
 
-  const limitLinePct = isExceeded && spent > 0 ? (budgetAmount / spent) * 100 : null
+  const limitLinePct =
+    isExceeded && spent > 0 ? (budgetAmount / spent) * 100 : null;
 
-  let cumPct = 0
-  const segments = categoryTotals.map(s => {
-    const w = getWidth(s.amount)
-    const centerPct = cumPct + w / 2
-    cumPct += w
-    return { ...s, w, centerPct }
-  })
+  let cumPct = 0;
+  const segments = categoryTotals.map((s) => {
+    const w = getWidth(s.amount);
+    const centerPct = cumPct + w / 2;
+    cumPct += w;
+    return { ...s, w, centerPct };
+  });
 
-  const active = segments.find(s => s.category.id === activeTooltipId) ?? null
+  const active =
+    segments.find((s) => s.category.id === activeTooltipId) ?? null;
 
   function handleSegmentClick(id: string) {
-    const next = activeTooltipId === id ? null : id
-    setActiveTooltipId(next)
-    onSegmentClick?.(next)
+    const next = activeTooltipId === id ? null : id;
+    setActiveTooltipId(next);
+    onSegmentClick?.(next);
   }
 
   return (
-    <div ref={wrapperRef} className={cn('relative', className)}>
+    <div ref={wrapperRef} className={cn("relative", className)}>
       {/* Bar */}
       <div
         className={cn(
-          'relative flex h-4 w-full overflow-hidden rounded-full bg-muted',
-          isExceeded && 'ring-1 ring-red-500',
-          categoryTotals.length > 0 && 'cursor-pointer',
+          "relative flex gap-px h-4 w-full overflow-hidden rounded-xs bg-muted",
+          categoryTotals.length > 0 && "cursor-pointer",
         )}
       >
-        {segments.map(s => (
+        {segments.map((s) => (
           <div
             key={s.category.id}
             style={{ width: `${s.w}%`, backgroundColor: s.category.color }}
             className={cn(
-              'h-full transition-opacity duration-200',
+              "h-full transition-opacity duration-200",
               selectedCategoryId && selectedCategoryId !== s.category.id
-                ? 'opacity-30'
-                : 'opacity-100',
+                ? "opacity-30"
+                : "opacity-100",
             )}
             onClick={() => handleSegmentClick(s.category.id)}
           />
@@ -106,26 +110,38 @@ export function SegmentedProgressBar({
               className="size-2 rounded-full shrink-0"
               style={{ backgroundColor: active.category.color }}
             />
-            <span className="font-medium text-foreground">{active.category.name}</span>
+            <span className="font-medium text-foreground">
+              {active.category.name}
+            </span>
           </div>
           <div className="space-y-0.5 text-muted-foreground">
             <div className="flex justify-between gap-3">
               <span>Amount</span>
               <span className="font-mono text-foreground">
-                <AmountText value={active.amount} decimals={decimals} currency={currency} />
+                <AmountText
+                  value={active.amount}
+                  decimals={decimals}
+                  currency={currency}
+                />
               </span>
             </div>
             <div className="flex justify-between gap-3">
               <span>Of budget</span>
               <span className="font-mono text-foreground">
-                {budgetAmount > 0 ? ((active.amount / budgetAmount) * 100).toFixed(1) : '0.0'}%
+                {budgetAmount > 0
+                  ? ((active.amount / budgetAmount) * 100).toFixed(1)
+                  : "0.0"}
+                %
               </span>
             </div>
             {isExceeded && (
               <div className="flex justify-between gap-3">
                 <span>Of total</span>
                 <span className="font-mono text-foreground">
-                  {spent > 0 ? ((active.amount / spent) * 100).toFixed(1) : '0.0'}%
+                  {spent > 0
+                    ? ((active.amount / spent) * 100).toFixed(1)
+                    : "0.0"}
+                  %
                 </span>
               </div>
             )}
@@ -133,5 +149,5 @@ export function SegmentedProgressBar({
         </div>
       )}
     </div>
-  )
+  );
 }

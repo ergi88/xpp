@@ -6,6 +6,7 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
+  Hash,
 } from "lucide-react";
 import { Page, SegmentedProgressBar } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AmountText } from "@/components/shared/AmountText";
 import { CategoryPill } from "@/components/shared/CategoryPill";
 import { useBudgetWithProgress } from "@/hooks";
-import { computeCategoryTotals, periodLabel } from "@/lib/budget-period";
+import { computeCategoryTotals, computeTagTotals, periodLabel } from "@/lib/budget-period";
 import { cn } from "@/lib/utils";
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -29,13 +30,11 @@ const NAVIGABLE_PERIODS = new Set(["weekly", "monthly", "yearly"]);
 export default function BudgetViewPage() {
   const { id } = useParams<{ id: string }>();
   const [offset, setOffset] = useState(0);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    null,
-  );
+  const [filter, setFilter] = useState<{ type: 'category' | 'tag'; id: string } | null>(null);
   const { data, isLoading } = useBudgetWithProgress(id!, offset);
 
   useEffect(() => {
-    setSelectedCategoryId(null);
+    setFilter(null);
   }, [offset]);
 
   const categoryTotals = useMemo(
@@ -44,15 +43,21 @@ export default function BudgetViewPage() {
     [data],
   );
 
+  const tagTotals = useMemo(
+    () => computeTagTotals(data?.transactions ?? []),
+    [data],
+  );
+
   const visibleTransactions = useMemo(() => {
     if (!data) return [];
-    if (!selectedCategoryId) return data.transactions;
+    if (!filter) return data.transactions;
+    if (filter.type === 'tag') {
+      return data.transactions.filter((t) => t.tags.some((tag) => tag.id === filter.id));
+    }
     return data.transactions.filter((t) =>
-      selectedCategoryId === "__none__"
-        ? !t.category
-        : t.category?.id === selectedCategoryId,
+      filter.id === "__none__" ? !t.category : t.category?.id === filter.id,
     );
-  }, [data, selectedCategoryId]);
+  }, [data, filter]);
 
   const sortedTransactions = useMemo(
     () =>
@@ -137,16 +142,16 @@ export default function BudgetViewPage() {
               <p className="text-sm text-muted-foreground">
                 Applies to all expenses
               </p>
-            ) : budget.categories.length > 0 ? (
+            ) : (budget.categories.length > 0 || budget.tags.length > 0) ? (
               <div className="flex flex-wrap gap-1 pt-1">
                 {budget.categories.map((c) => (
-                  <CategoryPill
-                    key={c.id}
-                    name={c.name}
-                    icon={c.icon}
-                    color={c.color}
-                    size="sm"
-                  />
+                  <CategoryPill key={c.id} name={c.name} icon={c.icon} color={c.color} size="sm" />
+                ))}
+                {budget.tags.map((t) => (
+                  <Badge key={t.id} variant="secondary" className="text-xs gap-1">
+                    <Hash className="size-2.5" />
+                    {t.name}
+                  </Badge>
                 ))}
               </div>
             ) : null}
@@ -218,7 +223,7 @@ export default function BudgetViewPage() {
               budgetAmount={budget.amount}
               spent={progress.spent}
               isExceeded={isExceeded}
-              selectedCategoryId={selectedCategoryId}
+              selectedCategoryId={filter?.type === 'category' ? filter.id : null}
               decimals={decimals}
               currency={symbol}
             />
@@ -291,52 +296,88 @@ export default function BudgetViewPage() {
                 </span>
               </div>
             </div>
+
+            {/* Tag breakdown rows */}
+            {tagTotals.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-border">
+                {tagTotals.map((entry) => {
+                  const pct =
+                    budget.amount > 0 ? (entry.amount / budget.amount) * 100 : 0;
+                  return (
+                    <div key={entry.tag.id} className="flex items-center gap-2">
+                      <Hash className="size-2.5 shrink-0 text-muted-foreground" />
+                      <span className="text-sm flex-1 truncate">{entry.tag.name}</span>
+                      <span className="font-mono text-sm">
+                        <AmountText value={entry.amount} decimals={decimals} currency={symbol} />
+                      </span>
+                      <span className="text-xs text-muted-foreground w-10 text-right">
+                        {pct.toFixed(0)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Transactions */}
         <div className="space-y-2">
-          {/* Category filter chips — only when >1 category */}
-          {categoryTotals.length > 1 && (
+          {/* Filter chips — categories and tags */}
+          {(categoryTotals.length > 1 || tagTotals.length > 0) && (
             <div className="flex flex-wrap gap-1.5 px-1">
               <button
-                onClick={() => setSelectedCategoryId(null)}
-                aria-pressed={selectedCategoryId === null}
+                onClick={() => setFilter(null)}
+                aria-pressed={filter === null}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  selectedCategoryId === null
+                  filter === null
                     ? "bg-foreground text-background"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",
                 )}
               >
                 All
               </button>
-              {categoryTotals.map((entry) => (
-                <button
-                  key={entry.category.id}
-                  onClick={() =>
-                    setSelectedCategoryId(
-                      selectedCategoryId === entry.category.id
-                        ? null
-                        : entry.category.id,
-                    )
-                  }
-                  aria-pressed={selectedCategoryId === entry.category.id}
-                  style={
-                    selectedCategoryId === entry.category.id
-                      ? { backgroundColor: entry.category.color }
-                      : undefined
-                  }
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    selectedCategoryId === entry.category.id
-                      ? "text-white"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80",
-                  )}
-                >
-                  {entry.category.name}
-                </button>
-              ))}
+              {categoryTotals.map((entry) => {
+                const active = filter?.type === 'category' && filter.id === entry.category.id;
+                return (
+                  <button
+                    key={entry.category.id}
+                    onClick={() =>
+                      setFilter(active ? null : { type: 'category', id: entry.category.id })
+                    }
+                    aria-pressed={active}
+                    style={active ? { backgroundColor: entry.category.color } : undefined}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      active ? "text-white" : "bg-muted text-muted-foreground hover:bg-muted/80",
+                    )}
+                  >
+                    {entry.category.name}
+                  </button>
+                );
+              })}
+              {tagTotals.map((entry) => {
+                const active = filter?.type === 'tag' && filter.id === entry.tag.id;
+                return (
+                  <button
+                    key={entry.tag.id}
+                    onClick={() =>
+                      setFilter(active ? null : { type: 'tag', id: entry.tag.id })
+                    }
+                    aria-pressed={active}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center gap-1",
+                      active
+                        ? "bg-foreground text-background"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80",
+                    )}
+                  >
+                    <Hash className="size-2.5" />
+                    {entry.tag.name}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -347,8 +388,10 @@ export default function BudgetViewPage() {
           {visibleTransactions.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                {selectedCategoryId
-                  ? "No transactions for this category."
+                {filter
+                  ? filter.type === 'tag'
+                    ? "No transactions for this tag."
+                    : "No transactions for this category."
                   : "No transactions in this period."}
               </CardContent>
             </Card>

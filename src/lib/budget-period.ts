@@ -90,6 +90,23 @@ export interface CategoryTotal {
   segPct: number
 }
 
+export interface TagTotal {
+  tag: { id: string; name: string }
+  amount: number
+}
+
+export function computeTagTotals(transactions: Transaction[]): TagTotal[] {
+  const map = new Map<string, { tag: TagTotal['tag']; amount: number }>()
+  for (const t of transactions) {
+    for (const tag of t.tags) {
+      const prev = map.get(tag.id) ?? { tag: { id: tag.id, name: tag.name }, amount: 0 }
+      prev.amount += t.amount
+      map.set(tag.id, prev)
+    }
+  }
+  return [...map.values()].sort((a, b) => b.amount - a.amount)
+}
+
 export function computeCategoryTotals(
   transactions: Transaction[],
   budgetAmount: number,

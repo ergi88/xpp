@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, MoreHorizontal } from 'lucide-react'
+import { Pencil, Trash2, MoreHorizontal, Hash } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -117,14 +117,22 @@ export function BudgetCard({ budget, onDelete }: BudgetCardProps) {
           </div>
         </div>
 
-        {/* Categories */}
+        {/* Categories + Tags */}
         <div className="flex flex-wrap gap-1 min-h-5">
           {budget.isGlobal ? (
             <span className="text-xs text-muted-foreground">All expenses</span>
-          ) : budget.categories.length > 0 ? (
-            budget.categories.map(c => (
-              <CategoryPill key={c.id} name={c.name} icon={c.icon} color={c.color} size="sm" />
-            ))
+          ) : (budget.categories.length > 0 || budget.tags.length > 0) ? (
+            <>
+              {budget.categories.map(c => (
+                <CategoryPill key={c.id} name={c.name} icon={c.icon} color={c.color} size="sm" />
+              ))}
+              {budget.tags.map(t => (
+                <Badge key={t.id} variant="secondary" className="text-xs gap-1">
+                  <Hash className="size-2.5" />
+                  {t.name}
+                </Badge>
+              ))}
+            </>
           ) : (
             <span className="text-xs text-muted-foreground">No categories</span>
           )}

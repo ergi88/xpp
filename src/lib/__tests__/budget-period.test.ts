@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getPeriodBounds, inPeriod, budgetMatchesTxn, periodLabel, computeCategoryTotals, UNCATEGORIZED_COLOR } from '@/lib/budget-period'
+import { getPeriodBounds, inPeriod, budgetMatchesTxn, periodLabel, computeCategoryTotals, computeTagTotals, UNCATEGORIZED_COLOR } from '@/lib/budget-period'
 import type { Budget, Transaction } from '@/types'
 
 beforeEach(() => {
@@ -193,5 +193,54 @@ describe('computeCategoryTotals', () => {
     const txns = [makeTxn('t1', 100, 'food')]
     const result = computeCategoryTotals(txns, 0)
     expect(result[0].segPct).toBe(0)
+  })
+})
+
+describe('computeTagTotals', () => {
+  const makeTagTxn = (id: string, amount: number, tagIds: string[]) =>
+    ({
+      id,
+      amount,
+      date: '2026-05-01',
+      account: { id: 'a1' } as Transaction['account'],
+      items: [],
+      tags: tagIds.map(tid => ({ id: tid, name: tid })),
+      isExcluded: false,
+      isOneTime: false,
+      parentId: null,
+      debtId: null,
+      linkedTransactionId: null,
+      recurringId: null,
+      type: 'expense',
+      category: null,
+    }) as unknown as Transaction
+
+  it('groups transactions by tag and sorts by amount desc', () => {
+    const txns = [
+      makeTagTxn('t1', 100, ['food']),
+      makeTagTxn('t2', 200, ['travel']),
+      makeTagTxn('t3', 50, ['food']),
+    ]
+    const result = computeTagTotals(txns)
+    expect(result[0].tag.id).toBe('travel')
+    expect(result[0].amount).toBe(200)
+    expect(result[1].tag.id).toBe('food')
+    expect(result[1].amount).toBe(150)
+  })
+
+  it('counts a transaction once per tag when it has multiple tags', () => {
+    const txns = [makeTagTxn('t1', 100, ['food', 'travel'])]
+    const result = computeTagTotals(txns)
+    expect(result).toHaveLength(2)
+    expect(result.find(r => r.tag.id === 'food')?.amount).toBe(100)
+    expect(result.find(r => r.tag.id === 'travel')?.amount).toBe(100)
+  })
+
+  it('returns empty array when no transactions have tags', () => {
+    expect(computeTagTotals([makeTagTxn('t1', 100, [])])).toHaveLength(0)
+  })
+
+  it('returns empty array for empty transactions', () => {
+    expect(computeTagTotals([])).toHaveLength(0)
   })
 })
