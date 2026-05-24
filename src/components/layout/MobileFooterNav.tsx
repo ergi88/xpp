@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -107,7 +107,13 @@ function useKeyboardVisible() {
   return visible;
 }
 
-function SyncFooter() {
+function SyncFooter({
+  isEditMode,
+  onToggleEdit,
+}: {
+  isEditMode: boolean;
+  onToggleEdit: () => void;
+}) {
   const { isOnline, isSyncing, lastSyncTime, sync } = useSyncStatus();
   const { canInstall, install } = usePWAInstall();
 
@@ -129,21 +135,21 @@ function SyncFooter() {
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-3 border-t">
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
-        {!isOnline ? (
-          <WifiOff className="size-3 shrink-0" />
-        ) : isSyncing ? (
-          <RefreshCw className="size-3 shrink-0 animate-spin" />
-        ) : (
-          <Wifi className="size-3 shrink-0" />
-        )}
-        <span className="truncate">{syncLabel}</span>
-      </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
+          {!isOnline ? (
+            <WifiOff className="size-3 shrink-0" />
+          ) : isSyncing ? (
+            <RefreshCw className="size-3 shrink-0 animate-spin" />
+          ) : (
+            <Wifi className="size-3 shrink-0" />
+          )}
+          <span className="truncate">{syncLabel}</span>
+        </div>
         <button
           onClick={sync}
           disabled={isSyncing || !isOnline}
-          className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors"
+          className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors shrink-0"
           aria-label="Sync now"
         >
           <RefreshCw className={cn("size-3.5", isSyncing && "animate-spin")} />
@@ -151,13 +157,19 @@ function SyncFooter() {
         {canInstall && (
           <button
             onClick={install}
-            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             aria-label="Install app"
           >
             <Download className="size-3.5" />
           </button>
         )}
       </div>
+      <button
+        onClick={onToggleEdit}
+        className="text-xs font-medium text-primary shrink-0"
+      >
+        {isEditMode ? "Done" : "Edit Nav"}
+      </button>
     </div>
   );
 }
@@ -278,21 +290,88 @@ function DraggablePoolItem({
 function PoolItem({ id }: { id: NavItemId }) {
   const item = NAV_ITEM_REGISTRY[id];
   const Icon = item.icon;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isActive = item.end
+    ? location.pathname === item.to
+    : location.pathname.startsWith(item.to);
+
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const didDrag = useRef(false);
+
   return (
-    <NavLink
-      to={item.to}
-      end={item.end}
-      className={({ isActive }) =>
-        cn(
-          "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors",
-          isActive && "text-primary bg-primary/5",
-        )
-      }
-      aria-label={item.label}
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors select-none",
+        isActive && "text-primary bg-primary/5",
+      )}
+      onPointerDown={(e) => {
+        pointerStart.current = { x: e.clientX, y: e.clientY };
+        didDrag.current = false;
+      }}
+      onPointerMove={(e) => {
+        if (!pointerStart.current) return;
+        const dx = Math.abs(e.clientX - pointerStart.current.x);
+        const dy = Math.abs(e.clientY - pointerStart.current.y);
+        if (dx > 5 || dy > 5) didDrag.current = true;
+      }}
+      onPointerUp={() => {
+        pointerStart.current = null;
+      }}
+      onClick={() => {
+        if (!didDrag.current) navigate(item.to);
+      }}
     >
       <Icon className="size-5" />
       <span className="text-[11px]">{item.label}</span>
-    </NavLink>
+    </div>
+  );
+}
+
+function NavLinkItem({
+  id,
+  showLabels,
+}: {
+  id: NavItemId;
+  showLabels: boolean;
+}) {
+  const item = NAV_ITEM_REGISTRY[id];
+  const Icon = item.icon;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isActive = item.end
+    ? location.pathname === item.to
+    : location.pathname.startsWith(item.to);
+
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const didDrag = useRef(false);
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs transition-colors select-none",
+        isActive ? "text-primary" : "text-muted-foreground",
+      )}
+      onPointerDown={(e) => {
+        pointerStart.current = { x: e.clientX, y: e.clientY };
+        didDrag.current = false;
+      }}
+      onPointerMove={(e) => {
+        if (!pointerStart.current) return;
+        const dx = Math.abs(e.clientX - pointerStart.current.x);
+        const dy = Math.abs(e.clientY - pointerStart.current.y);
+        if (dx > 5 || dy > 5) didDrag.current = true;
+      }}
+      onPointerUp={() => {
+        pointerStart.current = null;
+      }}
+      onClick={() => {
+        if (!didDrag.current) navigate(item.to);
+      }}
+    >
+      <Icon className="size-5" />
+      {showLabels && <span className="text-[11px]">{item.label}</span>}
+    </div>
   );
 }
 
@@ -457,13 +536,10 @@ export function MobileFooterNav() {
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
           boxShadow: "0 -4px 24px rgba(0,0,0,0.08)",
-          background: "unset",
+          // background: "unset",
         }}
-        className="backdrop-blur supports-backdrop-filter:bg-background/90 border-t"
+        className="backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60 border-t"
       >
-        <Sheet.Header style={{ height: "4px" }} disableDrag={false}>
-          <div className="mx-auto mt-2 mb-1 h-1.5 w-10 rounded-full bg-muted" />
-        </Sheet.Header>
         <Sheet.Content
           disableDrag={false}
           scrollRef={scrollRef}
@@ -475,18 +551,6 @@ export function MobileFooterNav() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            {/* Edit button — only when expanded */}
-            {isExpanded && (
-              <div className="flex items-center justify-end px-4 pt-2 pb-0">
-                <button
-                  onClick={() => setIsEditMode((v) => !v)}
-                  className="text-xs font-medium text-primary px-1 py-0.5"
-                >
-                  {isEditMode ? "Done" : "Edit"}
-                </button>
-              </div>
-            )}
-
             {/* Main nav row — always visible */}
             <SortableContext
               items={mainNav}
@@ -495,11 +559,10 @@ export function MobileFooterNav() {
               <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
                 <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2">
                   {/* Left 2 nav items */}
-                  {mainNav.slice(0, 2).map((id) => {
-                    const item = NAV_ITEM_REGISTRY[id];
-                    const Icon = item.icon;
-                    if (isEditMode) {
-                      return (
+                  {mainNav
+                    .slice(0, 2)
+                    .map((id) =>
+                      isEditMode ? (
                         <SortableNavItem
                           key={id}
                           id={id}
@@ -507,28 +570,10 @@ export function MobileFooterNav() {
                           showLabels={showLabels}
                           onRemove={handleRemove}
                         />
-                      );
-                    }
-                    return (
-                      <NavLink
-                        key={id}
-                        to={item.to}
-                        end={item.end}
-                        className={({ isActive }) =>
-                          cn(
-                            "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
-                            isActive && "text-primary",
-                          )
-                        }
-                        aria-label={item.label}
-                      >
-                        <Icon className="size-5" />
-                        {showLabels && (
-                          <span className="text-[11px]">{item.label}</span>
-                        )}
-                      </NavLink>
-                    );
-                  })}
+                      ) : (
+                        <NavLinkItem key={id} id={id} showLabels={showLabels} />
+                      ),
+                    )}
 
                   {/* Plus — always center col 3, disabled in edit mode */}
                   <ShadSheet>
@@ -575,11 +620,10 @@ export function MobileFooterNav() {
                   </ShadSheet>
 
                   {/* Right 2 nav items */}
-                  {mainNav.slice(2, 4).map((id) => {
-                    const item = NAV_ITEM_REGISTRY[id];
-                    const Icon = item.icon;
-                    if (isEditMode) {
-                      return (
+                  {mainNav
+                    .slice(2, 4)
+                    .map((id) =>
+                      isEditMode ? (
                         <SortableNavItem
                           key={id}
                           id={id}
@@ -587,28 +631,10 @@ export function MobileFooterNav() {
                           showLabels={showLabels}
                           onRemove={handleRemove}
                         />
-                      );
-                    }
-                    return (
-                      <NavLink
-                        key={id}
-                        to={item.to}
-                        end={item.end}
-                        className={({ isActive }) =>
-                          cn(
-                            "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors",
-                            isActive && "text-primary",
-                          )
-                        }
-                        aria-label={item.label}
-                      >
-                        <Icon className="size-5" />
-                        {showLabels && (
-                          <span className="text-[11px]">{item.label}</span>
-                        )}
-                      </NavLink>
-                    );
-                  })}
+                      ) : (
+                        <NavLinkItem key={id} id={id} showLabels={showLabels} />
+                      ),
+                    )}
                 </div>
               </MainNavDropZone>
             </SortableContext>
@@ -634,7 +660,10 @@ export function MobileFooterNav() {
                   </div>
                 </div>
               )}
-              <SyncFooter />
+              <SyncFooter
+                isEditMode={isEditMode}
+                onToggleEdit={() => setIsEditMode((v) => !v)}
+              />
             </div>
             {/* )} */}
 
