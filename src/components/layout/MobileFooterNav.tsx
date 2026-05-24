@@ -660,10 +660,10 @@ export function MobileFooterNav() {
           </DndContext>
         </Sheet.Content>
       </Sheet.Container>
-      <Sheet.Backdrop
+      {/* <Sheet.Backdrop
         onTap={() => sheetRef.current?.snapTo(1)}
         style={{ background: "transparent" }}
-      />
+      /> */}
     </Sheet>
   );
 }

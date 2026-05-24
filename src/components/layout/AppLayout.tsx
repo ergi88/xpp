@@ -34,7 +34,7 @@ export function AppLayout() {
           <main
             className={cn(
               "flex-1 overflow-y-auto py-6 px-2 lg:p-6 max-h-[calc(100dvh-56px)]",
-              showFooter && "pb-24",
+              showFooter && "pb-28",
             )}
           >
             <Outlet />
