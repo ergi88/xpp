@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useFABActions } from "@/lib/fab-context";
 import { Page, StickyFooterActions } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +98,24 @@ export default function TransactionViewPage() {
   const [linkPickerOpen, setLinkPickerOpen] = useState(false);
   const linkCounterpart = useLinkCounterpart();
   const unlinkCounterpart = useUnlinkCounterpart();
+
+  useFABActions(
+    [
+      {
+        id: 'edit',
+        label: 'Edit',
+        icon: Pencil,
+        onClick: () => navigate(`/transactions/${id}/edit`),
+      },
+      {
+        id: 'back',
+        label: 'Go back',
+        icon: ArrowLeft,
+        onClick: () => navigate(-1),
+      },
+    ],
+    [id],
+  );
 
   const handleDelete = () => {
     if (!id) return;
