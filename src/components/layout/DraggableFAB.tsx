@@ -1,48 +1,66 @@
-// src/components/layout/DraggableFAB.tsx
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { AnimatePresence } from 'motion/react'
-import { Zap, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { snapToCorner, getCornerStyle, type Corner, type CornerOffsets } from '@/lib/fab-snap'
+import { snapToEdge, getEdgeStyle, type EdgeSnap, type EdgeOffsets } from '@/lib/fab-edge-snap'
 import { useFABState } from '@/lib/fab-context'
-import { SpeedDial } from './SpeedDial'
+import { AssistiveTouchPanel } from './AssistiveTouchPanel'
 
 const FAB_SIZE = 52
-const OFFSETS: CornerOffsets = {
-  top: 56 + 16,    // header h-14 (56px) + 16px gap
-  bottom: 84 + 16, // footer sheet (~84px) + 16px gap
+const OFFSETS: EdgeOffsets = {
+  top: 72,
+  bottom: 100,
   side: 16,
 }
-const STORAGE_KEY = 'fab-corner'
+const STORAGE_KEY = 'fab-edge-snap'
 const DRAG_THRESHOLD = 8
+const IDLE_MS = 10_000
 
-function loadCorner(): Corner {
+function loadSnap(): EdgeSnap {
   try {
-    const v = localStorage.getItem(STORAGE_KEY)
-    if (v === 'top-left' || v === 'top-right' || v === 'bottom-left' || v === 'bottom-right') {
-      return v
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (
+        ['left', 'right', 'top', 'bottom'].includes(parsed.edge) &&
+        typeof parsed.position === 'number'
+      ) {
+        return parsed as EdgeSnap
+      }
     }
   } catch { /* ignore */ }
-  return 'bottom-right'
+  return { edge: 'right', position: 300 }
 }
 
-function saveCorner(corner: Corner) {
-  try { localStorage.setItem(STORAGE_KEY, corner) } catch { /* ignore */ }
+function saveSnap(snap: EdgeSnap) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snap)) } catch { /* ignore */ }
 }
 
 export function DraggableFAB() {
   const actions = useFABState()
-  const [corner, setCorner] = useState<Corner>(loadCorner)
+  const [snap, setSnap] = useState<EdgeSnap>(loadSnap)
   const [open, setOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
+  const [opacity, setOpacity] = useState(1)
 
   const pointerStart = useRef<{ x: number; y: number } | null>(null)
   const didDrag = useRef(false)
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const cornerStyle = getCornerStyle(corner, OFFSETS)
+  const resetIdleTimer = useCallback(() => {
+    setOpacity(1)
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    if (!open) {
+      idleTimer.current = setTimeout(() => setOpacity(0.35), IDLE_MS)
+    }
+  }, [open])
 
-  // Merged FAB style: position changes during drag vs rest
+  useEffect(() => {
+    resetIdleTimer()
+    return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
+  }, [resetIdleTimer])
+
+  const snapStyle = getEdgeStyle(snap, FAB_SIZE, OFFSETS)
+
   const fabStyle: React.CSSProperties = dragPos
     ? {
         position: 'fixed',
@@ -54,17 +72,20 @@ export function DraggableFAB() {
       }
     : {
         position: 'fixed',
-        ...cornerStyle,
+        ...snapStyle,
         width: FAB_SIZE,
         height: FAB_SIZE,
         zIndex: 50,
-        transition: 'top 0.2s ease-out, right 0.2s ease-out, bottom 0.2s ease-out, left 0.2s ease-out',
+        opacity: open ? 0 : opacity,
+        pointerEvents: open ? 'none' : 'auto',
+        transition: 'opacity 0.6s ease, top 0.2s ease-out, right 0.2s ease-out, bottom 0.2s ease-out, left 0.2s ease-out',
       }
 
   function handlePointerDown(e: React.PointerEvent) {
     e.currentTarget.setPointerCapture(e.pointerId)
     pointerStart.current = { x: e.clientX, y: e.clientY }
     didDrag.current = false
+    resetIdleTimer()
   }
 
   function handlePointerMove(e: React.PointerEvent) {
@@ -87,14 +108,16 @@ export function DraggableFAB() {
     setDragPos(null)
 
     if (didDrag.current) {
-      const newCorner = snapToCorner(
+      const newSnap = snapToEdge(
         e.clientX,
         e.clientY,
         window.innerWidth,
         window.innerHeight,
+        FAB_SIZE,
+        OFFSETS,
       )
-      setCorner(newCorner)
-      saveCorner(newCorner)
+      setSnap(newSnap)
+      saveSnap(newSnap)
     } else {
       setOpen((v) => !v)
     }
@@ -110,12 +133,11 @@ export function DraggableFAB() {
 
   return (
     <>
-      {/* Speed dial — mounts/unmounts with open state, self-positions via fixed CSS */}
       <AnimatePresence>
         {open && !dragging && (
-          <SpeedDial
+          <AssistiveTouchPanel
             actions={actions}
-            corner={corner}
+            snap={snap}
             fabSize={FAB_SIZE}
             offsets={OFFSETS}
             onClose={() => setOpen(false)}
@@ -123,7 +145,7 @@ export function DraggableFAB() {
         )}
       </AnimatePresence>
 
-      {/* FAB button — single style prop, no duplicate */}
+      {/* FAB — stays mounted when open (opacity:0) to preserve drag target */}
       <button
         style={fabStyle}
         aria-label={open ? 'Close actions' : 'Open actions'}
@@ -131,13 +153,29 @@ export function DraggableFAB() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
-        className={cn(
-          'flex items-center justify-center rounded-full bg-primary text-primary-foreground',
-          'shadow-lg transition-colors select-none touch-none',
-          dragging && 'shadow-2xl cursor-grabbing',
-        )}
+        onPointerEnter={resetIdleTimer}
+        className="select-none touch-none rounded-full shadow-2xl"
       >
-        {open ? <X className="size-5" /> : <Zap className="size-5" />}
+        {/* Concentric rings — Apple AssistiveTouch style */}
+        <div
+          className="flex size-full items-center justify-center rounded-full"
+          style={{ background: '#111' }}
+        >
+          <div
+            className="flex items-center justify-center rounded-full"
+            style={{ width: 38, height: 38, background: '#2a2a2a' }}
+          >
+            <div
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 24, height: 24, background: '#888' }}
+            >
+              <div
+                className="rounded-full"
+                style={{ width: 14, height: 14, background: 'white' }}
+              />
+            </div>
+          </div>
+        </div>
       </button>
     </>
   )

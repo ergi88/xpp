@@ -5,7 +5,8 @@ export interface FABAction {
   id: string
   label: string
   icon: LucideIcon
-  onClick: () => void
+  onClick?: () => void
+  children?: FABAction[]
 }
 
 export interface FABState {
