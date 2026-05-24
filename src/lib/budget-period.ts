@@ -75,3 +75,65 @@ export function periodLabel(
   }
   return `${periodStart} – ${periodEnd}`
 }
+
+export const UNCATEGORIZED_COLOR = '#94a3b8'
+
+export interface CategoryTotal {
+  category: {
+    id: string
+    name: string
+    color: string
+    icon: string
+    type: 'income' | 'expense'
+  }
+  amount: number
+  segPct: number
+}
+
+export interface TagTotal {
+  tag: { id: string; name: string }
+  amount: number
+}
+
+export function computeTagTotals(transactions: Transaction[]): TagTotal[] {
+  const map = new Map<string, { tag: TagTotal['tag']; amount: number }>()
+  for (const t of transactions) {
+    for (const tag of t.tags) {
+      const prev = map.get(tag.id) ?? { tag: { id: tag.id, name: tag.name }, amount: 0 }
+      prev.amount += t.amount
+      map.set(tag.id, prev)
+    }
+  }
+  return [...map.values()].sort((a, b) => b.amount - a.amount)
+}
+
+export function computeCategoryTotals(
+  transactions: Transaction[],
+  budgetAmount: number,
+): CategoryTotal[] {
+  const map = new Map<string, { category: CategoryTotal['category']; amount: number }>()
+
+  for (const t of transactions) {
+    const catId = t.category?.id ?? '__none__'
+    const cat = t.category ?? {
+      id: '__none__',
+      name: 'Uncategorized',
+      color: UNCATEGORIZED_COLOR,
+      icon: 'circle',
+      type: 'expense' as const,
+    }
+    const prev = map.get(catId) ?? { category: cat, amount: 0 }
+    prev.amount += t.amount
+    map.set(catId, prev)
+  }
+
+  const sorted = [...map.values()].sort((a, b) => b.amount - a.amount)
+
+  let usedPct = 0
+  return sorted.map(entry => {
+    const raw = budgetAmount > 0 ? (entry.amount / budgetAmount) * 100 : 0
+    const segPct = Math.min(raw, Math.max(0, 100 - usedPct))
+    usedPct += segPct
+    return { ...entry, segPct }
+  })
+}

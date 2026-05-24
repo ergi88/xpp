@@ -55,10 +55,14 @@ export function useBudgetsWithProgress() {
         budgetsApi.getAll(),
         fetchFilteredExpenses(),
       ])
-      return budgets.map(b => ({
-        ...b,
-        progress: calcProgress(b, filtered, 0),
-      }))
+      return budgets.map(b => {
+        const progress = calcProgress(b, filtered, 0)
+        const matchingTransactions = filtered.filter(t =>
+          inPeriod(t.date, progress.period_start, progress.period_end) &&
+          budgetMatchesTxn(b, t),
+        )
+        return { ...b, progress, matchingTransactions }
+      })
     },
   })
 }

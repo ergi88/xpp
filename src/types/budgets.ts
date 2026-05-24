@@ -2,6 +2,7 @@ import { BaseEntity } from './api'
 import { Category } from './categories'
 import { Currency } from './currencies'
 import { Tag } from './tags'
+import type { Transaction } from './transactions'
 
 export type BudgetPeriod = 'weekly' | 'monthly' | 'yearly' | 'one_time'
 
@@ -29,6 +30,7 @@ export interface Budget extends BaseEntity {
     categories: Category[]
     tags: Tag[]
     progress?: BudgetProgress
+    matchingTransactions?: Transaction[]
 }
 
 export interface BudgetFormData {

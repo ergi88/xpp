@@ -1,8 +1,8 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, MoreHorizontal } from 'lucide-react'
+import { Pencil, Trash2, MoreHorizontal, Hash } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { AmountText } from '@/components/shared/AmountText'
 import { CategoryPill } from '@/components/shared/CategoryPill'
+import { SegmentedProgressBar } from '@/components/shared/SegmentedProgressBar'
+import { computeCategoryTotals } from '@/lib/budget-period'
 import { cn } from '@/lib/utils'
 import type { Budget } from '@/types'
 
@@ -43,13 +45,17 @@ export function BudgetCard({ budget, onDelete }: BudgetCardProps) {
   const progress = budget.progress
   const symbol = budget.currency?.symbol ?? ''
   const decimals = budget.currency?.decimals ?? 2
-  const percent = progress ? Math.min(progress.percent, 100) : 0
   const isExceeded = progress?.is_exceeded ?? false
 
+  const categoryTotals = useMemo(
+    () => computeCategoryTotals(budget.matchingTransactions ?? [], budget.amount),
+    [budget.matchingTransactions, budget.amount],
+  )
+
   return (
-    <Card className={cn('relative overflow-hidden transition-shadow hover:shadow-md', !budget.isActive && 'opacity-60')}>
-      {/* Status stripe */}
-      <div className={cn('h-1', budget.isActive ? 'bg-primary' : 'bg-muted-foreground/30')} />
+    <Card className={cn('relative transition-shadow hover:shadow-md', !budget.isActive && 'opacity-60')}>
+      {/* Status stripe — rounded-t-lg matches card border-radius without overflow-hidden */}
+      <div className={cn('h-1 rounded-tl-lg rounded-tr-lg', budget.isActive ? 'bg-primary' : 'bg-muted-foreground/30')} />
 
       <CardContent className="p-4 space-y-3">
         {/* Header */}
@@ -111,14 +117,22 @@ export function BudgetCard({ budget, onDelete }: BudgetCardProps) {
           </div>
         </div>
 
-        {/* Categories */}
+        {/* Categories + Tags */}
         <div className="flex flex-wrap gap-1 min-h-5">
           {budget.isGlobal ? (
             <span className="text-xs text-muted-foreground">All expenses</span>
-          ) : budget.categories.length > 0 ? (
-            budget.categories.map(c => (
-              <CategoryPill key={c.id} name={c.name} icon={c.icon} color={c.color} size="sm" />
-            ))
+          ) : (budget.categories.length > 0 || budget.tags.length > 0) ? (
+            <>
+              {budget.categories.map(c => (
+                <CategoryPill key={c.id} name={c.name} icon={c.icon} color={c.color} size="sm" />
+              ))}
+              {budget.tags.map(t => (
+                <Badge key={t.id} variant="secondary" className="text-xs gap-1">
+                  <Hash className="size-2.5" />
+                  {t.name}
+                </Badge>
+              ))}
+            </>
           ) : (
             <span className="text-xs text-muted-foreground">No categories</span>
           )}
@@ -139,9 +153,13 @@ export function BudgetCard({ budget, onDelete }: BudgetCardProps) {
         {/* Progress bar */}
         {progress && (
           <div className="space-y-1">
-            <Progress
-              value={percent}
-              className={cn('h-2', isExceeded && '[&>div]:bg-red-500')}
+            <SegmentedProgressBar
+              categoryTotals={categoryTotals}
+              budgetAmount={budget.amount}
+              spent={progress.spent}
+              isExceeded={isExceeded}
+              decimals={decimals}
+              currency={symbol}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
