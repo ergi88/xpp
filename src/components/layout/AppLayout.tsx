@@ -3,8 +3,10 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { MobileFooterNav } from "./MobileFooterNav";
+import { DraggableFAB } from "./DraggableFAB";
 import { PWAUpdateBanner } from "./PWAUpdateBanner";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { FABProvider } from "@/lib/fab-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings, useRunDueRecurring } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -26,22 +28,25 @@ export function AppLayout() {
 
   return (
     <PageTitleProvider>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <PWAUpdateBanner />
-          <Header />
-          <main
-            className={cn(
-              "flex-1 overflow-y-auto py-6 px-2 lg:p-6 max-h-[calc(100dvh-56px)]",
-              showFooter && "pb-28",
-            )}
-          >
-            <Outlet />
-          </main>
-          <MobileFooterNav />
-        </SidebarInset>
-      </SidebarProvider>
+      <FABProvider>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <PWAUpdateBanner />
+            <Header />
+            <main
+              className={cn(
+                "flex-1 overflow-y-auto py-6 px-2 lg:p-6 max-h-[calc(100dvh-56px)]",
+                showFooter && "pb-28",
+              )}
+            >
+              <Outlet />
+            </main>
+            <MobileFooterNav />
+          </SidebarInset>
+          {isMobile && <DraggableFAB />}
+        </SidebarProvider>
+      </FABProvider>
     </PageTitleProvider>
   );
 }

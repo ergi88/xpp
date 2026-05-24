@@ -412,23 +412,7 @@ export function MobileFooterNav() {
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
 
-  // const COLLAPSED_HEIGHT = 76;
   const snapPoints = [0, 84 + bottomInset, 1];
-  console.log("🚀 ~ MobileFooterNav ~ snapIndex:", {
-    snapIndex,
-    bottomInset,
-    snapPoints,
-    sheetRef: sheetRef.current,
-  });
-  // const [windowHeight, setWindowHeight] = useState(
-  //   typeof window !== "undefined" ? window.innerHeight : 800,
-  // );
-  // useEffect(() => {
-  //   const handleResize = () => setWindowHeight(window.innerHeight);
-  //   window.addEventListener("resize", handleResize);
-  //   return () => window.removeEventListener("resize", handleResize);
-  // }, []);
-  // const EXPANDED_HEIGHT = Math.round(windowHeight * 0.58);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeId, setActiveId] = useState<NavItemId | null>(null);
@@ -715,13 +699,6 @@ export function MobileFooterNav() {
           </DndContext>
         </Sheet.Content>
       </Sheet.Container>
-      <Sheet.Backdrop
-        onTap={() => sheetRef.current?.snapTo(1)}
-        style={{
-          background: isExpanded ? "rgba(0,0,0,0.2)" : "transparent",
-          pointerEvents: isExpanded ? "auto" : "none",
-        }}
-      />
     </Sheet>
   );
 }
