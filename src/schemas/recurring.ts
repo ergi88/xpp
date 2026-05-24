@@ -9,7 +9,7 @@ export const recurringSchema = z.object({
         message: 'Please select an account',
     }).min(1, 'Please select an account'),
 
-    to_account_id: z.string().min(1).nullable().optional(),
+    to_account_id: z.preprocess(v => v === '' ? null : v, z.string().min(1).nullable().optional()),
 
     category_id: z.string().min(1).nullable().optional(),
 

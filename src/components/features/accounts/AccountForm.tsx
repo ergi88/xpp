@@ -21,10 +21,17 @@ import {
 } from "@/components/ui/select";
 import { accountSchema, AccountFormData } from "@/schemas";
 import { useCurrencies } from "@/hooks";
-import { REGULAR_ACCOUNT_TYPE_CONFIG, REGULAR_ACCOUNT_TYPES } from "@/constants";
+import {
+  REGULAR_ACCOUNT_TYPE_CONFIG,
+  REGULAR_ACCOUNT_TYPES,
+} from "@/constants";
 import type { RegularAccountType } from "@/types";
 import { cn } from "@/lib/utils";
 import { FormWrapper } from "@/components/shared/FormWrapper";
+import { StickyFooterActions } from "@/components/shared";
+import { useNavigate } from "react-router-dom";
+import { useFABActions } from "@/lib/fab-context";
+import { ArrowLeft } from "lucide-react";
 
 interface AccountFormProps {
   defaultValues?: Partial<AccountFormData>;
@@ -40,6 +47,20 @@ export function AccountForm({
   submitLabel = "Save",
 }: AccountFormProps) {
   const { data: currencies, isLoading: currenciesLoading } = useCurrencies();
+
+  const navigate = useNavigate();
+
+  useFABActions(
+    [
+      {
+        id: "back",
+        label: "Go back",
+        icon: ArrowLeft,
+        onClick: () => navigate(-1),
+      },
+    ],
+    [],
+  );
 
   const form = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
@@ -63,7 +84,10 @@ export function AccountForm({
   return (
     <FormWrapper>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-md space-y-4">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="max-w-md space-y-4"
+        >
           <FormField
             control={form.control}
             name="name"
@@ -84,7 +108,10 @@ export function AccountForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select account type" />
@@ -92,7 +119,8 @@ export function AccountForm({
                   </FormControl>
                   <SelectContent>
                     {REGULAR_ACCOUNT_TYPES.map((type) => {
-                      const config = REGULAR_ACCOUNT_TYPE_CONFIG[type as RegularAccountType];
+                      const config =
+                        REGULAR_ACCOUNT_TYPE_CONFIG[type as RegularAccountType];
                       const Icon = config.icon;
                       return (
                         <SelectItem key={type} value={type}>
@@ -116,7 +144,11 @@ export function AccountForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Currency</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={currenciesLoading}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={currenciesLoading}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency" />
@@ -124,7 +156,10 @@ export function AccountForm({
                   </FormControl>
                   <SelectContent>
                     {currencies?.map((currency) => (
-                      <SelectItem key={currency.id} value={currency.id.toString()}>
+                      <SelectItem
+                        key={currency.id}
+                        value={currency.id.toString()}
+                      >
                         <span className="font-mono">{currency.code}</span>
                         <span className="text-muted-foreground ml-2">
                           {currency.symbol} · {currency.name}
@@ -143,9 +178,17 @@ export function AccountForm({
             name="initial_balance"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{isCredit ? "Initial Balance Owed" : "Initial Balance"}</FormLabel>
+                <FormLabel>
+                  {isCredit ? "Initial Balance Owed" : "Initial Balance"}
+                </FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" min={0} placeholder="0.00" {...field} />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    placeholder="0.00"
+                    {...field}
+                  />
                 </FormControl>
                 <FormDescription>
                   {isCredit
@@ -172,11 +215,15 @@ export function AccountForm({
                       placeholder="0.00"
                       value={field.value ?? ""}
                       onChange={(e) =>
-                        field.onChange(e.target.value === "" ? null : Number(e.target.value))
+                        field.onChange(
+                          e.target.value === "" ? null : Number(e.target.value),
+                        )
                       }
                     />
                   </FormControl>
-                  <FormDescription>Maximum credit available on this card</FormDescription>
+                  <FormDescription>
+                    Maximum credit available on this card
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -197,12 +244,14 @@ export function AccountForm({
                         maxLength={4}
                         value={field.value ?? ""}
                         onChange={(e) => {
-                          const v = e.target.value.replace(/\D/g, "")
-                          field.onChange(v || null)
+                          const v = e.target.value.replace(/\D/g, "");
+                          field.onChange(v || null);
                         }}
                       />
                     </FormControl>
-                    <FormDescription>Last 4 digits of the card number</FormDescription>
+                    <FormDescription>
+                      Last 4 digits of the card number
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -220,9 +269,10 @@ export function AccountForm({
                         maxLength={5}
                         value={field.value ?? ""}
                         onChange={(e) => {
-                          let v = e.target.value.replace(/\D/g, "")
-                          if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2, 4)
-                          field.onChange(v || null)
+                          let v = e.target.value.replace(/\D/g, "");
+                          if (v.length >= 3)
+                            v = v.slice(0, 2) + "/" + v.slice(2, 4);
+                          field.onChange(v || null);
                         }}
                       />
                     </FormControl>
@@ -237,21 +287,28 @@ export function AccountForm({
             control={form.control}
             name="is_active"
             render={({ field }) => (
-              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+              <FormItem className="flex items-center justify-between rounded-lg border p-4 mb-8">
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">Active</FormLabel>
-                  <FormDescription>Inactive accounts are hidden from lists</FormDescription>
+                  <FormDescription>
+                    Inactive accounts are hidden from lists
+                  </FormDescription>
                 </div>
                 <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
               </FormItem>
             )}
           />
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Saving..." : submitLabel}
-          </Button>
+          <StickyFooterActions className="bg-unset">
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Saving..." : submitLabel}
+            </Button>
+          </StickyFooterActions>
         </form>
       </Form>
     </FormWrapper>

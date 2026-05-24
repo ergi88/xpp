@@ -145,7 +145,7 @@ export default function TransactionsPage() {
     (params.page - 1) * PER_PAGE,
     params.page * PER_PAGE,
   );
-  console.log("🚀 ~ TransactionsPage ~ transactions:", { transactions });
+
   const transactionsRef = useRef<typeof transactions>([]);
   transactionsRef.current = transactions;
   const meta =
