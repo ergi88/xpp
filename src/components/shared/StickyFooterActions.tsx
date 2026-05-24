@@ -27,7 +27,7 @@ export function StickyFooterActions({
       )}
       style={{
         bottom: showMobileFooter
-          ? "calc(env(safe-area-inset-bottom) + 4.5rem)"
+          ? "calc(env(safe-area-inset-bottom) + 5rem)"
           : "env(safe-area-inset-bottom)",
       }}
     >

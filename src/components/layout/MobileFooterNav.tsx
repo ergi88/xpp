@@ -134,7 +134,7 @@ function SyncFooter({
         : "Never synced";
 
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t">
+    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t pb-5">
       <div className="flex items-center gap-1 min-w-0">
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
           {!isOnline ? (
@@ -296,8 +296,8 @@ function PoolItem({ id }: { id: NavItemId }) {
     ? location.pathname === item.to
     : location.pathname.startsWith(item.to);
 
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
-  const didDrag = useRef(false);
+  const mouseStart = useRef<{ x: number; y: number } | null>(null);
+  const mouseDragged = useRef(false);
 
   return (
     <div
@@ -305,21 +305,21 @@ function PoolItem({ id }: { id: NavItemId }) {
         "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors select-none",
         isActive && "text-primary bg-primary/5",
       )}
-      onPointerDown={(e) => {
-        pointerStart.current = { x: e.clientX, y: e.clientY };
-        didDrag.current = false;
+      onMouseDown={(e) => {
+        mouseStart.current = { x: e.clientX, y: e.clientY };
+        mouseDragged.current = false;
       }}
-      onPointerMove={(e) => {
-        if (!pointerStart.current) return;
-        const dx = Math.abs(e.clientX - pointerStart.current.x);
-        const dy = Math.abs(e.clientY - pointerStart.current.y);
-        if (dx > 5 || dy > 5) didDrag.current = true;
+      onMouseMove={(e) => {
+        if (!mouseStart.current) return;
+        const dx = Math.abs(e.clientX - mouseStart.current.x);
+        const dy = Math.abs(e.clientY - mouseStart.current.y);
+        if (dx > 5 || dy > 5) mouseDragged.current = true;
       }}
-      onPointerUp={() => {
-        pointerStart.current = null;
+      onMouseUp={() => {
+        mouseStart.current = null;
       }}
       onClick={() => {
-        if (!didDrag.current) navigate(item.to);
+        if (!mouseDragged.current) navigate(item.to);
       }}
     >
       <Icon className="size-5" />
@@ -343,8 +343,8 @@ function NavLinkItem({
     ? location.pathname === item.to
     : location.pathname.startsWith(item.to);
 
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
-  const didDrag = useRef(false);
+  const mouseStart = useRef<{ x: number; y: number } | null>(null);
+  const mouseDragged = useRef(false);
 
   return (
     <div
@@ -352,21 +352,21 @@ function NavLinkItem({
         "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs transition-colors select-none",
         isActive ? "text-primary" : "text-muted-foreground",
       )}
-      onPointerDown={(e) => {
-        pointerStart.current = { x: e.clientX, y: e.clientY };
-        didDrag.current = false;
+      onMouseDown={(e) => {
+        mouseStart.current = { x: e.clientX, y: e.clientY };
+        mouseDragged.current = false;
       }}
-      onPointerMove={(e) => {
-        if (!pointerStart.current) return;
-        const dx = Math.abs(e.clientX - pointerStart.current.x);
-        const dy = Math.abs(e.clientY - pointerStart.current.y);
-        if (dx > 5 || dy > 5) didDrag.current = true;
+      onMouseMove={(e) => {
+        if (!mouseStart.current) return;
+        const dx = Math.abs(e.clientX - mouseStart.current.x);
+        const dy = Math.abs(e.clientY - mouseStart.current.y);
+        if (dx > 5 || dy > 5) mouseDragged.current = true;
       }}
-      onPointerUp={() => {
-        pointerStart.current = null;
+      onMouseUp={() => {
+        mouseStart.current = null;
       }}
       onClick={() => {
-        if (!didDrag.current) navigate(item.to);
+        if (!mouseDragged.current) navigate(item.to);
       }}
     >
       <Icon className="size-5" />
@@ -414,7 +414,7 @@ export function MobileFooterNav() {
   const bottomInset = insets.bottom;
 
   // const COLLAPSED_HEIGHT = 76;
-  const snapPoints = [0, 76 + bottomInset, 1];
+  const snapPoints = [0, 84 + bottomInset, 1];
   console.log("🚀 ~ MobileFooterNav ~ snapIndex:", {
     snapIndex,
     bottomInset,
@@ -435,12 +435,14 @@ export function MobileFooterNav() {
   const [activeId, setActiveId] = useState<NavItemId | null>(null);
   const [isDraggingFromPool, setIsDraggingFromPool] = useState(false);
 
-  const sensors = useSensors(
+  const activeSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 150, tolerance: 5 },
     }),
   );
+  const noSensors = useSensors();
+  const sensors = isEditMode ? activeSensors : noSensors;
 
   function handleDragStart({ active }: DragStartEvent) {
     const idStr = String(active.id);
@@ -641,7 +643,7 @@ export function MobileFooterNav() {
 
             {/* Expanded content */}
             {/* {isExpanded && ( */}
-            <div ref={scrollRef} className="flex flex-col overflow-y-auto">
+            <div ref={scrollRef} className="flex flex-col overflow-y-auto mt-2">
               {pool.length > 0 && (
                 <div className="px-4 pb-2">
                   <div className="grid grid-cols-4 gap-1">
