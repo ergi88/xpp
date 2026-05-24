@@ -134,7 +134,7 @@ export function SpeedDial({ actions, corner, fabSize, offsets, onClose }: SpeedD
             onRight={onRight}
             slideFrom={slideFrom}
             index={actionStartIndex + i}
-            onClick={() => { action.onClick(); onClose() }}
+            onClick={() => { action.onClick?.(); onClose() }}
           />
         ))}
 

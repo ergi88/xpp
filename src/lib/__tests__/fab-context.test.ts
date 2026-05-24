@@ -30,4 +30,16 @@ describe('fabReducer', () => {
     const next = fabReducer(withActions, { type: 'SET', actions: [] })
     expect(next.actions).toHaveLength(0)
   })
+
+  it('FABAction with children is accepted by SET', () => {
+    const parent: FABAction = {
+      id: 'parent',
+      label: 'Parent',
+      icon: Calculator,
+      children: [mockAction],
+    }
+    const next = fabReducer(empty, { type: 'SET', actions: [parent] })
+    expect(next.actions[0].children).toHaveLength(1)
+    expect(next.actions[0].children![0].id).toBe('test')
+  })
 })
