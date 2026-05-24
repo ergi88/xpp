@@ -43,7 +43,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -434,6 +433,24 @@ export function MobileFooterNav() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeId, setActiveId] = useState<NavItemId | null>(null);
   const [isDraggingFromPool, setIsDraggingFromPool] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPress = useRef(false);
+
+  function handleCenterPointerDown() {
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      sheetRef.current?.snapTo(2);
+    }, 300);
+  }
+
+  function handleCenterPointerUp() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
 
   const activeSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -577,18 +594,25 @@ export function MobileFooterNav() {
                       ),
                     )}
 
-                  {/* Plus — always center col 3, disabled in edit mode */}
-                  <ShadSheet>
-                    <SheetTrigger asChild>
-                      <Button
-                        size="icon"
-                        className="mx-auto size-12 rounded-full shadow-lg"
-                        aria-label="Quick actions"
-                        disabled={isEditMode}
-                      >
-                        <Plus className="size-5" />
-                      </Button>
-                    </SheetTrigger>
+                  {/* Plus — short tap = quick actions, long press = expand nav */}
+                  <Button
+                    size="icon"
+                    className="mx-auto size-12 rounded-full shadow-lg"
+                    aria-label="Quick actions"
+                    disabled={isEditMode}
+                    onPointerDown={handleCenterPointerDown}
+                    onPointerUp={handleCenterPointerUp}
+                    onPointerCancel={handleCenterPointerUp}
+                    onClick={() => {
+                      if (!isLongPress.current) setQuickActionsOpen(true);
+                    }}
+                  >
+                    <Plus className="size-5" />
+                  </Button>
+                  <ShadSheet
+                    open={quickActionsOpen}
+                    onOpenChange={setQuickActionsOpen}
+                  >
                     <SheetContent
                       side="bottom"
                       className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
@@ -691,10 +715,13 @@ export function MobileFooterNav() {
           </DndContext>
         </Sheet.Content>
       </Sheet.Container>
-      {/* <Sheet.Backdrop
+      <Sheet.Backdrop
         onTap={() => sheetRef.current?.snapTo(1)}
-        style={{ background: "transparent" }}
-      /> */}
+        style={{
+          background: isExpanded ? "rgba(0,0,0,0.2)" : "transparent",
+          pointerEvents: isExpanded ? "auto" : "none",
+        }}
+      />
     </Sheet>
   );
 }
