@@ -35,7 +35,7 @@ export function SpeedDial({ actions, corner, fabSize, offsets, onClose }: SpeedD
       ? { bottom: offsets.bottom + fabSize + 12 }
       : { top: offsets.top + fabSize + 12 }),
     display: 'flex',
-    flexDirection: onBottom ? 'column-reverse' : 'column',
+    flexDirection: 'column-reverse',
     alignItems: onRight ? 'flex-end' : 'flex-start',
     gap: 10,
     zIndex: 50,
@@ -117,7 +117,7 @@ export function SpeedDial({ actions, corner, fabSize, offsets, onClose }: SpeedD
               </button>
             </div>
             <p className="mt-2 text-[10px] text-muted-foreground">
-              Supports + − × ÷ ( ) %
+              Supports + − × ÷ ( )
             </p>
           </motion.div>
         )}

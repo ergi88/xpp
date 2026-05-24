@@ -101,6 +101,13 @@ export function DraggableFAB() {
     didDrag.current = false
   }
 
+  function handlePointerCancel() {
+    pointerStart.current = null
+    setDragging(false)
+    setDragPos(null)
+    didDrag.current = false
+  }
+
   return (
     <>
       {/* Speed dial — mounts/unmounts with open state, self-positions via fixed CSS */}
@@ -123,6 +130,7 @@ export function DraggableFAB() {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         className={cn(
           'flex items-center justify-center rounded-full bg-primary text-primary-foreground',
           'shadow-lg transition-colors select-none touch-none',
