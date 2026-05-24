@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Calculator, Copy, Check, ChevronLeft } from 'lucide-react'
@@ -183,7 +184,7 @@ export function AssistiveTouchPanel({
             setActiveParent(action)
           } else {
             action.onClick?.()
-            onClose()
+            if (action.id !== '__calculator') onClose()
           }
         }}
         className="flex flex-col items-center justify-center gap-1"
