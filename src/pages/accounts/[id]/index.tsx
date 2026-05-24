@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Pencil, ArrowLeft, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ import { AmountText } from "@/components/shared/AmountText";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import { cn } from "@/lib/utils";
+import { useFABActions } from "@/lib/fab-context";
 
 export default function AccountViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,31 @@ export default function AccountViewPage() {
   const [reconcileDate, setReconcileDate] = useState("");
   const [reconcileDescription, setReconcileDescription] = useState("Reconcile");
   const [reconcileCategoryId, setReconcileCategoryId] = useState("");
+  const navigate = useNavigate();
+
+  useFABActions(
+    [
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Pencil,
+        onClick: () => navigate(`/transactions/${id}/edit`),
+      },
+      {
+        id: "reconcile",
+        label: "Reconcile",
+        icon: RefreshCw,
+        onClick: () => setReconcileOpen(true),
+      },
+      {
+        id: "back",
+        label: "Go back",
+        icon: ArrowLeft,
+        onClick: () => navigate(-1),
+      },
+    ],
+    [id],
+  );
 
   const enrichedAccount =
     account && currencies
@@ -146,8 +172,8 @@ export default function AccountViewPage() {
   return (
     <div className="md:p-6 max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3 ">
           <Button variant="ghost" size="icon" asChild>
             <Link to="/accounts">
               <ArrowLeft className="size-4" />

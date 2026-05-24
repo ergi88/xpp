@@ -48,6 +48,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { StickyFooterActions } from "@/components/shared/StickyFooterActions";
 
 export interface PendingDebt {
   name: string;
@@ -396,7 +397,10 @@ export function TransactionForm({
                                   (d) => d.id === v,
                                 );
                                 if (selectedDebt) {
-                                  form.setValue("description", selectedDebt.name);
+                                  form.setValue(
+                                    "description",
+                                    selectedDebt.name,
+                                  );
                                 }
                               }}
                             >
@@ -695,7 +699,7 @@ export function TransactionForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tags</FormLabel>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 pb-4">
                     {tags.map((tag) => {
                       const isSelected = selectedTagIds.includes(tag.id);
                       return (
@@ -725,14 +729,15 @@ export function TransactionForm({
               )}
             />
           )}
-
-          <Button
-            type="submit"
-            disabled={isSubmitting || balancePreview?.insufficientFunds}
-            className="w-full"
-          >
-            {isSubmitting ? "Saving..." : submitLabel}
-          </Button>
+          <StickyFooterActions className="bg-unset">
+            <Button
+              type="submit"
+              disabled={isSubmitting || balancePreview?.insufficientFunds}
+              className="w-full"
+            >
+              {isSubmitting ? "Saving..." : submitLabel}
+            </Button>
+          </StickyFooterActions>
         </form>
       </Form>
 
