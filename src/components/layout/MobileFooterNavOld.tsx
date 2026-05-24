@@ -327,7 +327,7 @@ function FolderNavItem(fniProps: FolderNavItemProps) {
   );
 }
 
-export function MobileFooterNav() {
+export function MobileFooterNavOld() {
   const isMobile = useIsMobile();
   const keyboardVisible = useKeyboardVisible();
   const location = useLocation();
