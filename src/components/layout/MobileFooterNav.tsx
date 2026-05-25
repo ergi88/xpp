@@ -396,7 +396,7 @@ function MainNavDropZone({
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-xl transition-colors",
+        "rounded-xl transition-colors pb-2",
         isDraggingFromPool && isOver && "bg-primary/5 ring-1 ring-primary/20",
       )}
     >
@@ -419,7 +419,7 @@ const NavFooter = forwardRef<
     <motion.div
       ref={ref}
       style={{ y: footerY }}
-      className="absolute bottom-0 left-0 right-0 z-33 pointer-events-auto backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60"
+      className="absolute bottom-0 left-0 right-0 z-33 pointer-events-none backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60"
     >
       {children}
     </motion.div>
@@ -453,7 +453,7 @@ export function MobileFooterNav() {
   const bottomInset = insets.bottom;
 
   // navHeight is the minimum snap: covers exactly the nav row
-  const navHeight = 84 + bottomInset;
+  const navHeight = 90 + bottomInset;
   const snapPoints = [0, navHeight, 1];
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -665,7 +665,7 @@ export function MobileFooterNav() {
                 strategy={horizontalListSortingStrategy}
               >
                 <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
-                  <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2">
+                  <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2 pointer-events-auto">
                     {/* Left 2 nav items */}
                     {mainNav
                       .slice(0, 2)
