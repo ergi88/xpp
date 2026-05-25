@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./Sidebar";
 import { Header } from "./Header";
-// import { MobileFooterNav } from "./MobileFooterNav";
+import { MobileFooterNav } from "./MobileFooterNav";
 import { MobileFooterNavSimple } from "./footer-nav-examples/MobileFooterNavSimple";
 import { DraggableFAB } from "./DraggableFAB";
 import { PWAUpdateBanner } from "./PWAUpdateBanner";
@@ -43,8 +43,8 @@ export function AppLayout() {
             >
               <Outlet />
             </main>
-            {/* <MobileFooterNav /> */}
-            <MobileFooterNavSimple />
+            <MobileFooterNav />
+            {/* <MobileFooterNavSimple /> */}
           </SidebarInset>
           {isMobile && <DraggableFAB />}
         </SidebarProvider>
