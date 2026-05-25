@@ -242,8 +242,7 @@ export function AssistiveTouchPanel({
               <input
                 ref={inputRef}
                 value={expr}
-                type="text"
-                inputMode="tel"
+                type="number"
                 onChange={(e) => setExpr(e.target.value)}
                 placeholder="120 + 50 * 2"
                 style={{ fontSize: 16 }}
