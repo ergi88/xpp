@@ -1,15 +1,14 @@
 import type React from "react";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Calculator, Copy, Check, ChevronLeft } from "lucide-react";
+import { Calculator as CalcIcon, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { evaluate } from "@/lib/fab-evaluate";
 import { type EdgeSnap, type EdgeOffsets } from "@/lib/fab-edge-snap";
 import type { FABAction } from "@/lib/fab-context";
+import Calculator from "../features/mini-apps/Calculator";
 
 const CELL_SIZE = 72;
 const PANEL_PAD = 8;
-const PANEL_SIZE = 3 * CELL_SIZE + 2 * PANEL_PAD; // 232px
 
 const SLOT_MAP: Record<number, number[]> = {
   1: [4],
@@ -90,29 +89,13 @@ export function AssistiveTouchPanel({
 }: AssistiveTouchPanelProps) {
   const [activeParent, setActiveParent] = useState<FABAction | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
-  const [expr, setExpr] = useState("");
-  const [copied, setCopied] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const result = evaluate(expr);
 
   const calculatorAction: FABAction = {
     id: "__calculator",
     label: "Calculator",
-    icon: Calculator,
-    onClick: () => {
-      setCalcOpen(true);
-      setTimeout(() => inputRef.current?.focus(), 150);
-    },
+    icon: CalcIcon,
+    onClick: () => setCalcOpen(true),
   };
-
-  function handleCopy() {
-    if (result === "—") return;
-    navigator.clipboard.writeText(result).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  }
 
   const isSubView = Boolean(activeParent);
   const mainActions = [...actions, calculatorAction];
@@ -183,7 +166,7 @@ export function AssistiveTouchPanel({
     );
   });
 
-  const baseStyle: React.CSSProperties = {
+  const gridPanelStyle: React.CSSProperties = {
     ...getPanelStyle(snap, fabSize, offsets),
     position: "fixed",
     zIndex: 50,
@@ -193,110 +176,75 @@ export function AssistiveTouchPanel({
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
     border: "1px solid rgba(255,255,255,0.12)",
+    display: "grid",
+    gridTemplateColumns: `repeat(3, ${CELL_SIZE}px)`,
   };
-
-  const panelStyle: React.CSSProperties = calcOpen
-    ? { ...baseStyle, width: PANEL_SIZE }
-    : {
-        ...baseStyle,
-        display: "grid",
-        gridTemplateColumns: `repeat(3, ${CELL_SIZE}px)`,
-      };
 
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/40" onPointerDown={onClose} />
+      <div className="fixed inset-0 z-0 bg-black/40" onPointerDown={onClose} />
 
-      {/* Panel */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ duration: 0.15 }}
-        style={panelStyle}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <AnimatePresence mode="wait">
-          {calcOpen ? (
+      {/* Grid panel — hidden while calculator is open */}
+      <AnimatePresence>
+        {!calcOpen && (
+          <motion.div
+            key="grid-panel"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+            style={gridPanelStyle}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isSubView ? activeParent!.id : "__main"}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.08 }}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(3, ${CELL_SIZE}px)`,
+                }}
+              >
+                {cells.map((cell, i) => (
+                  <div key={i} style={{ width: CELL_SIZE, height: CELL_SIZE }}>
+                    {cell}
+                  </div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Calculator — full-screen modal */}
+      <AnimatePresence>
+        {calcOpen && (
+          <motion.div
+            key="calc-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-500 bg-black/70 flex justify-center pt-25"
+            onPointerDown={() => setCalcOpen(false)}
+          >
             <motion.div
-              key="__calc"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-              style={{ width: PANEL_SIZE - 2 * PANEL_PAD }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-md max-h-[75dvh] overflow-auto"
+              onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={() => setCalcOpen(false)}
-                  className="flex size-7 items-center justify-center rounded-full bg-white/10 border border-white/20 text-white"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-                <span className="text-[11px] uppercase tracking-wider text-white/60">
-                  Calculator
-                </span>
-              </div>
-
-              <input
-                ref={inputRef}
-                value={expr}
-                type="number"
-                onChange={(e) => setExpr(e.target.value)}
-                placeholder="120 + 50 * 2"
-                style={{ fontSize: 16 }}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 font-mono text-white placeholder:text-white/30 outline-none focus:ring-1 focus:ring-white/40"
-              />
-
-              <div className="mt-3 flex items-center justify-between">
-                <span
-                  className={cn(
-                    "font-mono text-lg font-semibold",
-                    result === "—" ? "text-white/40" : "text-white",
-                  )}
-                >
-                  = {result}
-                </span>
-                <button
-                  onClick={handleCopy}
-                  disabled={result === "—"}
-                  className="flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-xs text-white/60 hover:text-white disabled:opacity-40"
-                >
-                  {copied ? (
-                    <Check className="size-3" />
-                  ) : (
-                    <Copy className="size-3" />
-                  )}
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-
-              <p className="mt-2 text-[10px] text-white/40">
-                Supports + − × ÷ ( )
-              </p>
+              <Calculator goBack={() => setCalcOpen(false)} />
             </motion.div>
-          ) : (
-            <motion.div
-              key={isSubView ? activeParent!.id : "__main"}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.08 }}
-              style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(3, ${CELL_SIZE}px)`,
-              }}
-            >
-              {cells.map((cell, i) => (
-                <div key={i} style={{ width: CELL_SIZE, height: CELL_SIZE }}>
-                  {cell}
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

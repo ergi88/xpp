@@ -209,10 +209,10 @@ function NavFooter({
   navHeight: number;
   children: React.ReactNode;
 }) {
-  const footerY = useTransform(() => {
-    const y = sheetRef.yInverted.get();
-    return clamp(0, navHeight, navHeight - y);
-  });
+  // const footerY = useTransform(() => {
+  //   const y = sheetRef.yInverted.get();
+  //   return clamp(0, navHeight, navHeight - y);
+  // });
 
   return (
     <motion.div
@@ -252,7 +252,8 @@ export function MobileFooterNavSimple() {
   );
 
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-
+  const [snapIndex, setSnapIndex] = useState(1);
+  const isExpanded = snapIndex === 2;
   // Long-press the center "+" to expand the sheet to full; short tap opens quick actions.
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPress = useRef(false);
@@ -301,6 +302,9 @@ export function MobileFooterNavSimple() {
       onClose={() => sheetRef?.snapTo(1)}
       snapPoints={snapPoints}
       initialSnap={initialSnap}
+      onSnap={(snap) => {
+        setSnapIndex(snap);
+      }}
       detent="content"
       disableDismiss
       // disableScrollLocking

@@ -142,7 +142,7 @@ function SyncFooter({
         : "Never synced";
 
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-3 pb-5">
+    <div className="flex items-center justify-between gap-2 p-4">
       <div className="flex items-center gap-1 min-w-0">
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
           {!isOnline ? (
@@ -313,21 +313,21 @@ function PoolItem({ id }: { id: NavItemId }) {
         "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors select-none",
         isActive && "text-primary bg-primary/5",
       )}
-      onMouseDown={(e) => {
-        mouseStart.current = { x: e.clientX, y: e.clientY };
-        mouseDragged.current = false;
-      }}
-      onMouseMove={(e) => {
-        if (!mouseStart.current) return;
-        const dx = Math.abs(e.clientX - mouseStart.current.x);
-        const dy = Math.abs(e.clientY - mouseStart.current.y);
-        if (dx > 5 || dy > 5) mouseDragged.current = true;
-      }}
-      onMouseUp={() => {
-        mouseStart.current = null;
-      }}
+      // onMouseDown={(e) => {
+      //   mouseStart.current = { x: e.clientX, y: e.clientY };
+      //   mouseDragged.current = false;
+      // }}
+      // onMouseMove={(e) => {
+      //   if (!mouseStart.current) return;
+      //   const dx = Math.abs(e.clientX - mouseStart.current.x);
+      //   const dy = Math.abs(e.clientY - mouseStart.current.y);
+      //   if (dx > 5 || dy > 5) mouseDragged.current = true;
+      // }}
+      // onMouseUp={() => {
+      //   mouseStart.current = null;
+      // }}
       onClick={() => {
-        if (!mouseDragged.current) navigate(item.to);
+        navigate(item.to);
       }}
     >
       <Icon className="size-5" />
@@ -360,21 +360,21 @@ function NavLinkItem({
         "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs transition-colors select-none",
         isActive ? "text-primary" : "text-muted-foreground",
       )}
-      onMouseDown={(e) => {
-        mouseStart.current = { x: e.clientX, y: e.clientY };
-        mouseDragged.current = false;
-      }}
-      onMouseMove={(e) => {
-        if (!mouseStart.current) return;
-        const dx = Math.abs(e.clientX - mouseStart.current.x);
-        const dy = Math.abs(e.clientY - mouseStart.current.y);
-        if (dx > 5 || dy > 5) mouseDragged.current = true;
-      }}
-      onMouseUp={() => {
-        mouseStart.current = null;
-      }}
+      // onMouseDown={(e) => {
+      //   mouseStart.current = { x: e.clientX, y: e.clientY };
+      //   mouseDragged.current = false;
+      // }}
+      // onMouseMove={(e) => {
+      //   if (!mouseStart.current) return;
+      //   const dx = Math.abs(e.clientX - mouseStart.current.x);
+      //   const dy = Math.abs(e.clientY - mouseStart.current.y);
+      //   if (dx > 5 || dy > 5) mouseDragged.current = true;
+      // }}
+      // onMouseUp={() => {
+      //   mouseStart.current = null;
+      // }}
       onClick={() => {
-        if (!mouseDragged.current) navigate(item.to);
+        navigate(item.to);
       }}
     >
       <Icon className="size-5" />
@@ -396,7 +396,7 @@ function MainNavDropZone({
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-xl transition-colors pb-2",
+        "rounded-xl transition-colors",
         isDraggingFromPool && isOver && "bg-primary/5 ring-1 ring-primary/20",
       )}
     >
@@ -410,16 +410,18 @@ const NavFooter = forwardRef<
   HTMLDivElement,
   { sheetRef: SheetRef; navHeight: number; children: React.ReactNode }
 >(({ sheetRef, navHeight, children }, ref) => {
-  const footerY = useTransform(() => {
-    const y = sheetRef.yInverted.get();
-    return clamp(0, navHeight, navHeight - y);
-  });
+  // const footerY = useTransform(() => {
+  //   const y = sheetRef.yInverted.get();
+  //   return clamp(0, navHeight, navHeight - y);
+  // });
 
   return (
     <motion.div
-      ref={ref}
-      style={{ y: footerY }}
-      className="absolute bottom-0 left-0 right-0 z-33 pointer-events-none backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60"
+      // ref={ref}
+      // style={{ y: footerY }}
+      // className="absolute bottom-0 left-0 right-0 z-33 pointer-events-none backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60"
+
+      className="absolute bottom-0 left-0 right-0 z-3 flex items-center justify-center bg-background pointer-events-auto pb-4"
     >
       {children}
     </motion.div>
@@ -446,6 +448,7 @@ export function MobileFooterNav() {
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sheetContentRef = useRef<HTMLDivElement | null>(null);
+  const headRef = useRef<HTMLDivElement | null>(null);
   const navFooterRef = useRef<HTMLDivElement | null>(null);
   const [snapIndex, setSnapIndex] = useState(0);
   const isExpanded = snapIndex === 2;
@@ -568,9 +571,9 @@ export function MobileFooterNav() {
   }, [isExpanded]);
 
   useClickOutside(
-    [sheetContentRef, navFooterRef],
+    [sheetContentRef, navFooterRef, headRef],
     () => sheetRef?.snapTo(1),
-    isExpanded,
+    isExpanded && !isEditMode,
   );
 
   if (!isMobile || !enabled || keyboardVisible) return null;
@@ -604,16 +607,20 @@ export function MobileFooterNav() {
             }}
             className="backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60 border-t"
           >
+            <Sheet.Header ref={headRef}>
+              <div className="flex justify-center py-2">
+                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+              </div>
+            </Sheet.Header>
             <Sheet.Content
-              disableDrag={false}
-              scrollRef={scrollRef}
-              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+              disableScroll={(state) => state.currentSnap !== 2}
+              scrollStyle={{ paddingBottom: navHeight }}
+
+              // disableDrag={false}
+              // scrollRef={scrollRef}
+              // style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
               <div ref={sheetContentRef} className="flex flex-col">
-                {/* Drag indicator */}
-                <div className="flex justify-center py-2 shrink-0">
-                  <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-                </div>
                 <SyncFooter
                   isEditMode={isEditMode}
                   onToggleEdit={() => setIsEditMode((v) => !v)}
@@ -623,10 +630,10 @@ export function MobileFooterNav() {
                 <div
                   ref={scrollRef}
                   className="flex flex-col overflow-y-auto"
-                  style={{ paddingBottom: navHeight }}
+                  // style={{ paddingBottom: navHeight }}
                 >
                   {pool.length > 0 && (
-                    <div className="px-4 pb-2">
+                    <div className="px-4">
                       <div
                         className={cn(
                           "grid grid-cols-4 gap-1",
@@ -665,7 +672,7 @@ export function MobileFooterNav() {
                 strategy={horizontalListSortingStrategy}
               >
                 <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
-                  <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pb-2 pointer-events-auto">
+                  <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pointer-events-auto">
                     {/* Left 2 nav items */}
                     {mainNav
                       .slice(0, 2)
