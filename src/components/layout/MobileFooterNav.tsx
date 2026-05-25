@@ -593,8 +593,8 @@ export function MobileFooterNav() {
           style={{ zIndex: 40 }}
           detent="content"
           disableDismiss
-          disableScrollLocking
-          modalEffectRootId="root"
+          // disableScrollLocking
+          // modalEffectRootId="root"
         >
           <Sheet.Container
             style={{

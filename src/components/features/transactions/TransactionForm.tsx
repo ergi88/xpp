@@ -257,10 +257,11 @@ export function TransactionForm({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleFormSubmit)}
-          className="space-y-6"
+          className="space-y-6 pb-8"
         >
           {/* Transaction Type Tabs */}
-          <div className="flex gap-2 p-1 bg-muted rounded-lg">
+          {/* <div className="flex gap-2 p-1 bg-muted rounded-lg"> */}
+          <div className="sticky -top-4 -left-6 z-10 flex gap-2 p-1 bg-muted rounded-lg">
             {TRANSACTION_TYPES.map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}

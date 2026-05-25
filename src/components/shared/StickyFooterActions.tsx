@@ -22,12 +22,12 @@ export function StickyFooterActions({
   return (
     <div
       className={cn(
-        "fixed inset-x-0 z-30 border-t bg-background flex items-center gap-2 px-4 py-3",
+        "fixed inset-x-0 z-30 border-t bg-background! flex items-center gap-2 p-4",
         className,
       )}
       style={{
         bottom: showMobileFooter
-          ? "calc(env(safe-area-inset-bottom) + 5rem)"
+          ? "calc(env(safe-area-inset-bottom) + 5.5rem)"
           : "env(safe-area-inset-bottom)",
       }}
     >

@@ -1,31 +1,33 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Wallet } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Page } from '@/components/shared'
-import { BudgetCard } from '@/components/features/budgets'
-import { useBudgetsWithProgress, useDeleteBudget } from '@/hooks'
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Plus, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Page } from "@/components/shared";
+import { BudgetCard } from "@/components/features/budgets";
+import { useBudgetsWithProgress, useDeleteBudget } from "@/hooks";
 
 export default function BudgetsPage() {
-  const [search, setSearch] = useState('')
-  const { data: budgets, isLoading } = useBudgetsWithProgress()
-  const deleteBudget = useDeleteBudget()
+  const [search, setSearch] = useState("");
+  const { data: budgets, isLoading } = useBudgetsWithProgress();
+  const deleteBudget = useDeleteBudget();
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return budgets ?? []
-    return (budgets ?? []).filter(b => (b.name ?? '').toLowerCase().includes(q))
-  }, [search, budgets])
+    const q = search.trim().toLowerCase();
+    if (!q) return budgets ?? [];
+    return (budgets ?? []).filter((b) =>
+      (b.name ?? "").toLowerCase().includes(q),
+    );
+  }, [search, budgets]);
 
   return (
     <Page title="Budgets">
-      <div className="p-4 space-y-4">
+      <div className="space-y-4">
         {/* Toolbar */}
         <div className="flex gap-2">
           <Input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search budgets…"
             className="max-w-xs"
           />
@@ -48,7 +50,7 @@ export default function BudgetsPage() {
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
             <Wallet className="size-10 text-muted-foreground/40" />
             <p className="text-muted-foreground text-sm">
-              {search ? 'No budgets match your search.' : 'No budgets yet.'}
+              {search ? "No budgets match your search." : "No budgets yet."}
             </p>
             {!search && (
               <Button asChild variant="outline" size="sm">
@@ -58,16 +60,16 @@ export default function BudgetsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(b => (
+            {filtered.map((b) => (
               <BudgetCard
                 key={b.id}
                 budget={b}
-                onDelete={id => deleteBudget.mutate(id)}
+                onDelete={(id) => deleteBudget.mutate(id)}
               />
             ))}
           </div>
         )}
       </div>
     </Page>
-  )
+  );
 }
