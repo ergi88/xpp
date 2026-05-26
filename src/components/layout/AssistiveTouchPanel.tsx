@@ -1,11 +1,16 @@
 import type React from "react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Calculator as CalcIcon, ChevronLeft } from "lucide-react";
+import {
+  Calculator as CalcIcon,
+  StickyNote as NotesIcon,
+  ChevronLeft,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type EdgeSnap, type EdgeOffsets } from "@/lib/fab-edge-snap";
 import type { FABAction } from "@/lib/fab-context";
 import Calculator from "../features/mini-apps/Calculator";
+import Notes from "../features/mini-apps/Notes";
 
 const CELL_SIZE = 72;
 const PANEL_PAD = 8;
@@ -89,6 +94,7 @@ export function AssistiveTouchPanel({
 }: AssistiveTouchPanelProps) {
   const [activeParent, setActiveParent] = useState<FABAction | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const calculatorAction: FABAction = {
     id: "__calculator",
@@ -97,8 +103,15 @@ export function AssistiveTouchPanel({
     onClick: () => setCalcOpen(true),
   };
 
+  const notesAction: FABAction = {
+    id: "__notes",
+    label: "Notes",
+    icon: NotesIcon,
+    onClick: () => setNotesOpen(true),
+  };
+
   const isSubView = Boolean(activeParent);
-  const mainActions = [...actions, calculatorAction];
+  const mainActions = [...actions, calculatorAction, notesAction];
   const currentActions = isSubView
     ? (activeParent!.children ?? []).slice(0, 8)
     : mainActions.slice(0, 9);
@@ -145,7 +158,8 @@ export function AssistiveTouchPanel({
             setActiveParent(action);
           } else {
             action.onClick?.();
-            if (action.id !== "__calculator") onClose();
+            if (action.id !== "__calculator" && action.id !== "__notes")
+              onClose();
           }
         }}
         className="flex flex-col items-center justify-center gap-1"
@@ -185,9 +199,9 @@ export function AssistiveTouchPanel({
       {/* Backdrop */}
       <div className="fixed inset-0 z-0 bg-black/40" onPointerDown={onClose} />
 
-      {/* Grid panel — hidden while calculator is open */}
+      {/* Grid panel — hidden while any modal is open */}
       <AnimatePresence>
-        {!calcOpen && (
+        {!calcOpen && !notesOpen && (
           <motion.div
             key="grid-panel"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -237,10 +251,36 @@ export function AssistiveTouchPanel({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="w-full max-w-md max-h-[75dvh] overflow-auto"
+              className="w-full max-w-md max-h-[75dvh] h-max overflow-auto"
               onPointerDown={(e) => e.stopPropagation()}
             >
               <Calculator goBack={() => setCalcOpen(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Notes — full-screen modal */}
+      <AnimatePresence>
+        {notesOpen && (
+          <motion.div
+            key="notes-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-500 bg-black/70 flex justify-center pt-25"
+            onPointerDown={() => setNotesOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-md max-h-[75dvh] h-max overflow-auto"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <Notes goBack={() => setNotesOpen(false)} />
             </motion.div>
           </motion.div>
         )}
