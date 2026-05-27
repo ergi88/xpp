@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { safeZodResolver } from "@/lib/zod-resolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -69,7 +69,7 @@ export function BudgetForm({
   );
 
   const form = useForm<BudgetFormData>({
-    resolver: zodResolver(budgetSchema),
+    resolver: safeZodResolver<BudgetFormData>(budgetSchema),
     defaultValues: {
       name: "",
       amount: 0,

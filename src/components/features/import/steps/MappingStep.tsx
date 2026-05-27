@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { safeZodResolver } from '@/lib/zod-resolver'
 import { z } from 'zod'
 import {
     Form,
@@ -47,7 +47,7 @@ const NONE_VALUE = '__none__'
 
 export function MappingStep({ parseResult, onSubmit, isLoading }: MappingStepProps) {
     const form = useForm<MappingFormValues>({
-        resolver: zodResolver(mappingSchema),
+        resolver: safeZodResolver<MappingFormValues>(mappingSchema),
         defaultValues: {
             date: parseResult.suggestedMapping.date ?? undefined,
             amount: parseResult.suggestedMapping.amount ?? undefined,

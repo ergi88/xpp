@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { safeZodResolver } from "@/lib/zod-resolver";
 import { z } from "zod";
 import {
   Card,
@@ -74,7 +74,7 @@ export function SecuritySetupForm() {
     getValues,
     formState: { errors },
   } = useForm<PinFormData>({
-    resolver: zodResolver(pinSchema),
+    resolver: safeZodResolver<PinFormData>(pinSchema),
     defaultValues: { email: existingEmail },
   });
 

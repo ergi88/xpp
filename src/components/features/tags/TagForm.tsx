@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { safeZodResolver } from '@/lib/zod-resolver'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,7 +37,7 @@ export function TagForm({
     submitLabel = 'Save',
 }: TagFormProps) {
     const form = useForm<TagFormValues>({
-        resolver: zodResolver(tagSchema),
+        resolver: safeZodResolver<TagFormValues>(tagSchema),
         defaultValues: {
             name: defaultValues?.name ?? '',
         },

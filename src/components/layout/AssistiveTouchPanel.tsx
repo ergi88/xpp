@@ -57,22 +57,22 @@ function getPanelStyle(
     case "left":
       return {
         left: `${offsets.side + fabSize + GAP}px`,
-        top: `${snap.position}px`,
+        top: `${snap.position - CELL_SIZE - GAP}px`,
       };
     case "right":
       return {
         right: `${offsets.side + fabSize + GAP}px`,
-        top: `${snap.position}px`,
+        top: `${snap.position - CELL_SIZE - GAP}px`,
       };
     case "top":
       return {
         top: `${offsets.top + fabSize + GAP}px`,
-        left: `${snap.position}px`,
+        left: `${snap.position - CELL_SIZE - GAP}px`,
       };
     case "bottom":
       return {
         bottom: `${offsets.bottom + fabSize + GAP}px`,
-        left: `${snap.position}px`,
+        left: `${snap.position - CELL_SIZE - GAP}px`,
       };
   }
 }

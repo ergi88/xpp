@@ -1,6 +1,6 @@
-import { useForm, useWatch, type Resolver } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
 import { useEffect, useMemo, useState } from "react";
+import { safeZodResolver } from "@/lib/zod-resolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { StickyFooterActions } from "@/components/shared/StickyFooterActions";
+import { toast } from "sonner";
 
 export interface PendingDebt {
   name: string;
@@ -129,15 +130,24 @@ export function TransactionForm({
   }, [defaultValues]);
 
   const form = useForm<TransactionFormValues>({
-    resolver: zodResolver(transactionSchema) as Resolver<TransactionFormValues>,
+    resolver: safeZodResolver<TransactionFormValues>(transactionSchema),
     defaultValues: formDefaults,
   });
+
+  // Reset only when defaultValues meaningfully change (e.g. edit data loaded),
+  // NOT when the parent re-renders due to type toggles syncing back via the URL.
+  // `type` is excluded from the signature: the form owns it after mount.
+  const externalDefaultsKey = useMemo(() => {
+    if (!defaultValues) return "";
+    const { type: _omit, ...rest } = defaultValues;
+    return JSON.stringify(rest);
+  }, [defaultValues]);
 
   useEffect(() => {
     form.reset(formDefaults);
     setPickerMode(formDefaults.debt_id ? "debt" : "category");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formDefaults]);
+  }, [externalDefaultsKey]);
 
   const transactionType = useWatch({ control: form.control, name: "type" });
   const accountId = useWatch({ control: form.control, name: "account_id" });
@@ -174,11 +184,6 @@ export function TransactionForm({
     }
   }, [categoryId, transactionType, filteredCategories, pickerMode, form]);
 
-  useEffect(() => {
-    if (transactionType === "transfer") {
-      form.setValue("category_id", null);
-    }
-  }, [transactionType, form]);
 
   const selectedAccount = accounts?.find((a) => a.id === accountId);
   const selectedToAccount = accounts?.find((a) => a.id === toAccountId);
@@ -252,11 +257,23 @@ export function TransactionForm({
     }
   };
 
+  const handleInvalid = (errors: Record<string, { message?: string }>) => {
+    const messages = Object.entries(errors)
+      .map(([field, err]) => err?.message ?? `${field} is invalid`)
+      .filter(Boolean);
+    if (messages.length > 0) {
+      toast.error(messages[0], {
+        description:
+          messages.length > 1 ? `+${messages.length - 1} more issue(s)` : undefined,
+      });
+    }
+  };
+
   return (
     <FormWrapper>
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(handleFormSubmit)}
+          onSubmit={form.handleSubmit(handleFormSubmit, handleInvalid)}
           className="space-y-6 pb-8"
         >
           {/* Transaction Type Tabs */}
@@ -267,7 +284,24 @@ export function TransactionForm({
                 key={value}
                 type="button"
                 onClick={() => {
-                  form.setValue("type", value);
+                  const current = form.getValues();
+                  form.reset({
+                    type: value,
+                    account_id: current.account_id,
+                    amount: current.amount,
+                    description: current.description,
+                    date: current.date,
+                    tag_ids: current.tag_ids,
+                    is_excluded: current.is_excluded,
+                    is_one_time: current.is_one_time,
+                    to_account_id: null,
+                    category_id: null,
+                    to_amount: null,
+                    exchange_rate: null,
+                    debt_id: null,
+                  });
+                  setPickerMode("category");
+                  setPendingDebt(null);
                   onTypeChange?.(value);
                 }}
                 className={cn(
@@ -304,6 +338,7 @@ export function TransactionForm({
             {/* To Account (Transfer) or Category/Debt (Income/Expense) */}
             {transactionType === "transfer" ? (
               <FormField
+                key="to_account_id"
                 control={form.control}
                 name="to_account_id"
                 render={({ field }) => (
@@ -320,6 +355,7 @@ export function TransactionForm({
               />
             ) : (
               <FormField
+                key="category_id"
                 control={form.control}
                 name="category_id"
                 render={({ field: categoryField }) => {
@@ -552,6 +588,7 @@ export function TransactionForm({
                       min={0}
                       placeholder="0.00"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -562,6 +599,7 @@ export function TransactionForm({
 
             {transactionType === "transfer" ? (
               <FormField
+                key="to_amount"
                 control={form.control}
                 name="to_amount"
                 render={({ field }) => (
@@ -588,6 +626,7 @@ export function TransactionForm({
               />
             ) : (
               <FormField
+                key="date-inline"
                 control={form.control}
                 name="date"
                 render={({ field }) => (
@@ -729,6 +768,21 @@ export function TransactionForm({
                 </FormItem>
               )}
             />
+          )}
+          {Object.keys(form.formState.errors).length > 0 && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
+              <p className="font-medium text-destructive mb-1">
+                Please fix the following:
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-destructive">
+                {Object.entries(form.formState.errors).map(([field, err]) => (
+                  <li key={field}>
+                    <span className="font-medium">{field}:</span>{" "}
+                    {(err as { message?: string })?.message ?? "invalid"}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <StickyFooterActions className="bg-unset">
             <Button
