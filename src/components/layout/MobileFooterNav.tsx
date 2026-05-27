@@ -563,7 +563,7 @@ export function MobileFooterNav() {
           style={{ zIndex: 40 }}
           detent="content"
           disableDismiss
-          disableDrag={isEditMode}
+          // disableDrag={isEditMode}
         >
           <Sheet.Container
             style={{
