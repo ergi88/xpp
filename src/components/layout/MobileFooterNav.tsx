@@ -563,7 +563,6 @@ export function MobileFooterNav() {
           style={{ zIndex: 40 }}
           detent="content"
           disableDismiss
-          // disableDrag={isEditMode}
         >
           <Sheet.Container
             style={{
@@ -580,6 +579,7 @@ export function MobileFooterNav() {
             </Sheet.Header>
             <Sheet.Content
               disableScroll={(state) => state.currentSnap !== 2}
+              disableDrag={isEditMode}
               scrollStyle={{ paddingBottom: navHeight }}
             >
               <div ref={sheetContentRef} className="flex flex-col">
