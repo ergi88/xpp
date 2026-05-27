@@ -311,28 +311,12 @@ function PoolItem({ id }: { id: NavItemId }) {
     ? location.pathname === item.to
     : location.pathname.startsWith(item.to);
 
-  const mouseStart = useRef<{ x: number; y: number } | null>(null);
-  const mouseDragged = useRef(false);
-
   return (
     <div
       className={cn(
         "flex flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs text-muted-foreground transition-colors select-none",
         isActive && "text-primary bg-primary/5",
       )}
-      // onMouseDown={(e) => {
-      //   mouseStart.current = { x: e.clientX, y: e.clientY };
-      //   mouseDragged.current = false;
-      // }}
-      // onMouseMove={(e) => {
-      //   if (!mouseStart.current) return;
-      //   const dx = Math.abs(e.clientX - mouseStart.current.x);
-      //   const dy = Math.abs(e.clientY - mouseStart.current.y);
-      //   if (dx > 5 || dy > 5) mouseDragged.current = true;
-      // }}
-      // onMouseUp={() => {
-      //   mouseStart.current = null;
-      // }}
       onClick={() => {
         navigate(item.to);
       }}
@@ -367,19 +351,6 @@ function NavLinkItem({
         "flex flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs transition-colors select-none",
         isActive ? "text-primary" : "text-muted-foreground",
       )}
-      // onMouseDown={(e) => {
-      //   mouseStart.current = { x: e.clientX, y: e.clientY };
-      //   mouseDragged.current = false;
-      // }}
-      // onMouseMove={(e) => {
-      //   if (!mouseStart.current) return;
-      //   const dx = Math.abs(e.clientX - mouseStart.current.x);
-      //   const dy = Math.abs(e.clientY - mouseStart.current.y);
-      //   if (dx > 5 || dy > 5) mouseDragged.current = true;
-      // }}
-      // onMouseUp={() => {
-      //   mouseStart.current = null;
-      // }}
       onClick={() => {
         navigate(item.to);
       }}
@@ -417,19 +388,8 @@ const NavFooter = forwardRef<
   HTMLDivElement,
   { sheetRef: SheetRef; navHeight: number; children: React.ReactNode }
 >(({ sheetRef, navHeight, children }, ref) => {
-  // const footerY = useTransform(() => {
-  //   const y = sheetRef.yInverted.get();
-  //   return clamp(0, navHeight, navHeight - y);
-  // });
-
   return (
-    <motion.div
-      // ref={ref}
-      // style={{ y: footerY }}
-      // className="absolute bottom-0 left-0 right-0 z-33 pointer-events-none backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60"
-
-      className="absolute bottom-0 left-0 right-0 z-3 flex items-center justify-center bg-background pointer-events-auto pb-4"
-    >
+    <motion.div className="absolute bottom-0 left-0 right-0 z-3 flex items-center justify-center bg-background pointer-events-auto pb-4">
       {children}
     </motion.div>
   );
@@ -603,8 +563,7 @@ export function MobileFooterNav() {
           style={{ zIndex: 40 }}
           detent="content"
           disableDismiss
-          // disableScrollLocking
-          // modalEffectRootId="root"
+          disableDrag={isEditMode}
         >
           <Sheet.Container
             style={{
@@ -622,10 +581,6 @@ export function MobileFooterNav() {
             <Sheet.Content
               disableScroll={(state) => state.currentSnap !== 2}
               scrollStyle={{ paddingBottom: navHeight }}
-
-              // disableDrag={false}
-              // scrollRef={scrollRef}
-              // style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
               <div ref={sheetContentRef} className="flex flex-col">
                 <SyncFooter
@@ -634,11 +589,7 @@ export function MobileFooterNav() {
                 />
 
                 {/* Expandable content — pool items + sync */}
-                <div
-                  ref={scrollRef}
-                  className="flex flex-col overflow-y-auto"
-                  // style={{ paddingBottom: navHeight }}
-                >
+                <div ref={scrollRef} className="flex flex-col overflow-y-auto">
                   {pool.length > 0 && (
                     <div className="px-4">
                       <div
