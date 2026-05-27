@@ -12,8 +12,15 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
+  CheckCheck,
   CreditCard,
   Download,
+  Edit,
+  Edit2,
+  Edit2Icon,
+  Edit3,
+  Edit3Icon,
+  EditIcon,
   HandCoins,
   Minus,
   PiggyBank,
@@ -176,7 +183,7 @@ function SyncFooter({
         onClick={onToggleEdit}
         className="text-xs font-medium text-primary shrink-0"
       >
-        {isEditMode ? "Done" : "Edit Nav"}
+        {isEditMode ? <CheckCheck size={20} /> : <Edit size={20} />}
       </button>
     </div>
   );

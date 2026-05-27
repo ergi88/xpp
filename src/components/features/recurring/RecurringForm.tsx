@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { safeZodResolver } from '@/lib/zod-resolver'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -91,7 +91,7 @@ export function RecurringForm({
     }), [defaultValues])
 
     const form = useForm<RecurringFormData>({
-        resolver: zodResolver(recurringSchema),
+        resolver: safeZodResolver<RecurringFormData>(recurringSchema),
         defaultValues: formDefaults,
     })
 

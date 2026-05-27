@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { safeZodResolver } from '@/lib/zod-resolver'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -34,7 +34,7 @@ export function CurrencyForm({
     isBase = false,
 }: CurrencyFormProps) {
     const form = useForm<CurrencyFormData>({
-        resolver: zodResolver(currencySchema),
+        resolver: safeZodResolver<CurrencyFormData>(currencySchema),
         defaultValues: {
             code: '',
             name: '',

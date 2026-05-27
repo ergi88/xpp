@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { safeZodResolver } from "@/lib/zod-resolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,7 +55,7 @@ export function DebtPaymentDialog({
   });
 
   const form = useForm<DebtPaymentFormData>({
-    resolver: zodResolver(debtPaymentSchema),
+    resolver: safeZodResolver<DebtPaymentFormData>(debtPaymentSchema),
     defaultValues: {
       account_id: "",
       amount: 0,

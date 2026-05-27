@@ -1,5 +1,5 @@
 import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { safeZodResolver } from "@/lib/zod-resolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -63,7 +63,7 @@ export function AccountForm({
   );
 
   const form = useForm<AccountFormData>({
-    resolver: zodResolver(accountSchema),
+    resolver: safeZodResolver<AccountFormData>(accountSchema),
     defaultValues: {
       name: "",
       type: "bank",

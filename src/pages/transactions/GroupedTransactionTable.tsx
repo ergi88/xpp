@@ -284,7 +284,15 @@ export function GroupedTransactionTable({
                       <div className="min-w-0 flex-1">
                         {/* Main label + inline badges */}
                         <div className="flex items-center gap-1 flex-wrap">
-                          <span className="font-medium text-sm truncate">
+                          <span
+                            className="font-medium text-sm"
+                            style={{
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
                             {label}
                           </span>
                           {/* Inline badges */}
@@ -363,16 +371,18 @@ export function GroupedTransactionTable({
                       {!t.isApproved && (
                         <Lock className="size-3 text-muted-foreground shrink-0" />
                       )}
-                      <AmountText
-                        value={amountValue}
-                        decimals={decimals}
-                        currency={currency}
-                        signDisplay="always"
-                        className={cn("text-sm font-semibold", amountColor)}
-                      />
-                      {isTransfer && t.toAmount && t.toAccount && (
-                        <div className="text-xs text-muted-foreground font-mono ml-1">
-                          →{" "}
+
+                      {isTransfer && t.toAmount && t.toAccount ? (
+                        <div className="text-xs flex items-center flex-col text-muted-foreground font-mono ml-1">
+                          <AmountText
+                            value={amountValue}
+                            decimals={decimals}
+                            currency={currency}
+                            signDisplay="always"
+                            className={cn("text-sm font-semibold", amountColor)}
+                          />
+                          {/* →{" "} //downarrow character below like this but down → */}
+                          ↓
                           <AmountText
                             value={t.toAmount}
                             decimals={t.toAccount.currency?.decimals ?? 2}
@@ -380,6 +390,14 @@ export function GroupedTransactionTable({
                             signDisplay="always"
                           />
                         </div>
+                      ) : (
+                        <AmountText
+                          value={amountValue}
+                          decimals={decimals}
+                          currency={currency}
+                          signDisplay="always"
+                          className={cn("text-sm font-semibold", amountColor)}
+                        />
                       )}
                       <div
                         className="flex items-center justify-center"
