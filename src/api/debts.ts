@@ -20,6 +20,16 @@ function toDebt(
 ): Debt {
   const targetAmount = Number(r.target_amount ?? r.amount ?? 0);
   const paidAmount = Number(r.paid_amount ?? 0);
+  // Migration default: legacy rows have no current_balance column → fall back
+  // to paidAmount. Reconcile will reset it to the true running net (which
+  // additionally includes the origin TX contribution) on first run.
+  const rawCurrentBalance = r.current_balance;
+  const currentBalance =
+    rawCurrentBalance === undefined ||
+    rawCurrentBalance === null ||
+    rawCurrentBalance === ""
+      ? paidAmount
+      : Number(rawCurrentBalance);
   const remainingDebt = Math.max(0, targetAmount - paidAmount);
   return {
     id: r.id as string,
@@ -29,7 +39,8 @@ function toDebt(
     debtTypeLabel: r.debt_type as string,
     currencyId: r.currency_id as string,
     targetAmount,
-    currentBalance: paidAmount,
+    paidAmount,
+    currentBalance,
     remainingDebt,
     paymentProgress: targetAmount > 0 ? (paidAmount / targetAmount) * 100 : 0,
     dueDate: r.due_date as string | undefined,
@@ -41,6 +52,22 @@ function toDebt(
     currency: currencyMap?.get(r.currency_id as string),
     originTransactionId: (r.origin_transaction_id as string) || null,
   };
+}
+
+// Origin TX direction: how the origin TX itself contributes to current_balance.
+// Mirrors the same rule as debtDeltaSign for non-origin TXs: same-direction
+// settles (+1), opposite grows (-1). For the canonical "create-from-form"
+// flow, the origin is opposite-direction so it grows the debt:
+//   - i_owe + income origin → -amount  (received money you'll owe back)
+//   - owed_to_me + expense origin → -amount  (paid someone who'll repay)
+export function originDirectionSign(
+  txnType: "income" | "expense" | "transfer",
+  debtType: "i_owe" | "owed_to_me",
+): 1 | -1 {
+  const same =
+    (txnType === "expense" && debtType === "i_owe") ||
+    (txnType === "income" && debtType === "owed_to_me");
+  return same ? 1 : -1;
 }
 
 async function loadCurrencyMap(): Promise<Map<string, Currency>> {
@@ -111,6 +138,23 @@ export const debtsApi = {
       originTransactionId = originTxn.id;
     }
 
+    // Initialize current_balance from the origin TX's signed contribution.
+    // For the canonical create-from-form path the origin is always opposite-
+    // direction, so this seeds a negative running net (debt grows).
+    let initialCurrentBalance = 0;
+    if (originTransactionId) {
+      try {
+        const origin = await transactionsApi.getById(originTransactionId);
+        if (origin.type !== "transfer") {
+          initialCurrentBalance =
+            origin.amount *
+            originDirectionSign(origin.type, data.debt_type);
+        }
+      } catch {
+        // Origin lookup failed — leave at 0; reconcile can fix later.
+      }
+    }
+
     const [r, currencyMap] = await Promise.all([
       adapter.create("debts", {
         id: uuidv4(),
@@ -119,6 +163,7 @@ export const debtsApi = {
         currency_id: data.currency_id,
         target_amount: data.amount,
         paid_amount: 0,
+        current_balance: initialCurrentBalance,
         due_date: data.due_date ?? "",
         counterparty: data.counterparty ?? "",
         description: data.description ?? "",
@@ -157,10 +202,27 @@ export const debtsApi = {
   delete: (id: string | number): Promise<void> =>
     adapter.delete("debts", String(id)),
 
+  // Bumps both paid_amount and current_balance by the same signed delta.
+  // Called for debt_id-linked TXs (post-origin movements).
   updateBalance: async (id: string | number, delta: number): Promise<void> => {
     const debt = await debtsApi.getById(id);
-    const newPaid = debt.currentBalance + delta;
-    await adapter.update("debts", String(id), { paid_amount: newPaid });
+    await adapter.update("debts", String(id), {
+      paid_amount: debt.paidAmount + delta,
+      current_balance: debt.currentBalance + delta,
+    });
+  },
+
+  // Bumps only current_balance — used when an origin TX itself changes.
+  // paid_amount is untouched because the origin TX has no debt_id and never
+  // contributed to paid_amount in the first place.
+  updateOriginContribution: async (
+    id: string | number,
+    delta: number,
+  ): Promise<void> => {
+    const debt = await debtsApi.getById(id);
+    await adapter.update("debts", String(id), {
+      current_balance: debt.currentBalance + delta,
+    });
   },
 
   // Creates an expense transaction (for i_owe debts) linked via debt_id so that
@@ -228,8 +290,28 @@ export const debtsApi = {
   },
 
   reopen: async (id: string | number): Promise<Debt> => {
+    // Reset both running totals. current_balance gets re-seeded from the
+    // origin TX (if any) so the debt starts at the same place it would on
+    // a fresh create.
+    const existing = await debtsApi.getById(id);
+    let resetCurrentBalance = 0;
+    if (existing.originTransactionId) {
+      try {
+        const origin = await transactionsApi.getById(existing.originTransactionId);
+        if (origin.type !== "transfer") {
+          resetCurrentBalance =
+            origin.amount *
+            originDirectionSign(origin.type, existing.debtType);
+        }
+      } catch {
+        /* leave at 0 */
+      }
+    }
     const [r, currencyMap] = await Promise.all([
-      adapter.update("debts", String(id), { paid_amount: 0 }),
+      adapter.update("debts", String(id), {
+        paid_amount: 0,
+        current_balance: resetCurrentBalance,
+      }),
       loadCurrencyMap(),
     ]);
     return toDebt(r, currencyMap);
@@ -249,7 +331,8 @@ export const debtsApi = {
     const others = sorted.slice(1)
 
     const totalTarget = allDebts.reduce((s, d) => s + d.targetAmount, 0)
-    const totalPaid = allDebts.reduce((s, d) => s + d.currentBalance, 0)
+    const totalPaid = allDebts.reduce((s, d) => s + d.paidAmount, 0)
+    const totalCurrent = allDebts.reduce((s, d) => s + d.currentBalance, 0)
 
     // Reassign all payment + origin transactions from other debts to primary
     const allTxns = (await transactionsApi.getAll({ per_page: 99999 })).data
@@ -274,6 +357,7 @@ export const debtsApi = {
       adapter.update('debts', primary.id, {
         target_amount: totalTarget,
         paid_amount: totalPaid,
+        current_balance: totalCurrent,
       }),
       ...others.map((d) => adapter.delete('debts', d.id)),
     ])

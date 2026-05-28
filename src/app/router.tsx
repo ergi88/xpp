@@ -38,6 +38,7 @@ const RecurringCreatePage = lazy(() => import("@/pages/recurring/create"));
 const RecurringEditPage = lazy(() => import("@/pages/recurring/[id]/edit"));
 const ReportsPage = lazy(() => import("@/pages/reports"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
+const NotificationsPage = lazy(() => import("@/pages/notifications"));
 const NotFoundPage = lazy(() => import("@/pages/not-found"));
 
 const withSuspense = (
@@ -122,6 +123,7 @@ export const router = createBrowserRouter(
         { path: "reports", element: withSuspense(ReportsPage) },
         { path: "settings", element: withSuspense(SettingsPage) },
         { path: "settings/:tab", element: withSuspense(SettingsPage) },
+        { path: "notifications", element: withSuspense(NotificationsPage) },
       ],
     },
     { path: "*", element: withSuspense(NotFoundPage) },

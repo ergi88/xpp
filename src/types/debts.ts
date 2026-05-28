@@ -10,6 +10,9 @@ export interface Debt extends BaseEntity {
     debtTypeLabel: string
     currencyId: string
     targetAmount: number
+    paidAmount: number
+    // Signed running net = origin contribution + sum of debt_id-linked TX deltas.
+    // Negative for owed_to_me when money is still owed to you; positive after overpayment.
     currentBalance: number
     remainingDebt: number
     paymentProgress: number

@@ -9,6 +9,10 @@ import { categoriesApi } from './categories'
 import { tagsApi } from './tags'
 import { applyTransactionEffects } from './transaction-effects'
 import { debtsApi } from './debts'
+import {
+  buildTxFailureNotification,
+  notificationsStore,
+} from '@/lib/notifications'
 import type { Transaction, TransactionFilters, TransactionSummary } from '@/types'
 import type { TransactionFormValues as TransactionFormData, SplitChildFormData } from '@/schemas'
 import { toBool, toIdOrNull } from '@/lib/coerce'
@@ -269,7 +273,24 @@ export const transactionsApi = {
     await adapter.create('transactions', row)
 
     const created = await transactionsApi.getById(id)
-    await applyTransactionEffects(created, 1)
+    try {
+      await applyTransactionEffects(created, 1)
+    } catch (err) {
+      // Row was written but side-effects didn't apply. Surface as a durable
+      // notification so the user can reconcile the affected account/debt.
+      notificationsStore.push(
+        buildTxFailureNotification(
+          'balance_effect_failed',
+          {
+            txId: created.id,
+            accountId: created.account?.id,
+            toAccountId: created.toAccount?.id,
+            debtId: created.debtId ?? undefined,
+          },
+          err,
+        ),
+      )
+    }
 
     // Phase 3: persist children if provided.
     if (data.children && data.children.length > 0) {
@@ -324,19 +345,44 @@ export const transactionsApi = {
       recurring_id: data.recurring_id ?? undefined,
     } as Record<string, unknown>)
 
-    await applyTransactionEffects(existing, -1)
-    const updated = await transactionsApi.getById(id)
-    await applyTransactionEffects(updated, 1)
-    return updated
+    try {
+      await applyTransactionEffects(existing, -1)
+      const updated = await transactionsApi.getById(id)
+      await applyTransactionEffects(updated, 1)
+      return updated
+    } catch (err) {
+      const updated = await transactionsApi.getById(id)
+      notificationsStore.push(
+        buildTxFailureNotification(
+          'balance_effect_failed',
+          {
+            txId: String(id),
+            accountId: updated.account?.id,
+            toAccountId: updated.toAccount?.id,
+            debtId: updated.debtId ?? undefined,
+          },
+          err,
+        ),
+      )
+      return updated
+    }
   },
 
-  delete: async (id: string | number): Promise<void> => {
+  // skipEffects: delete only the row(s) — do not reverse account/debt balances.
+  // Use this when the transaction's side-effect already failed to apply, so
+  // there's nothing to reverse and reversing would double-corrupt the totals.
+  delete: async (
+    id: string | number,
+    opts?: { skipEffects?: boolean },
+  ): Promise<void> => {
+    const skip = opts?.skipEffects === true
     const existing = await transactionsApi.getById(id)
 
-    // Cascade: delete all children first, reversing each child's debt effects.
+    // Cascade: delete all children first. When skipping effects, also skip
+    // the child debt-balance reversals.
     if (existing.children && existing.children.length > 0) {
       for (const child of existing.children) {
-        if (child.debtId) {
+        if (!skip && child.debtId) {
           const sign = await debtDeltaSign(child.debtId, existing.type)
           await debtsApi.updateBalance(child.debtId, -child.amount * sign)
         }
@@ -345,7 +391,22 @@ export const transactionsApi = {
     }
 
     await adapter.delete('transactions', String(id))
-    await applyTransactionEffects(existing, -1)
+    if (skip) return
+    try {
+      await applyTransactionEffects(existing, -1)
+    } catch (err) {
+      notificationsStore.push(
+        buildTxFailureNotification(
+          'balance_effect_failed',
+          {
+            accountId: existing.account?.id,
+            toAccountId: existing.toAccount?.id,
+            debtId: existing.debtId ?? undefined,
+          },
+          err,
+        ),
+      )
+    }
   },
 
   split: async (parentId: string | number, children: SplitChildFormData[]): Promise<Transaction> => {

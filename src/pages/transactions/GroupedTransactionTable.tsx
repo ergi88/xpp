@@ -16,7 +16,7 @@ interface GroupedTransactionTableProps {
   onSelectId: (id: string, checked: boolean) => void;
   onSelectGroup: (ids: string[], checked: boolean) => void;
   onSelectAll: (checked: boolean) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, opts?: { skipEffects?: boolean }) => void;
   onDuplicate: (id: string) => void;
   showCheckboxes?: boolean;
 }

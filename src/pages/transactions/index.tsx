@@ -9,7 +9,12 @@ import {
   parseAsBoolean,
 } from "nuqs";
 import { Plus, Download, Search, CheckSquare, Square } from "lucide-react";
-import { Page, PageHeader, ServerPagination } from "@/components/shared";
+import {
+  Page,
+  PageHeader,
+  ReconcileAllDialog,
+  ServerPagination,
+} from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -258,6 +263,7 @@ export default function TransactionsPage() {
         title="Transactions"
         actions={
           <div className="flex items-center gap-2">
+            <ReconcileAllDialog />
             <Button variant="outline" size="sm" asChild>
               <Link to="/transactions/import">
                 <Download className="size-4 mr-2" />
@@ -332,7 +338,9 @@ export default function TransactionsPage() {
               onSelectId={handleSelectId}
               onSelectGroup={handleSelectGroup}
               onSelectAll={handleSelectAll}
-              onDelete={(id) => deleteTransaction.mutate(id)}
+              onDelete={(id, opts) =>
+                deleteTransaction.mutate({ id, skipEffects: opts?.skipEffects })
+              }
               onDuplicate={(id) => duplicateTransaction.mutate(id)}
               showCheckboxes={showCheckboxes}
             />
