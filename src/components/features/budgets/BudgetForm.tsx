@@ -106,7 +106,7 @@ export function BudgetForm({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="max-w-lg space-y-4"
+          className="max-w-lg space-y-4 pb-24"
         >
           <FormField
             control={form.control}

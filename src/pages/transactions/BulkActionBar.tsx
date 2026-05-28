@@ -146,7 +146,6 @@ export function BulkActionBar({
                 value={editCategoryId || null}
                 onChange={setEditCategoryId}
                 placeholder="No change"
-                withFormControl={false}
               />
             </div>
             <div className="space-y-2">

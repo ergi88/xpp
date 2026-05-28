@@ -17,19 +17,30 @@ export function StickyFooterActions({
   const footerEnabled = settings?.mobile_footer_enabled ?? true;
   const showMobileFooter = isMobile && footerEnabled;
 
-  if (!isMobile) return null;
+  if (isMobile) {
+    return (
+      <div
+        className={cn(
+          "fixed inset-x-0 z-30 flex w-full items-center gap-2 border-t bg-background! p-4",
+          className,
+        )}
+        style={{
+          bottom: showMobileFooter
+            ? "calc(env(safe-area-inset-bottom) + 5.5rem)"
+            : "env(safe-area-inset-bottom)",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div
       className={cn(
-        "fixed inset-x-0 z-30 border-t bg-background! flex items-center gap-2 p-4",
+        "sticky bottom-0 z-30 flex w-full items-center gap-2 border-t bg-background! p-4",
         className,
       )}
-      style={{
-        bottom: showMobileFooter
-          ? "calc(env(safe-area-inset-bottom) + 5.5rem)"
-          : "env(safe-area-inset-bottom)",
-      }}
     >
       {children}
     </div>

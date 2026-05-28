@@ -245,7 +245,6 @@ export default function AccountViewPage() {
                       value={reconcileCategoryId}
                       onChange={setReconcileCategoryId}
                       disabled={!reconcileType}
-                      withFormControl={false}
                     />
                   </div>
                 </div>

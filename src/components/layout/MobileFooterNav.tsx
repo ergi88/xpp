@@ -1,12 +1,4 @@
-import {
-  useState,
-  useRef,
-  useMemo,
-  useEffect,
-  useCallback,
-  forwardRef,
-} from "react";
-import { useClickOutside } from "@/hooks/use-click-outside";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowDownLeft,
@@ -16,11 +8,6 @@ import {
   CreditCard,
   Download,
   Edit,
-  Edit2,
-  Edit2Icon,
-  Edit3,
-  Edit3Icon,
-  EditIcon,
   HandCoins,
   Minus,
   PiggyBank,
@@ -30,8 +17,6 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { Sheet, type SheetRef } from "react-modal-sheet";
-import { clamp, motion, useTransform } from "motion/react";
 import {
   DndContext,
   closestCenter,
@@ -61,6 +46,10 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  PinnedFooterSheet,
+  type PinnedFooterSheetRef,
+} from "@/components/ui/pinned-footer-sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings } from "@/hooks";
 import { useSyncStatus } from "@/hooks/use-sync-status";
@@ -342,9 +331,6 @@ function NavLinkItem({
     ? location.pathname === item.to
     : location.pathname.startsWith(item.to);
 
-  const mouseStart = useRef<{ x: number; y: number } | null>(null);
-  const mouseDragged = useRef(false);
-
   return (
     <div
       className={cn(
@@ -383,18 +369,6 @@ function MainNavDropZone({
   );
 }
 
-// The nav row that sticks to the bottom, moves with the sheet via yInverted
-const NavFooter = forwardRef<
-  HTMLDivElement,
-  { sheetRef: SheetRef; navHeight: number; children: React.ReactNode }
->(({ sheetRef, navHeight, children }, ref) => {
-  return (
-    <motion.div className="absolute bottom-0 left-0 right-0 z-3 flex items-center justify-center bg-background pointer-events-auto pb-4">
-      {children}
-    </motion.div>
-  );
-});
-
 export function MobileFooterNav() {
   const isMobile = useIsMobile();
   const keyboardVisible = useKeyboardVisible();
@@ -404,19 +378,9 @@ export function MobileFooterNav() {
   const showLabels = settings?.mobile_footer_labels ?? true;
   const { mainNav, pool, setMainNav } = useNavConfig();
 
-  // Use state so NavFooter can be rendered once the ref is available
-  const [sheetRef, setSheetRef] = useState<SheetRef | null>(null);
-  const handleSheetRef = useCallback(
-    (ref: SheetRef | null) => {
-      if (!sheetRef && ref) setSheetRef(ref);
-    },
-    [sheetRef],
-  );
+  const sheetRef = useRef<PinnedFooterSheetRef>(null);
+  const snapTo = (index: number) => sheetRef.current?.snapTo(index);
 
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const sheetContentRef = useRef<HTMLDivElement | null>(null);
-  const headRef = useRef<HTMLDivElement | null>(null);
-  const navFooterRef = useRef<HTMLDivElement | null>(null);
   const [snapIndex, setSnapIndex] = useState(0);
   const isExpanded = snapIndex === 2;
   const insets = useSafeAreaInsets();
@@ -439,7 +403,7 @@ export function MobileFooterNav() {
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
       setPoolBlocked(true);
-      sheetRef?.snapTo(2);
+      snapTo(2);
       const unblock = () => {
         setTimeout(() => setPoolBlocked(false), 400);
         document.removeEventListener("pointerup", unblock);
@@ -455,14 +419,12 @@ export function MobileFooterNav() {
     }
   }
 
-  const activeSensors = useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 150, tolerance: 5 },
     }),
   );
-  const noSensors = useSensors();
-  const sensors = isEditMode ? activeSensors : noSensors;
 
   function handleDragStart({ active }: DragStartEvent) {
     const idStr = String(active.id);
@@ -529,227 +491,178 @@ export function MobileFooterNav() {
   );
 
   useEffect(() => {
-    sheetRef?.snapTo(1);
+    snapTo(1);
     setIsEditMode(false);
-  }, [location.pathname, sheetRef]);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isExpanded) setIsEditMode(false);
   }, [isExpanded]);
 
-  useClickOutside(
-    [sheetContentRef, navFooterRef, headRef],
-    () => sheetRef?.snapTo(1),
-    isExpanded && !isEditMode,
-  );
-
   if (!isMobile || !enabled || keyboardVisible) return null;
 
   return (
-    <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <Sheet
-          ref={handleSheetRef}
-          isOpen={true}
-          onClose={() => sheetRef?.snapTo(1)}
-          snapPoints={snapPoints}
-          initialSnap={1}
-          onSnap={(idx) => setSnapIndex(idx)}
-          style={{ zIndex: 40 }}
-          detent="content"
-          disableDismiss
-        >
-          <Sheet.Container
-            style={{
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              boxShadow: "0 -4px 24px rgba(0,0,0,0.08)",
-            }}
-            className="backdrop-blur bg-background/95! supports-backdrop-filter:bg-background/60 border-t"
-          >
-            <Sheet.Header ref={headRef}>
-              <div className="flex justify-center py-2">
-                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-              </div>
-            </Sheet.Header>
-            <Sheet.Content
-              disableScroll={(state) => state.currentSnap !== 2}
-              disableDrag={isEditMode}
-              scrollStyle={{ paddingBottom: navHeight }}
-            >
-              <div ref={sheetContentRef} className="flex flex-col">
-                <SyncFooter
-                  isEditMode={isEditMode}
-                  onToggleEdit={() => setIsEditMode((v) => !v)}
-                />
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <PinnedFooterSheet
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        initialSnap={1}
+        onSnap={setSnapIndex}
+        disableDrag={isEditMode}
+        disableScroll={(state) => state.currentSnap !== 2}
+        scrollPaddingBottom={navHeight}
+        collapseOnOutsideClick={isExpanded && !isEditMode}
+        body={
+          <>
+            <SyncFooter
+              isEditMode={isEditMode}
+              onToggleEdit={() => setIsEditMode((v) => !v)}
+            />
 
-                {/* Expandable content — pool items + sync */}
-                <div ref={scrollRef} className="flex flex-col overflow-y-auto">
-                  {pool.length > 0 && (
-                    <div className="px-4">
-                      <div
-                        className={cn(
-                          "grid grid-cols-4 gap-1",
-                          poolBlocked && "pointer-events-none",
-                        )}
-                      >
-                        {pool.map((id) =>
-                          isEditMode ? (
-                            <DraggablePoolItem
-                              key={id}
-                              id={id}
-                              canAdd={canAdd}
-                              onAdd={handleAdd}
-                            />
-                          ) : (
-                            <PoolItem key={id} id={id} />
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Sheet.Content>
-          </Sheet.Container>
-
-          {/* Nav row — always pinned to bottom, slides with the sheet */}
-          {!!sheetRef && (
-            <NavFooter
-              ref={navFooterRef}
-              sheetRef={sheetRef}
-              navHeight={navHeight}
-            >
-              <SortableContext
-                items={mainNav}
-                strategy={horizontalListSortingStrategy}
-              >
-                <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
-                  <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pointer-events-auto">
-                    {/* Left 2 nav items */}
-                    {mainNav
-                      .slice(0, 2)
-                      .map((id) =>
-                        isEditMode ? (
-                          <SortableNavItem
-                            key={id}
-                            id={id}
-                            isEditMode={isEditMode}
-                            showLabels={showLabels}
-                            onRemove={handleRemove}
-                          />
-                        ) : (
-                          <NavLinkItem
-                            key={id}
-                            id={id}
-                            showLabels={showLabels}
-                          />
-                        ),
-                      )}
-
-                    {/* Center button — short tap = quick actions, long press = expand */}
-                    <Button
-                      size="icon"
-                      className="mx-auto size-12 rounded-full shadow-lg"
-                      aria-label="Quick actions"
-                      disabled={isEditMode}
-                      onPointerDown={handleCenterPointerDown}
-                      onPointerUp={handleCenterPointerUp}
-                      onPointerCancel={handleCenterPointerUp}
-                      onClick={() => {
-                        if (!isLongPress.current) setQuickActionsOpen(true);
-                      }}
-                    >
-                      <Plus className="size-5" />
-                    </Button>
-                    <ShadSheet
-                      open={quickActionsOpen}
-                      onOpenChange={setQuickActionsOpen}
-                    >
-                      <SheetContent
-                        side="bottom"
-                        className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
-                      >
-                        <SheetHeader>
-                          <SheetTitle>Quick actions</SheetTitle>
-                          <SheetDescription>
-                            Start a new transaction or add supporting data.
-                          </SheetDescription>
-                        </SheetHeader>
-                        <div className="flex flex-col gap-2 px-4 pb-4">
-                          {orderedActions.map((action) => {
-                            const ActionIcon = action.icon;
-                            return (
-                              <SheetClose key={action.id} asChild>
-                                <Button
-                                  asChild
-                                  variant="ghost"
-                                  className="justify-center gap-3 border border-muted"
-                                >
-                                  <Link to={action.to}>
-                                    <ActionIcon className="size-4" />
-                                    {action.label}
-                                  </Link>
-                                </Button>
-                              </SheetClose>
-                            );
-                          })}
-                        </div>
-                      </SheetContent>
-                    </ShadSheet>
-
-                    {/* Right 2 nav items */}
-                    {mainNav
-                      .slice(2, 4)
-                      .map((id) =>
-                        isEditMode ? (
-                          <SortableNavItem
-                            key={id}
-                            id={id}
-                            isEditMode={isEditMode}
-                            showLabels={showLabels}
-                            onRemove={handleRemove}
-                          />
-                        ) : (
-                          <NavLinkItem
-                            key={id}
-                            id={id}
-                            showLabels={showLabels}
-                          />
-                        ),
-                      )}
+            <div className="flex flex-col overflow-y-auto">
+              {pool.length > 0 && (
+                <div className="px-4">
+                  <div
+                    className={cn(
+                      "grid grid-cols-4 gap-1",
+                      poolBlocked && "pointer-events-none",
+                    )}
+                  >
+                    {pool.map((id) =>
+                      isEditMode ? (
+                        <DraggablePoolItem
+                          key={id}
+                          id={id}
+                          canAdd={canAdd}
+                          onAdd={handleAdd}
+                        />
+                      ) : (
+                        <PoolItem key={id} id={id} />
+                      ),
+                    )}
                   </div>
-                </MainNavDropZone>
-              </SortableContext>
-            </NavFooter>
-          )}
+                </div>
+              )}
+            </div>
+          </>
+        }
+        footer={
+          <SortableContext
+            items={mainNav}
+            strategy={horizontalListSortingStrategy}
+          >
+            <MainNavDropZone isDraggingFromPool={isDraggingFromPool}>
+              <div className="grid grid-cols-5 items-center gap-1 px-2 pt-1 pointer-events-auto">
+                {mainNav
+                  .slice(0, 2)
+                  .map((id) =>
+                    isEditMode ? (
+                      <SortableNavItem
+                        key={id}
+                        id={id}
+                        isEditMode={isEditMode}
+                        showLabels={showLabels}
+                        onRemove={handleRemove}
+                      />
+                    ) : (
+                      <NavLinkItem key={id} id={id} showLabels={showLabels} />
+                    ),
+                  )}
 
-          {/* Drag overlay for pool items being dragged */}
-          <DragOverlay>
-            {activeId && isDraggingFromPool ? (
-              <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background px-2 py-3 text-xs shadow-lg ring-1 ring-border">
-                {(() => {
-                  const item = NAV_ITEM_REGISTRY[activeId];
-                  const Icon = item.icon;
-                  return (
-                    <>
-                      <Icon className="size-5 text-foreground" />
-                      <span className="text-[11px] text-foreground">
-                        {item.label}
-                      </span>
-                    </>
-                  );
-                })()}
+                <Button
+                  size="icon"
+                  className="mx-auto size-12 rounded-full shadow-lg"
+                  aria-label="Quick actions"
+                  disabled={isEditMode}
+                  onPointerDown={handleCenterPointerDown}
+                  onPointerUp={handleCenterPointerUp}
+                  onPointerCancel={handleCenterPointerUp}
+                  onClick={() => {
+                    if (!isLongPress.current) setQuickActionsOpen(true);
+                  }}
+                >
+                  <Plus className="size-5" />
+                </Button>
+                <ShadSheet
+                  open={quickActionsOpen}
+                  onOpenChange={setQuickActionsOpen}
+                >
+                  <SheetContent
+                    side="bottom"
+                    className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+                  >
+                    <SheetHeader>
+                      <SheetTitle>Quick actions</SheetTitle>
+                      <SheetDescription>
+                        Start a new transaction or add supporting data.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-2 px-4 pb-4">
+                      {orderedActions.map((action) => {
+                        const ActionIcon = action.icon;
+                        return (
+                          <SheetClose key={action.id} asChild>
+                            <Button
+                              asChild
+                              variant="ghost"
+                              className="justify-center gap-3 border border-muted"
+                            >
+                              <Link to={action.to}>
+                                <ActionIcon className="size-4" />
+                                {action.label}
+                              </Link>
+                            </Button>
+                          </SheetClose>
+                        );
+                      })}
+                    </div>
+                  </SheetContent>
+                </ShadSheet>
+
+                {mainNav
+                  .slice(2, 4)
+                  .map((id) =>
+                    isEditMode ? (
+                      <SortableNavItem
+                        key={id}
+                        id={id}
+                        isEditMode={isEditMode}
+                        showLabels={showLabels}
+                        onRemove={handleRemove}
+                      />
+                    ) : (
+                      <NavLinkItem key={id} id={id} showLabels={showLabels} />
+                    ),
+                  )}
               </div>
-            ) : null}
-          </DragOverlay>
-        </Sheet>
-      </DndContext>
-    </>
+            </MainNavDropZone>
+          </SortableContext>
+        }
+      />
+
+      <DragOverlay>
+        {activeId && isDraggingFromPool ? (
+          <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background px-2 py-3 text-xs shadow-lg ring-1 ring-border">
+            {(() => {
+              const item = NAV_ITEM_REGISTRY[activeId];
+              const Icon = item.icon;
+              return (
+                <>
+                  <Icon className="size-5 text-foreground" />
+                  <span className="text-[11px] text-foreground">
+                    {item.label}
+                  </span>
+                </>
+              );
+            })()}
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
