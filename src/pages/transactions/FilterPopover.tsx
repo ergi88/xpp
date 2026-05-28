@@ -269,14 +269,14 @@ function CategoryPanel({
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 flex-1">
       <Input
         placeholder="Search categories…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="h-8 text-sm"
       />
-      <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto pr-1">
+      <div className="flex flex-wrap gap-2 overflow-y-auto pr-1">
         {filtered.length === 0 && (
           <p className="text-xs text-muted-foreground py-2">
             No categories found.
@@ -323,7 +323,7 @@ function TagPanel({
   onChange: (d: FilterState) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
+    <div className="flex flex-col gap-1.5 overflow-y-auto pr-1">
       {tags.length === 0 && (
         <p className="text-xs text-muted-foreground py-2">No tags found.</p>
       )}
@@ -500,7 +500,7 @@ export function FilterPopover({
 
           {/* Right content area */}
           <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 flex">
               {activeNav === "account" && (
                 <AccountPanel
                   draft={draft}

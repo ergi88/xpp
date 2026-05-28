@@ -299,7 +299,6 @@ export function SplitEditor({
                                   ? "expense"
                                   : (parent.type as "income" | "expense")
                               }
-                              withFormControl={false}
                             />
                           </div>
                         ) : r.pendingDebtName ? (
