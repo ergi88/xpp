@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Bell,
   Eye,
   EyeOff,
   Lock,
@@ -23,6 +24,7 @@ import { AmountText } from "@/components/shared";
 import {
   useAccounts,
   useHideAmounts,
+  useNotifications,
   useSettings,
   useTotalBalance,
   useUpdateSettings,
@@ -44,6 +46,8 @@ export function Header() {
   const { data: accounts } = useAccounts({
     active: true,
   });
+  const { unreadCount } = useNotifications();
+  console.log("🚀 ~ Header ~ balance:", { balance, accounts });
 
   const navigate = useNavigate();
 
@@ -159,6 +163,25 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/notifications")}
+            aria-label={
+              unreadCount > 0
+                ? `Notifications, ${unreadCount} unread`
+                : "Notifications"
+            }
+            className="relative"
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-destructive-foreground">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Button>
 
           {hasAuth && (settings?.lock_enabled ?? true) && (
             <Button

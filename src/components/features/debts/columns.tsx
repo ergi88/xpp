@@ -105,7 +105,7 @@ export const createDebtColumns = (
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
                         <span>
                             <AmountText
-                                value={debt.currentBalance}
+                                value={debt.paidAmount}
                                 decimals={debt.currency?.decimals ?? 2}
                                 currency={debt.currency?.symbol}
                             />

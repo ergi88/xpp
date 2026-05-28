@@ -51,16 +51,8 @@ import {
 } from "@/components/features/transactions/SplitEditor";
 import { debtsApi } from "@/api/debts";
 import { CounterpartLinkPicker } from "@/components/features/transactions/CounterpartLinkPicker";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { DeleteTransactionAlertContent } from "@/components/features/transactions";
 
 const TYPE_CONFIG = {
   income: {
@@ -117,11 +109,12 @@ export default function TransactionViewPage() {
     [id],
   );
 
-  const handleDelete = () => {
+  const handleDelete = (opts: { skipEffects: boolean }) => {
     if (!id) return;
-    deleteTransaction.mutate(id, {
-      onSuccess: () => navigate("/transactions"),
-    });
+    deleteTransaction.mutate(
+      { id, skipEffects: opts.skipEffects },
+      { onSuccess: () => navigate("/transactions") },
+    );
   };
 
   if (isLoading) {
@@ -749,29 +742,15 @@ export default function TransactionViewPage() {
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.children && t.children.length > 0
-                ? `This will also delete ${t.children.length} split children and reverse their debt effects.`
-                : "This will reverse the account balance and any linked debt effects."}{" "}
-              This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteTransaction.isPending}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleteTransaction.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteTransaction.isPending ? "Deleting…" : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        <DeleteTransactionAlertContent
+          description={
+            t.children && t.children.length > 0
+              ? `This will also delete ${t.children.length} split children and reverse their debt effects. This cannot be undone.`
+              : "This will reverse the account balance and any linked debt effects. This cannot be undone."
+          }
+          isPending={deleteTransaction.isPending}
+          onConfirm={handleDelete}
+        />
       </AlertDialog>
 
       <StickyFooterActions>

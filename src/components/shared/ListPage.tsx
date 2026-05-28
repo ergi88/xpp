@@ -25,6 +25,7 @@ interface ListPageProps<T> {
     emptyTitle?: string;
     emptyDescription?: string;
     getRowClassName?: (row: Row<T>) => string | undefined;
+    extraActions?: React.ReactNode;
 }
 
 export function ListPage<T>({
@@ -39,7 +40,26 @@ export function ListPage<T>({
     emptyTitle,
     emptyDescription,
     getRowClassName,
+    extraActions,
 }: ListPageProps<T>) {
+    const searchNode = search ? (
+        <Input
+            type="search"
+            value={search.value}
+            onChange={(event) => search.onChange(event.target.value)}
+            placeholder={search.placeholder ?? `Search ${title.toLowerCase()}`}
+            className="w-full sm:w-72"
+        />
+    ) : null;
+
+    const actions =
+        searchNode || extraActions ? (
+            <>
+                {searchNode}
+                {extraActions}
+            </>
+        ) : undefined;
+
     return (
         <Page title={title}>
             <PageHeader
@@ -47,22 +67,7 @@ export function ListPage<T>({
                 description={description}
                 createLink={createLink}
                 createLabel={createLabel}
-                actions={
-                    search ? (
-                        <Input
-                            type="search"
-                            value={search.value}
-                            onChange={(event) =>
-                                search.onChange(event.target.value)
-                            }
-                            placeholder={
-                                search.placeholder ??
-                                `Search ${title.toLowerCase()}`
-                            }
-                            className="w-full sm:w-72"
-                        />
-                    ) : undefined
-                }
+                actions={actions}
             />
             <DataTable
                 data={data}

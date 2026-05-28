@@ -35,19 +35,16 @@ import {
   useReopenDebt,
   useLinkOriginTransaction,
 } from "@/hooks";
-import { DebtPaymentDialog, LinkOriginTransactionDialog } from "@/components/features/debts";
+import {
+  DebtPaymentDialog,
+  LinkOriginTransactionDialog,
+} from "@/components/features/debts";
 import { useState } from "react";
 import { DebtPaymentFormData } from "@/schemas";
 import type { Transaction } from "@/types";
 import { formatDisplayDate } from "@/lib/date";
 
-function TransactionRow({
-  txn,
-  label,
-}: {
-  txn: Transaction;
-  label: string;
-}) {
+function TransactionRow({ txn, label }: { txn: Transaction; label: string }) {
   const isIncome = txn.type === "income";
   const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
   const color = isIncome ? "text-green-600" : "text-red-600";
@@ -62,9 +59,7 @@ function TransactionRow({
           <Icon className={`size-4 ${color}`} />
         </div>
         <div>
-          <p className="text-sm font-medium">
-            {txn.description || txn.type}
-          </p>
+          <p className="text-sm font-medium">{txn.description || txn.type}</p>
           <p className="text-xs text-muted-foreground">
             {formatDisplayDate(txn.date)} · {txn.account?.name}
           </p>
@@ -92,6 +87,7 @@ export default function DebtViewPage() {
 
   const { data: debt, isLoading: debtLoading } = useDebt(id!);
   const { data: txnData, isLoading: txnLoading } = useDebtTransactions(id!);
+  console.log("🚀 ~ DebtViewPage ~ txnData:", { txnData, debt });
   const deleteDebt = useDeleteDebt();
   const debtPayment = useDebtPayment();
   const debtCollection = useDebtCollection();
@@ -242,7 +238,7 @@ export default function DebtViewPage() {
               </p>
               <p className="font-semibold">
                 <AmountText
-                  value={debt.currentBalance}
+                  value={debt.paidAmount}
                   decimals={debt.currency?.decimals ?? 2}
                   currency={debt.currency?.symbol}
                 />

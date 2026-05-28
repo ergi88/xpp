@@ -4,7 +4,7 @@ import { Plus, Merge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { DataTable, Page } from "@/components/shared";
+import { DataTable, Page, ReconcileAllDialog } from "@/components/shared";
 import {
   createDebtColumns,
   DebtPaymentDialog,
@@ -93,15 +93,18 @@ export default function DebtsPage() {
               New Debt
             </Link>
           </Button>
-          {debts.length >= 2 && (
-            <Button
-              variant="outline"
-              onClick={() => setMergeDialogOpen(true)}
-            >
-              <Merge className="mr-2 size-4" />
-              Merge Debts
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <ReconcileAllDialog />
+            {debts.length >= 2 && (
+              <Button
+                variant="outline"
+                onClick={() => setMergeDialogOpen(true)}
+              >
+                <Merge className="mr-2 size-4" />
+                Merge Debts
+              </Button>
+            )}
+          </div>
         </div>
 
         <DebtWidgets />

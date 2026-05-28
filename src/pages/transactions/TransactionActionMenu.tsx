@@ -9,20 +9,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { DeleteTransactionAlertContent } from "@/components/features/transactions";
 import { Transaction } from "@/types";
 
 interface TransactionActionMenuProps {
   transaction: Transaction;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, opts?: { skipEffects?: boolean }) => void;
   onDuplicate: (id: string) => void;
 }
 
@@ -64,23 +58,10 @@ export function TransactionActionMenu({
                 Delete
               </DropdownMenuItem>
             </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onDelete(transaction.id)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
+            <DeleteTransactionAlertContent
+              description="This action cannot be undone."
+              onConfirm={(opts) => onDelete(transaction.id, opts)}
+            />
           </AlertDialog>
         </DropdownMenuContent>
       </DropdownMenu>

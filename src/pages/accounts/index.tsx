@@ -1,4 +1,4 @@
-import { ListPage } from "@/components/shared";
+import { ListPage, ReconcileAllDialog } from "@/components/shared";
 import { createAccountColumns } from "@/components/features/accounts";
 import { useAccounts, useDeleteAccount, useCurrencies } from "@/hooks";
 
@@ -30,6 +30,7 @@ export default function AccountsPage() {
       data={enrichedAccounts ?? []}
       columns={columns}
       isLoading={isLoading}
+      extraActions={<ReconcileAllDialog />}
     />
   );
 }

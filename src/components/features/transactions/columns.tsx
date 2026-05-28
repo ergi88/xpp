@@ -10,15 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { DeleteTransactionAlertContent } from "./DeleteTransactionAlertContent";
 import {
   MoreHorizontal,
   Pencil,
@@ -56,7 +50,7 @@ const TYPE_CONFIG = {
 };
 
 export function createTransactionColumns(
-  onDelete: (id: string) => void,
+  onDelete: (id: string, opts?: { skipEffects?: boolean }) => void,
   onDuplicate: (id: string) => void,
   isReadOnly?: boolean,
 ): ColumnDef<Transaction>[] {
@@ -307,24 +301,10 @@ export function createTransactionColumns(
                         Delete
                       </DropdownMenuItem>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently
-                          delete this transaction and update account balances.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => onDelete(transaction.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
+                    <DeleteTransactionAlertContent
+                      description="This action cannot be undone."
+                      onConfirm={(opts) => onDelete(transaction.id, opts)}
+                    />
                   </AlertDialog>
                 </>
               )}

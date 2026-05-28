@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { accountsApi } from '@/api'
+import { accountsApi, reconcileApi } from '@/api'
+import type { ReconcileReport } from '@/api'
 import { AccountFormData } from '@/schemas'
 import { toast } from 'sonner'
 
@@ -74,6 +75,36 @@ export function useUpdateAccount(redirectTo?: string) {
         },
         onError: (error: Error) => {
             toast.error(error.message || 'Failed to update account')
+        },
+    })
+}
+
+export function useReconcileReport() {
+    return useMutation({
+        mutationFn: () => reconcileApi.computeReport(),
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to compute reconcile report')
+        },
+    })
+}
+
+export function useApplyReconcile() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (report: ReconcileReport) => reconcileApi.applyReport(report),
+        onSuccess: (fixed) => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['debts'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            toast.success(
+                fixed === 0
+                    ? 'Nothing to reconcile'
+                    : `Reconciled ${fixed} ${fixed === 1 ? 'entry' : 'entries'}`,
+            )
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to apply reconcile')
         },
     })
 }

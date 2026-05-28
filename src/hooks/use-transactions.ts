@@ -5,6 +5,10 @@ import type { TransactionFilters } from '@/types'
 import type { TransactionFormValues, SplitChildFormData } from '@/schemas'
 type TransactionFormData = TransactionFormValues
 import { toast } from 'sonner'
+import {
+    buildTxFailureNotification,
+    notificationsStore,
+} from '@/lib/notifications'
 
 const QUERY_KEY = ['transactions']
 
@@ -38,8 +42,20 @@ export function useCreateTransaction(redirectTo?: string) {
             toast.success('Transaction created')
             if (redirectTo) navigate(redirectTo)
         },
-        onError: (error: Error) => {
+        onError: (error: Error, variables) => {
             toast.error(error.message || 'Failed to create transaction')
+            notificationsStore.push(
+                buildTxFailureNotification(
+                    'tx_create_failed',
+                    {
+                        txPayload: variables,
+                        accountId: variables.account_id,
+                        toAccountId: variables.to_account_id ?? undefined,
+                        debtId: variables.debt_id ?? undefined,
+                    },
+                    error,
+                ),
+            )
         },
     })
 }
@@ -60,27 +76,66 @@ export function useUpdateTransaction(redirectTo?: string) {
             toast.success('Transaction updated')
             if (redirectTo) navigate(redirectTo)
         },
-        onError: (error: Error) => {
+        onError: (error: Error, variables) => {
             toast.error(error.message || 'Failed to update transaction')
+            notificationsStore.push(
+                buildTxFailureNotification(
+                    'tx_update_failed',
+                    {
+                        txId: String(variables.id),
+                        txPayload: variables.data,
+                        accountId: variables.data.account_id,
+                        toAccountId: variables.data.to_account_id ?? undefined,
+                        debtId: variables.data.debt_id ?? undefined,
+                    },
+                    error,
+                ),
+            )
         },
     })
+}
+
+type DeleteVariables =
+    | string
+    | number
+    | { id: string | number; skipEffects?: boolean }
+
+function normalizeDeleteVariables(v: DeleteVariables) {
+    if (typeof v === 'object') return { id: v.id, skipEffects: v.skipEffects === true }
+    return { id: v, skipEffects: false }
 }
 
 export function useDeleteTransaction() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: (id: string | number) => transactionsApi.delete(id),
-        onSuccess: () => {
+        mutationFn: (variables: DeleteVariables) => {
+            const { id, skipEffects } = normalizeDeleteVariables(variables)
+            return transactionsApi.delete(id, { skipEffects })
+        },
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['categories'] })
             queryClient.invalidateQueries({ queryKey: ['reports'] })
-            toast.success('Transaction deleted')
+            const { skipEffects } = normalizeDeleteVariables(variables)
+            toast.success(
+                skipEffects
+                    ? 'Transaction deleted (balances untouched)'
+                    : 'Transaction deleted',
+            )
         },
-        onError: (error: Error) => {
+        onError: (error: Error, variables) => {
             toast.error(error.message || 'Failed to delete transaction')
+            const { id } = normalizeDeleteVariables(variables)
+            notificationsStore.push(
+                buildTxFailureNotification(
+                    'tx_delete_failed',
+                    { txId: String(id) },
+                    error,
+                ),
+            )
         },
     })
 }
