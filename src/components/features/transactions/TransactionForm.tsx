@@ -245,6 +245,9 @@ export function TransactionForm({
 
   const [debtSheetOpen, setDebtSheetOpen] = useState(false);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
+  const [rawAmount, setRawAmount] = useState<string>(
+    defaultValues?.amount != null ? String(defaultValues.amount) : "",
+  );
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const focusAmount = () => {
@@ -291,6 +294,7 @@ export function TransactionForm({
 
   useEffect(() => {
     form.reset(formDefaults);
+    setRawAmount(formDefaults.amount != null ? String(formDefaults.amount) : "");
     setPickerMode(formDefaults.debt_id ? "debt" : "category");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalDefaultsKey]);
@@ -589,17 +593,18 @@ export function TransactionForm({
                       type="text"
                       inputMode="decimal"
                       placeholder="0"
-                      value={field.value ?? ""}
+                      value={rawAmount}
                       onChange={(e) => {
                         const v = e.target.value.replace(/[^0-9.]/g, "");
                         const parts = v.split(".");
                         if (parts.length > 2) return;
                         if (parts[1] && parts[1].length > 2) return;
+                        setRawAmount(v);
                         field.onChange(v === "" ? undefined : Number(v));
                       }}
                       className="bg-transparent text-center text-6xl font-light tabular-nums outline-none placeholder:text-muted-foreground/30"
                       style={{
-                        width: `${Math.max(1, String(field.value ?? "0").length + 0.5)}ch`,
+                        width: `${Math.max(1, (rawAmount || "0").length + 0.5)}ch`,
                       }}
                     />
                     <span
@@ -984,7 +989,7 @@ export function TransactionForm({
                       type="date"
                       {...field}
                       value={field.value || ""}
-                      className="h-9 border-0 bg-transparent text-sm font-semibold shadow-none focus-visible:ring-0"
+                      className="h-9 border-0 w-full bg-transparent text-sm font-semibold shadow-none focus-visible:ring-0"
                     />
                   </FormControl>
                   <FormMessage className="mt-2" />

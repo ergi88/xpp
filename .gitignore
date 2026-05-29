@@ -4,3 +4,5 @@ dist
 .env.local
 package-lock.json
 docs
+
+pnpm-lock.yaml
