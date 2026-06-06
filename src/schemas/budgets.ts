@@ -29,6 +29,8 @@ export const budgetSchema = z.object({
     category_ids: z.array(z.string().min(1)).default([]),
 
     tag_ids: z.array(z.string().min(1)).default([]),
+
+    account_ids: z.array(z.string().min(1)).default([]),
 })
 
 export type BudgetFormData = z.infer<typeof budgetSchema>

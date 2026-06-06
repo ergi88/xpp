@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { budgetsApi } from '@/api'
 import { BudgetFormData } from '@/types'
 import { toast } from 'sonner'
+import {
+    buildBudgetFailureNotification,
+    notificationsStore,
+} from '@/lib/notifications'
 
 const QUERY_KEY = ['budgets']
 
@@ -29,11 +33,19 @@ export function useCreateBudget(redirectTo?: string) {
         mutationFn: (data: BudgetFormData) => budgetsApi.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
             toast.success('Budget created')
             if (redirectTo) navigate(redirectTo)
         },
-        onError: (error: Error) => {
+        onError: (error: Error, variables) => {
             toast.error(error.message || 'Failed to create budget')
+            notificationsStore.push(
+                buildBudgetFailureNotification(
+                    'budget_create_failed',
+                    { budgetPayload: variables },
+                    error,
+                ),
+            )
         },
     })
 }
@@ -47,11 +59,19 @@ export function useUpdateBudget(redirectTo?: string) {
             budgetsApi.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
             toast.success('Budget updated')
             if (redirectTo) navigate(redirectTo)
         },
-        onError: (error: Error) => {
+        onError: (error: Error, variables) => {
             toast.error(error.message || 'Failed to update budget')
+            notificationsStore.push(
+                buildBudgetFailureNotification(
+                    'budget_update_failed',
+                    { budgetId: String(variables.id), budgetPayload: variables.data },
+                    error,
+                ),
+            )
         },
     })
 }
@@ -63,10 +83,18 @@ export function useDeleteBudget() {
         mutationFn: (id: string | number) => budgetsApi.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['budgets-with-progress'] })
             toast.success('Budget deleted')
         },
-        onError: (error: Error) => {
+        onError: (error: Error, variables) => {
             toast.error(error.message || 'Failed to delete budget')
+            notificationsStore.push(
+                buildBudgetFailureNotification(
+                    'budget_delete_failed',
+                    { budgetId: String(variables) },
+                    error,
+                ),
+            )
         },
     })
 }

@@ -93,12 +93,14 @@ export function useDebtPayment() {
 
     return useMutation({
         mutationFn: ({ debtId, data }: { debtId: string | number; data: DebtPaymentFormData }) =>
-            debtsApi.makePayment(debtId, data),
-        onSuccess: () => {
+            debtsApi.recordPayment(debtId, data),
+        onSuccess: (_res, { data }) => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
-            toast.success('Payment recorded')
+            toast.success(
+                data.direction === 'increase' ? 'Debt increased' : 'Payment recorded',
+            )
         },
         onError: (error: Error) => {
             toast.error(error.message || 'Failed to record payment')
@@ -111,12 +113,14 @@ export function useDebtCollection() {
 
     return useMutation({
         mutationFn: ({ debtId, data }: { debtId: string | number; data: DebtPaymentFormData }) =>
-            debtsApi.collectPayment(debtId, data),
-        onSuccess: () => {
+            debtsApi.recordPayment(debtId, data),
+        onSuccess: (_res, { data }) => {
             queryClient.invalidateQueries({ queryKey: QUERY_KEY })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
-            toast.success('Collection recorded')
+            toast.success(
+                data.direction === 'increase' ? 'Debt increased' : 'Collection recorded',
+            )
         },
         onError: (error: Error) => {
             toast.error(error.message || 'Failed to record collection')

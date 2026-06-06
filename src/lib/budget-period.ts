@@ -46,6 +46,11 @@ export function inPeriod(date: string, periodStart: string, periodEnd: string): 
 }
 
 export function budgetMatchesTxn(budget: Budget, txn: Transaction): boolean {
+  // Account scope is a restricting filter applied first: when a budget is
+  // limited to specific accounts, only transactions on those accounts count.
+  const accountIds = (budget.accounts ?? []).map(a => a.id)
+  if (accountIds.length > 0 && !accountIds.includes(txn.account?.id)) return false
+
   if (budget.isGlobal) return true
   const categoryIds = (budget.categories ?? []).map(c => c.id)
   const tagIds = (budget.tags ?? []).map(t => t.id)

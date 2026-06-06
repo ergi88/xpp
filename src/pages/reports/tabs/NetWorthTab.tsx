@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import { NetWorthChart } from '../components/NetWorthChart'
 import { useNetWorth } from '@/hooks'
-import { ACCOUNT_TYPE_CONFIG } from '@/constants'
+import { AccountAvatar } from '@/components/shared/AccountAvatar'
 import type { ReportFilters } from '../types'
 import type { AccountType } from '@/types'
 
@@ -123,15 +123,12 @@ export function NetWorthTab({ filters }: NetWorthTabProps) {
                                     className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
                                 >
                                     {/* Icon */}
-                                    {(() => {
-                                        const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType]
-                                        const Icon = config?.icon || Wallet
-                                        return (
-                                            <div className={cn('flex items-center justify-center size-10 rounded-lg', config?.color || 'bg-muted')}>
-                                                <Icon className="size-4" />
-                                            </div>
-                                        )
-                                    })()}
+                                    <AccountAvatar
+                                        type={account.type as AccountType}
+                                        icon={account.icon}
+                                        color={account.color}
+                                        size="lg"
+                                    />
 
                                     {/* Name and type */}
                                     <div className="flex-1 min-w-0">

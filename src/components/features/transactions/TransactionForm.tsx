@@ -1,5 +1,5 @@
 import { useForm, useWatch } from "react-hook-form";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowDownLeft,
@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/dialog";
 import { AccountSelect } from "@/components/shared/AccountSelect";
 import { CategorySelect } from "@/components/shared/CategorySelect";
+import { TemplateShortcuts } from "@/components/features/transactions/TemplateShortcuts";
+import type { TransactionTemplate } from "@/types";
 import { FormWrapper } from "@/components/shared/FormWrapper";
 import { AmountText } from "@/components/shared/AmountText";
 import { StickyFooterActions } from "@/components/shared/StickyFooterActions";
@@ -245,6 +247,9 @@ export function TransactionForm({
 
   const [debtSheetOpen, setDebtSheetOpen] = useState(false);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
+  const [rawAmount, setRawAmount] = useState<string>(
+    defaultValues?.amount != null ? String(defaultValues.amount) : "",
+  );
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const focusAmount = () => {
@@ -291,6 +296,9 @@ export function TransactionForm({
 
   useEffect(() => {
     form.reset(formDefaults);
+    setRawAmount(
+      formDefaults.amount != null ? String(formDefaults.amount) : "",
+    );
     setPickerMode(formDefaults.debt_id ? "debt" : "category");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalDefaultsKey]);
@@ -401,6 +409,51 @@ export function TransactionForm({
     setPendingDebt(null);
     form.setValue("debt_id", null);
   };
+
+  const applyTemplate = useCallback(
+    (t: TransactionTemplate) => {
+      const current = form.getValues();
+
+      // Validation guardrail: only apply fields whose referenced entity still
+      // exists, so a deleted account/category/tag never lands in the form.
+      const accountExists = accounts?.some((a) => a.id === t.accountId);
+      const toAccountExists =
+        t.toAccountId && accounts?.some((a) => a.id === t.toAccountId);
+      const categoryValid =
+        t.categoryId &&
+        categories?.some((c) => c.id === t.categoryId && c.type === t.type);
+      const validTagIds = (t.tagIds ?? []).filter((id) =>
+        tags?.some((tag) => tag.id === id),
+      );
+
+      const nextAmount = t.amount != null ? t.amount : current.amount;
+
+      form.reset({
+        type: t.type,
+        account_id: accountExists ? t.accountId : current.account_id,
+        to_account_id:
+          t.type === "transfer" && toAccountExists ? t.toAccountId! : null,
+        category_id:
+          t.type !== "transfer" && categoryValid ? t.categoryId! : null,
+        amount: nextAmount,
+        to_amount: null,
+        exchange_rate: null,
+        description: t.description ?? current.description,
+        date: current.date,
+        tag_ids: validTagIds,
+        is_excluded: current.is_excluded,
+        is_one_time: current.is_one_time,
+        debt_id: null,
+      });
+
+      setRawAmount(nextAmount != null ? String(nextAmount) : "");
+      setPickerMode("category");
+      setPendingDebt(null);
+      onTypeChange?.(t.type);
+      toast.success(`Applied "${t.name}"`);
+    },
+    [accounts, categories, tags, form, onTypeChange],
+  );
 
   const handleFormSubmit = (data: TransactionFormValues) => {
     const submitData =
@@ -539,6 +592,9 @@ export function TransactionForm({
             </div>
           </div>
 
+          {/* Template shortcuts */}
+          <TemplateShortcuts type={transactionType} onPick={applyTemplate} />
+
           {/* Hero amount */}
           <FormField
             control={form.control}
@@ -554,7 +610,7 @@ export function TransactionForm({
                   )}
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="rounded-full border border-border bg-background/40 px-2.5 py-1 backdrop-blur">
+                    <div className="rounded-full flex border border-border bg-background/40 px-2.5 py-1 backdrop-blur">
                       <span
                         className={cn(
                           "text-[10px] font-semibold tracking-wider",
@@ -589,17 +645,18 @@ export function TransactionForm({
                       type="text"
                       inputMode="decimal"
                       placeholder="0"
-                      value={field.value ?? ""}
+                      value={rawAmount}
                       onChange={(e) => {
                         const v = e.target.value.replace(/[^0-9.]/g, "");
                         const parts = v.split(".");
                         if (parts.length > 2) return;
                         if (parts[1] && parts[1].length > 2) return;
+                        setRawAmount(v);
                         field.onChange(v === "" ? undefined : Number(v));
                       }}
                       className="bg-transparent text-center text-6xl font-light tabular-nums outline-none placeholder:text-muted-foreground/30"
                       style={{
-                        width: `${Math.max(1, String(field.value ?? "0").length + 0.5)}ch`,
+                        width: `${Math.max(1, (rawAmount || "0").length + 0.5)}ch`,
                       }}
                     />
                     <span
@@ -984,7 +1041,7 @@ export function TransactionForm({
                       type="date"
                       {...field}
                       value={field.value || ""}
-                      className="h-9 border-0 bg-transparent text-sm font-semibold shadow-none focus-visible:ring-0"
+                      className="h-9 border-0 w-full bg-transparent text-sm font-semibold shadow-none focus-visible:ring-0"
                     />
                   </FormControl>
                   <FormMessage className="mt-2" />

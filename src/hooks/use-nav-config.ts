@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Home, Receipt, CreditCard, PiggyBank,
   HandCoins, Repeat, BarChart3, Settings as SettingsIcon,
+  LayoutTemplate,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSettings } from "@/hooks";
@@ -14,6 +15,7 @@ export type NavItemId =
   | "budgets"
   | "debts"
   | "recurring"
+  | "templates"
   | "reports"
   | "settings";
 
@@ -32,13 +34,14 @@ export const NAV_ITEM_REGISTRY: Record<NavItemId, NavItemConfig> = {
   budgets:      { id: "budgets",      label: "Budgets",      icon: PiggyBank,     to: "/budgets" },
   debts:        { id: "debts",        label: "Debts",        icon: HandCoins,     to: "/debts" },
   recurring:    { id: "recurring",    label: "Recurring",    icon: Repeat,        to: "/recurring" },
+  templates:    { id: "templates",    label: "Templates",    icon: LayoutTemplate, to: "/templates" },
   reports:      { id: "reports",      label: "Reports",      icon: BarChart3,     to: "/reports" },
   settings:     { id: "settings",     label: "Settings",     icon: SettingsIcon,  to: "/settings" },
 };
 
 export const ALL_NAV_IDS: NavItemId[] = [
   "dashboard", "transactions", "accounts", "budgets",
-  "debts", "recurring", "reports", "settings",
+  "debts", "recurring", "templates", "reports", "settings",
 ];
 
 export const DEFAULT_MAIN_NAV: NavItemId[] = [

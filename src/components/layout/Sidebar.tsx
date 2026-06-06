@@ -4,7 +4,6 @@ import {
   Home,
   CreditCard,
   Settings,
-  ChevronDown,
   Receipt,
   PiggyBank,
   BarChart3,
@@ -12,6 +11,7 @@ import {
   Repeat,
   LucideIcon,
   Download,
+  LayoutTemplate,
 } from "lucide-react";
 import { SyncStatus } from "@/components/shared/SyncStatus";
 import { usePWAInstall } from "@/hooks/use-pwa-install";
@@ -63,6 +63,7 @@ const mainItems: MenuItem[] = [
 const transactionItems: MenuItem[] = [
   { to: "/recurring", icon: Repeat, label: "Recurring" },
   { to: "/debts", icon: HandCoins, label: "Debts" },
+  { to: "/templates", icon: LayoutTemplate, label: "Templates" },
 ];
 
 export function AppSidebar() {

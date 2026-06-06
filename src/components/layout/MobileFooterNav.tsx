@@ -529,7 +529,7 @@ export function MobileFooterNav() {
                 <div className="px-4">
                   <div
                     className={cn(
-                      "grid grid-cols-4 gap-1",
+                      `grid grid-cols-${pool?.length} gap-1`,
                       poolBlocked && "pointer-events-none",
                     )}
                   >

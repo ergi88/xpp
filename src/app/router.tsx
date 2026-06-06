@@ -36,6 +36,9 @@ const DebtEditPage = lazy(() => import("@/pages/debts/[id]/edit"));
 const RecurringPage = lazy(() => import("@/pages/recurring"));
 const RecurringCreatePage = lazy(() => import("@/pages/recurring/create"));
 const RecurringEditPage = lazy(() => import("@/pages/recurring/[id]/edit"));
+const TemplatesPage = lazy(() => import("@/pages/templates"));
+const TemplateCreatePage = lazy(() => import("@/pages/templates/create"));
+const TemplateEditPage = lazy(() => import("@/pages/templates/[id]/edit"));
 const ReportsPage = lazy(() => import("@/pages/reports"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
 const NotificationsPage = lazy(() => import("@/pages/notifications"));
@@ -119,6 +122,15 @@ export const router = createBrowserRouter(
         {
           path: "recurring/:id/edit",
           element: withSuspense(RecurringEditPage),
+        },
+        { path: "templates", element: withSuspense(TemplatesPage) },
+        {
+          path: "templates/create",
+          element: withSuspense(TemplateCreatePage),
+        },
+        {
+          path: "templates/:id/edit",
+          element: withSuspense(TemplateEditPage),
         },
         { path: "reports", element: withSuspense(ReportsPage) },
         { path: "settings", element: withSuspense(SettingsPage) },

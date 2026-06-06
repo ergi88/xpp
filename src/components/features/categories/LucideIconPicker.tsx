@@ -7,35 +7,59 @@ import { cn } from '@/lib/utils'
 const CURATED_ICONS: { group: string; icons: string[] }[] = [
   {
     group: 'Money',
-    icons: ['Wallet', 'CreditCard', 'Banknote', 'PiggyBank', 'TrendingUp', 'TrendingDown', 'DollarSign', 'Coins', 'Receipt', 'HandCoins'],
+    icons: ['Wallet', 'WalletCards', 'CreditCard', 'Banknote', 'BadgeDollarSign', 'PiggyBank', 'TrendingUp', 'TrendingDown', 'DollarSign', 'Euro', 'PoundSterling', 'JapaneseYen', 'Bitcoin', 'Coins', 'Receipt', 'ReceiptText', 'HandCoins', 'CircleDollarSign', 'Landmark', 'Calculator', 'ChartNoAxesCombined', 'Percent', 'Vault', 'Scale'],
   },
   {
     group: 'Food & Drink',
-    icons: ['UtensilsCrossed', 'Coffee', 'Pizza', 'ShoppingBasket', 'Wine', 'Beer', 'IceCream', 'Sandwich', 'Apple', 'Beef'],
+    icons: ['UtensilsCrossed', 'Utensils', 'Coffee', 'CupSoda', 'Pizza', 'ShoppingBasket', 'Wine', 'Beer', 'Martini', 'IceCream', 'IceCreamCone', 'Sandwich', 'Salad', 'Apple', 'Cherry', 'Grape', 'Carrot', 'Egg', 'Beef', 'Fish', 'Croissant', 'Donut', 'Cake', 'CakeSlice', 'Candy', 'Cookie', 'Soup', 'Drumstick', 'Milk', 'Wheat'],
   },
   {
     group: 'Shopping',
-    icons: ['ShoppingCart', 'ShoppingBag', 'Store', 'Tag', 'Gift', 'Package', 'Shirt', 'Gem', 'Watch', 'Glasses'],
+    icons: ['ShoppingCart', 'ShoppingBag', 'Store', 'Tag', 'Tags', 'Gift', 'Package', 'PackageOpen', 'Shirt', 'Gem', 'Watch', 'Glasses', 'Footprints', 'Crown', 'Sparkles', 'Barcode', 'ScanLine', 'Ticket', 'BadgePercent'],
   },
   {
     group: 'Health',
-    icons: ['Heart', 'Activity', 'Pill', 'Stethoscope', 'Dumbbell', 'Brain', 'Eye', 'Thermometer', 'Hospital', 'Baby'],
+    icons: ['Heart', 'HeartPulse', 'Activity', 'Pill', 'Stethoscope', 'Syringe', 'Dumbbell', 'Brain', 'Eye', 'Ear', 'Thermometer', 'Hospital', 'Baby', 'Bone', 'Smile', 'Cross', 'BriefcaseMedical', 'Bandage', 'Accessibility', 'Bed'],
   },
   {
     group: 'Travel',
-    icons: ['Plane', 'Car', 'Train', 'Bus', 'Bike', 'Ship', 'Map', 'Hotel', 'Luggage', 'Fuel'],
+    icons: ['Plane', 'PlaneTakeoff', 'Car', 'CarFront', 'Train', 'TramFront', 'Bus', 'Bike', 'Ship', 'Sailboat', 'Map', 'MapPin', 'MapPinned', 'Compass', 'Hotel', 'Tent', 'Luggage', 'Fuel', 'ParkingCircle', 'TrafficCone', 'Globe', 'Mountain', 'Palmtree', 'Caravan'],
   },
   {
     group: 'Home',
-    icons: ['House', 'Sofa', 'Lightbulb', 'Tv', 'WashingMachine', 'Wrench', 'Trash2', 'Flame', 'Droplets', 'Key'],
+    icons: ['House', 'HousePlus', 'DoorOpen', 'Sofa', 'Armchair', 'Lamp', 'Lightbulb', 'Tv', 'Refrigerator', 'WashingMachine', 'Microwave', 'CookingPot', 'Wrench', 'Hammer', 'Drill', 'PaintRoller', 'Trash2', 'Flame', 'Droplets', 'Plug', 'PlugZap', 'Zap', 'Key', 'Bath', 'Toilet', 'Bed', 'Brush', 'TreePine', 'Flower2', 'Shovel'],
   },
   {
     group: 'Work',
-    icons: ['Briefcase', 'Laptop', 'Phone', 'Printer', 'BookOpen', 'PenLine', 'FolderOpen', 'Building2', 'GraduationCap', 'Hammer'],
+    icons: ['Briefcase', 'Laptop', 'Monitor', 'Phone', 'Smartphone', 'Printer', 'BookOpen', 'PenLine', 'Pencil', 'FolderOpen', 'Folder', 'FileText', 'Files', 'Building', 'Building2', 'Factory', 'GraduationCap', 'NotebookPen', 'Presentation', 'Mail', 'Paperclip', 'Stamp', 'IdCard', 'Network'],
+  },
+  {
+    group: 'Tech',
+    icons: ['Smartphone', 'Tablet', 'Laptop', 'Monitor', 'MonitorSmartphone', 'Keyboard', 'Mouse', 'HardDrive', 'Server', 'Database', 'Cpu', 'MemoryStick', 'Wifi', 'Bluetooth', 'Cloud', 'CloudDownload', 'Battery', 'BatteryCharging', 'Cable', 'Router', 'Usb', 'Webcam', 'Code', 'Bot'],
   },
   {
     group: 'Entertainment',
-    icons: ['Music', 'Gamepad2', 'Clapperboard', 'Camera', 'Book', 'Headphones', 'Ticket', 'Palette', 'Trophy', 'Dice5'],
+    icons: ['Music', 'Music2', 'Disc3', 'Radio', 'Mic', 'Gamepad2', 'Joystick', 'Clapperboard', 'Film', 'Camera', 'Video', 'Book', 'BookMarked', 'Headphones', 'Ticket', 'Palette', 'Brush', 'Trophy', 'Medal', 'Award', 'Dice5', 'Puzzle', 'PartyPopper', 'Drama', 'Guitar', 'Piano', 'Popcorn'],
+  },
+  {
+    group: 'Sports & Outdoors',
+    icons: ['Dumbbell', 'Bike', 'Footprints', 'Trophy', 'Medal', 'Target', 'Goal', 'Volleyball', 'Waves', 'Tent', 'TreePine', 'Mountain', 'MountainSnow', 'Snowflake', 'Sun', 'Flag', 'Timer', 'Compass'],
+  },
+  {
+    group: 'Family & Pets',
+    icons: ['Users', 'User', 'Baby', 'PersonStanding', 'Heart', 'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Turtle', 'PawPrint', 'Bone', 'Squirrel', 'Rat'],
+  },
+  {
+    group: 'Bills & Utilities',
+    icons: ['Receipt', 'FileText', 'Zap', 'Flame', 'Droplet', 'Droplets', 'Wifi', 'Phone', 'Tv', 'Trash2', 'Lightbulb', 'Plug', 'ThermometerSun', 'Recycle', 'CalendarClock', 'Banknote'],
+  },
+  {
+    group: 'Education',
+    icons: ['GraduationCap', 'BookOpen', 'Book', 'BookMarked', 'Library', 'Pencil', 'PenLine', 'NotebookPen', 'Ruler', 'Calculator', 'Backpack', 'School', 'Microscope', 'FlaskConical', 'Atom', 'Globe'],
+  },
+  {
+    group: 'Misc',
+    icons: ['Star', 'Heart', 'Flag', 'Bookmark', 'Bell', 'Calendar', 'Clock', 'MapPin', 'Camera', 'Gift', 'Lightbulb', 'Sparkles', 'Leaf', 'Sun', 'Moon', 'Cloud', 'Umbrella', 'ShieldCheck', 'Lock', 'Smile', 'ThumbsUp', 'Infinity', 'CircleHelp', 'MoreHorizontal'],
   },
 ]
 

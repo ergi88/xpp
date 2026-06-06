@@ -5,6 +5,7 @@ export type SheetName =
   | 'budgets'
   | 'tags'
   | 'recurring'
+  | 'templates'
   | 'debts'
   | 'currencies'
   | 'settings'

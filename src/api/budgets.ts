@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
 import { adapter } from './client'
+import { accountsApi } from './accounts'
 import { categoriesApi } from './categories'
 import { currenciesApi } from './currencies'
 import { tagsApi } from './tags'
-import type { Budget, BudgetFormData, Category, Currency, Tag } from '@/types'
+import type { Account, Budget, BudgetFormData, Category, Currency, Tag } from '@/types'
 
 function toBudget(r: Record<string, unknown>): Omit<Budget, 'categories' | 'tags'> {
   return {
@@ -27,50 +28,55 @@ function resolveRelations(
   categoriesById: Map<string, Category>,
   tagsById: Map<string, Tag>,
   currenciesById: Map<string, Currency>,
+  accountsById: Map<string, Account>,
 ): Budget {
   const categoryIds = String(raw.category_ids ?? '').split(',').filter(Boolean)
   const tagIds = String(raw.tag_ids ?? '').split(',').filter(Boolean)
+  const accountIds = String(raw.account_ids ?? '').split(',').filter(Boolean)
   const base = toBudget(raw)
   return {
     ...base,
     currency: base.currencyId ? currenciesById.get(base.currencyId) : undefined,
     categories: categoryIds.map(id => categoriesById.get(id)).filter(Boolean) as Category[],
     tags: tagIds.map(id => tagsById.get(id)).filter(Boolean) as Tag[],
+    accounts: accountIds.map(id => accountsById.get(id)).filter(Boolean) as Account[],
   } as Budget
 }
 
 async function buildLookups() {
-  const [allCategories, allTags, allCurrencies] = await Promise.all([
+  const [allCategories, allTags, allCurrencies, allAccounts] = await Promise.all([
     categoriesApi.getAll(),
     tagsApi.getAll(),
     currenciesApi.getAll(),
+    accountsApi.getAll(),
   ])
   const categoriesById = new Map(allCategories.map(c => [c.id, c]))
   const tagsById = new Map(allTags.map(t => [t.id, t]))
   const currenciesById = new Map(allCurrencies.map(c => [c.id, c]))
-  return { categoriesById, tagsById, currenciesById }
+  const accountsById = new Map(allAccounts.map(a => [a.id, a]))
+  return { categoriesById, tagsById, currenciesById, accountsById }
 }
 
 export const budgetsApi = {
   getAll: async (): Promise<Budget[]> => {
-    const [rows, { categoriesById, tagsById, currenciesById }] = await Promise.all([
+    const [rows, { categoriesById, tagsById, currenciesById, accountsById }] = await Promise.all([
       adapter.getAll('budgets'),
       buildLookups(),
     ])
-    return rows.map(r => resolveRelations(r, categoriesById, tagsById, currenciesById))
+    return rows.map(r => resolveRelations(r, categoriesById, tagsById, currenciesById, accountsById))
   },
 
   getById: async (id: string | number): Promise<Budget> => {
-    const [r, { categoriesById, tagsById, currenciesById }] = await Promise.all([
+    const [r, { categoriesById, tagsById, currenciesById, accountsById }] = await Promise.all([
       adapter.getById('budgets', String(id)),
       buildLookups(),
     ])
     if (!r) throw new Error('Budget not found')
-    return resolveRelations(r, categoriesById, tagsById, currenciesById)
+    return resolveRelations(r, categoriesById, tagsById, currenciesById, accountsById)
   },
 
   create: async (data: BudgetFormData): Promise<Budget> => {
-    const [r, { categoriesById, tagsById, currenciesById }] = await Promise.all([
+    const [r, { categoriesById, tagsById, currenciesById, accountsById }] = await Promise.all([
       adapter.create('budgets', {
         id: uuidv4(),
         name: data.name,
@@ -78,6 +84,7 @@ export const budgetsApi = {
         currency_id: data.currency_id ?? '',
         category_ids: (data.category_ids ?? []).join(','),
         tag_ids: (data.tag_ids ?? []).join(','),
+        account_ids: (data.account_ids ?? []).join(','),
         period: data.period,
         start_date: data.start_date ?? '',
         end_date: data.end_date ?? '',
@@ -88,7 +95,7 @@ export const budgetsApi = {
       }),
       buildLookups(),
     ])
-    return resolveRelations(r, categoriesById, tagsById, currenciesById)
+    return resolveRelations(r, categoriesById, tagsById, currenciesById, accountsById)
   },
 
   update: async (id: string | number, data: Partial<BudgetFormData>): Promise<Budget> => {
@@ -99,11 +106,14 @@ export const budgetsApi = {
     if (Array.isArray(data.tag_ids)) {
       payload.tag_ids = data.tag_ids.join(',')
     }
-    const [r, { categoriesById, tagsById, currenciesById }] = await Promise.all([
+    if (Array.isArray(data.account_ids)) {
+      payload.account_ids = data.account_ids.join(',')
+    }
+    const [r, { categoriesById, tagsById, currenciesById, accountsById }] = await Promise.all([
       adapter.update('budgets', String(id), payload),
       buildLookups(),
     ])
-    return resolveRelations(r, categoriesById, tagsById, currenciesById)
+    return resolveRelations(r, categoriesById, tagsById, currenciesById, accountsById)
   },
 
   delete: (id: string | number): Promise<void> =>

@@ -59,6 +59,7 @@ import {
   CATEGORY_COLORS,
 } from "@/constants";
 import { Page } from "@/components/shared";
+import { AccountAvatar } from "@/components/shared/AccountAvatar";
 
 type PeriodPreset =
   | "this_month"
@@ -596,18 +597,7 @@ export default function DashboardPage() {
                       className="flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {(() => {
-                          const config =
-                            ACCOUNT_TYPE_CONFIG[account.type as AccountType];
-                          const Icon = config?.icon || Wallet;
-                          return (
-                            <div
-                              className={`flex size-9 items-center justify-center rounded-lg shrink-0 ${config?.color || "bg-muted"}`}
-                            >
-                              <Icon className="size-4" />
-                            </div>
-                          );
-                        })()}
+                        <AccountAvatar account={account} size="md" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
                             {account.name}

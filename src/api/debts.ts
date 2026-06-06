@@ -8,6 +8,7 @@ import { transactionsApi } from "./transactions";
 import type {
   Currency,
   Debt,
+  DebtType,
   DebtSummary,
   DebtsResponse,
   Transaction,
@@ -68,6 +69,23 @@ export function originDirectionSign(
     (txnType === "expense" && debtType === "i_owe") ||
     (txnType === "income" && debtType === "owed_to_me");
   return same ? 1 : -1;
+}
+
+// Resolves the transaction type for a debt movement from the debt direction
+// and whether the user is settling (decrease) or growing (increase) the debt.
+// This mirrors the TransactionForm logic where the chosen TX type drives the
+// debt's running balance via debtDeltaSign:
+//   - decrease (settle):  i_owe → expense (pay back), owed_to_me → income (collect)
+//   - increase (grow):    i_owe → income (borrow more), owed_to_me → expense (lend more)
+export function resolvePaymentTxType(
+  debtType: DebtType,
+  direction: "decrease" | "increase",
+): "income" | "expense" {
+  if (debtType === "i_owe") {
+    return direction === "decrease" ? "expense" : "income";
+  }
+  // owed_to_me
+  return direction === "decrease" ? "income" : "expense";
 }
 
 async function loadCurrencyMap(): Promise<Map<string, Currency>> {
@@ -225,37 +243,32 @@ export const debtsApi = {
     });
   },
 
-  // Creates an expense transaction (for i_owe debts) linked via debt_id so that
-  // applyTransactionEffects automatically advances paid_amount.
-  makePayment: async (
+  // Records a debt movement by creating a transaction linked via debt_id so
+  // that applyTransactionEffects automatically advances the running balance.
+  // The TX type (income/expense) is derived from the debt direction and the
+  // requested movement direction — see resolvePaymentTxType. This unifies the
+  // old makePayment/collectPayment paths and additionally supports *growing*
+  // a debt (e.g. lending more on an "owed to me" debt → expense TX).
+  recordPayment: async (
     debtId: string | number,
     data: DebtPaymentFormData,
   ): Promise<Transaction> => {
     const debt = await debtsApi.getById(debtId);
+    const direction = data.direction ?? "decrease";
+    const type = resolvePaymentTxType(debt.debtType, direction);
+    const fallbackVerb =
+      direction === "increase"
+        ? "Increase"
+        : type === "income"
+          ? "Collection"
+          : "Payment";
     return transactionsApi.create({
-      type: "expense",
+      type,
       account_id: String(data.account_id),
       amount: data.amount,
       date: data.date,
       debt_id: String(debtId),
-      description: data.description ?? `Payment for ${debt.name}`,
-    } as Parameters<typeof transactionsApi.create>[0]);
-  },
-
-  // Creates an income transaction (for owed_to_me debts) linked via debt_id so
-  // that applyTransactionEffects automatically advances paid_amount.
-  collectPayment: async (
-    debtId: string | number,
-    data: DebtPaymentFormData,
-  ): Promise<Transaction> => {
-    const debt = await debtsApi.getById(debtId);
-    return transactionsApi.create({
-      type: "income",
-      account_id: String(data.account_id),
-      amount: data.amount,
-      date: data.date,
-      debt_id: String(debtId),
-      description: data.description ?? `Collection for ${debt.name}`,
+      description: data.description ?? `${fallbackVerb} for ${debt.name}`,
     } as Parameters<typeof transactionsApi.create>[0]);
   },
 

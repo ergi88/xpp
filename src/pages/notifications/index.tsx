@@ -61,6 +61,9 @@ const KIND_META: Record<NotificationKind, { label: string }> = {
   tx_update_failed: { label: "Update failed" },
   tx_delete_failed: { label: "Delete failed" },
   balance_effect_failed: { label: "Balance drift" },
+  budget_create_failed: { label: "Create failed" },
+  budget_update_failed: { label: "Update failed" },
+  budget_delete_failed: { label: "Delete failed" },
 };
 
 export default function NotificationsPage() {

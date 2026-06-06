@@ -100,6 +100,8 @@ function toAccount(r: Record<string, unknown>): Account {
     cardLastDigits: normalizeCardLastDigits(r.card_last_digits),
     cardExpiry: normalizeCardExpiry(r.card_expiry),
     creditLimit: r.credit_limit != null ? Number(r.credit_limit) : undefined,
+    icon: (r.icon as string) || null,
+    color: (r.color as string) || null,
   };
 }
 
@@ -235,6 +237,8 @@ export const accountsApi = {
         card_last_digits: data.card_last_digits ?? null,
         card_expiry: data.card_expiry ?? null,
         credit_limit: data.credit_limit ?? null,
+        icon: data.icon ?? null,
+        color: data.color ?? null,
       }),
       loadCurrencyContext(),
     ]);

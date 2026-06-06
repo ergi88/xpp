@@ -8,7 +8,15 @@ import {
   parseAsStringLiteral,
   parseAsBoolean,
 } from "nuqs";
-import { Plus, Download, Search, CheckSquare, Square } from "lucide-react";
+import {
+  Plus,
+  Download,
+  Search,
+  CheckSquare,
+  Square,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   Page,
   PageHeader,
@@ -32,7 +40,12 @@ import {
   useBulkDeleteTransactions,
   useBulkUpdateTransactions,
 } from "@/hooks";
-import { firstDayOfCurrentMonth, getDateRange } from "./dateNavHelpers";
+import {
+  firstDayOfCurrentMonth,
+  getDateRange,
+  stepMonth,
+  formatPeriod,
+} from "./dateNavHelpers";
 import RecurringPage from "@/pages/recurring";
 import DebtsPage from "@/pages/debts";
 
@@ -69,6 +82,20 @@ export default function TransactionsPage() {
   // Fetch the full month worth of transactions
   const monthDateRange = getDateRange("month", params.navDate);
   const hasCategoryFilter = params.categoryIds.length > 0;
+
+  // Month navigation — cap forward navigation at 1 month past the current month
+  const maxNavDate = stepMonth(firstDayOfCurrentMonth(), 1);
+  const canGoNext = params.navDate < maxNavDate;
+  const goToMonth = useCallback(
+    (dir: 1 | -1) => {
+      setParams((prev) => {
+        const next = stepMonth(prev.navDate, dir);
+        if (next > maxNavDate) return prev;
+        return { navDate: next, page: 1 };
+      });
+    },
+    [setParams, maxNavDate],
+  );
 
   const fetchFilters = {
     per_page: 9999,
@@ -293,6 +320,32 @@ export default function TransactionsPage() {
         </TabsList>
 
         <TabsContent value="transactions">
+          {/* Month switcher */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              title="Previous month"
+              onClick={() => goToMonth(-1)}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <div className="min-w-32 text-center text-sm font-medium tabular-nums">
+              {formatPeriod("month", params.navDate)}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              title="Next month"
+              disabled={!canGoNext}
+              onClick={() => goToMonth(1)}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+
           {/* Search + Filter row */}
           <div className="flex gap-2 mb-4">
             <div className="relative flex-1">

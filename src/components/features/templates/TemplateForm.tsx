@@ -5,15 +5,8 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
-  Calendar,
-  CalendarClock,
-  CalendarDays,
-  CalendarRange,
   ChevronRight,
   Plus,
-  Power,
-  Repeat,
-  Sun,
   Tag as TagIcon,
   Wallet,
   X,
@@ -22,7 +15,7 @@ import { toast } from "sonner";
 
 import { safeZodResolver } from "@/lib/zod-resolver";
 import { cn } from "@/lib/utils";
-import { recurringSchema, RecurringFormData } from "@/schemas";
+import { templateSchema, TemplateFormData } from "@/schemas";
 import { useAccounts, useCategories, useTags } from "@/hooks";
 
 import { Button } from "@/components/ui/button";
@@ -44,19 +37,18 @@ import {
   type BottomSheetItem,
 } from "@/components/ui/bottom-sheet";
 
-interface RecurringFormProps {
-  defaultValues?: Partial<RecurringFormData>;
-  onSubmit: (data: RecurringFormData) => void;
+interface TemplateFormProps {
+  defaultValues?: Partial<TemplateFormData>;
+  onSubmit: (data: TemplateFormData) => void;
   isSubmitting?: boolean;
   submitLabel?: string;
 }
 
-type RecurringType = RecurringFormData["type"];
-type Frequency = RecurringFormData["frequency"];
+type TemplateType = TemplateFormData["type"];
 type TypeTint = "emerald" | "rose" | "sky";
 
 const TYPE_META: Record<
-  RecurringType,
+  TemplateType,
   { label: string; icon: typeof ArrowDownLeft; tint: TypeTint; sign: string }
 > = {
   income: { label: "Income", icon: ArrowDownLeft, tint: "emerald", sign: "+" },
@@ -90,32 +82,6 @@ const TINT_CLASSES: Record<
     shadow: "shadow-sky-500/30",
   },
 };
-
-const FREQUENCY_META: {
-  id: Frequency;
-  label: string;
-  icon: typeof Sun;
-  unit: string;
-}[] = [
-  { id: "daily", label: "Daily", icon: Sun, unit: "day(s)" },
-  { id: "weekly", label: "Weekly", icon: CalendarDays, unit: "week(s)" },
-  { id: "monthly", label: "Monthly", icon: CalendarRange, unit: "month(s)" },
-  { id: "yearly", label: "Yearly", icon: Calendar, unit: "year(s)" },
-];
-
-const DAY_OF_WEEK = [
-  { value: 0, short: "S", label: "Sunday" },
-  { value: 1, short: "M", label: "Monday" },
-  { value: 2, short: "T", label: "Tuesday" },
-  { value: 3, short: "W", label: "Wednesday" },
-  { value: 4, short: "T", label: "Thursday" },
-  { value: 5, short: "F", label: "Friday" },
-  { value: 6, short: "S", label: "Saturday" },
-];
-
-function todayIso() {
-  return new Date().toISOString().split("T")[0];
-}
 
 function GlassField({
   label,
@@ -151,18 +117,17 @@ function GlassField({
   );
 }
 
-export function RecurringForm({
+export function TemplateForm({
   defaultValues,
   onSubmit,
   isSubmitting,
   submitLabel = "Save",
-}: RecurringFormProps) {
+}: TemplateFormProps) {
   const { data: accounts } = useAccounts({ active: true, exclude_debts: true });
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
 
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
-  const [daySheetOpen, setDaySheetOpen] = useState(false);
   const [rawAmount, setRawAmount] = useState<string>(
     defaultValues?.amount != null ? String(defaultValues.amount) : "",
   );
@@ -182,50 +147,41 @@ export function RecurringForm({
 
   const formDefaults = useMemo(
     () => ({
+      name: "",
+      icon: "",
       type: "expense" as const,
       account_id: "",
       to_account_id: null,
       category_id: null,
-      amount: 0,
-      to_amount: null,
+      amount: null,
       description: "",
-      frequency: "monthly" as const,
-      interval: 1,
-      day_of_week: null,
-      day_of_month: 1,
-      start_date: todayIso(),
-      end_date: null,
-      is_active: true,
       tag_ids: [],
       ...defaultValues,
     }),
     [defaultValues],
   );
 
-  const form = useForm<RecurringFormData>({
-    resolver: safeZodResolver<RecurringFormData>(recurringSchema),
+  const form = useForm<TemplateFormData>({
+    resolver: safeZodResolver<TemplateFormData>(templateSchema),
     defaultValues: formDefaults,
   });
 
   useEffect(() => {
     form.reset(formDefaults);
     setRawAmount(
-      formDefaults.amount != null && formDefaults.amount !== 0
-        ? String(formDefaults.amount)
-        : "",
+      formDefaults.amount != null ? String(formDefaults.amount) : "",
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formDefaults]);
 
   const type = useWatch({ control: form.control, name: "type" });
-  const frequency = useWatch({ control: form.control, name: "frequency" });
   const accountId = useWatch({ control: form.control, name: "account_id" });
   const toAccountId = useWatch({
     control: form.control,
     name: "to_account_id",
   });
   const amount = useWatch({ control: form.control, name: "amount" });
-  const dayOfMonth = useWatch({ control: form.control, name: "day_of_month" });
+  const icon = useWatch({ control: form.control, name: "icon" });
   const selectedTagIds =
     useWatch({ control: form.control, name: "tag_ids" }) ?? [];
 
@@ -270,21 +226,6 @@ export function RecurringForm({
     iconNode: <TagIcon className="size-4 text-muted-foreground" />,
   }));
 
-  // 1–31, rendered in a 7-column grid (5 rows). The number lives in iconNode
-  // so it shows large and centered; label is blank to avoid a duplicate.
-  const dayOfMonthItems: BottomSheetItem[] = Array.from(
-    { length: 31 },
-    (_, i) => {
-      const day = i + 1;
-      return {
-        id: String(day),
-        label: "",
-        keywords: String(day),
-        iconNode: <span className="text-base font-semibold">{day}</span>,
-      };
-    },
-  );
-
   const handleInvalid = (errors: Record<string, { message?: string }>) => {
     const messages = Object.entries(errors)
       .map(([field, err]) => err?.message ?? `${field} is invalid`)
@@ -299,10 +240,6 @@ export function RecurringForm({
     }
   };
 
-  const amountNum = Number(amount) || 0;
-  const isValid = amountNum > 0;
-  const freqUnit = FREQUENCY_META.find((f) => f.id === frequency)?.unit ?? "";
-
   return (
     <FormWrapper>
       <Form {...form}>
@@ -313,61 +250,105 @@ export function RecurringForm({
           {/* Type tabs */}
           <div className="sticky -top-4 z-10 -mx-2 px-2 pt-2">
             <div className="relative flex gap-1 rounded-2xl border border-border bg-card/80 p-1 backdrop-blur-xl">
-              {(
-                Object.entries(TYPE_META) as [RecurringType, typeof meta][]
-              ).map(([key, m]) => {
-                const Icon = m.icon;
-                const tc = TINT_CLASSES[m.tint];
-                const active = type === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      form.setValue("type", key);
-                      if (key === "transfer") {
-                        form.setValue("category_id", null);
-                      } else {
-                        form.setValue("to_account_id", null);
-                        form.setValue("to_amount", null);
-                      }
-                    }}
-                    className={cn(
-                      "relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition",
-                      active
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="recurring-type-tab-bg"
-                        className={cn(
-                          "absolute inset-0 rounded-xl border",
-                          tc.bg,
-                          tc.border,
-                        )}
-                        transition={{
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 30,
-                        }}
-                      />
-                    )}
-                    <Icon
+              {(Object.entries(TYPE_META) as [TemplateType, typeof meta][]).map(
+                ([key, m]) => {
+                  const Icon = m.icon;
+                  const tc = TINT_CLASSES[m.tint];
+                  const active = type === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        form.setValue("type", key);
+                        if (key === "transfer") {
+                          form.setValue("category_id", null);
+                        } else {
+                          form.setValue("to_account_id", null);
+                        }
+                      }}
                       className={cn(
-                        "relative z-10 size-3.5",
-                        active && tc.text,
+                        "relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition",
+                        active
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground",
                       )}
-                    />
-                    <span className="relative z-10">{m.label}</span>
-                  </button>
-                );
-              })}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="template-type-tab-bg"
+                          className={cn(
+                            "absolute inset-0 rounded-xl border",
+                            tc.bg,
+                            tc.border,
+                          )}
+                          transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 30,
+                          }}
+                        />
+                      )}
+                      <Icon
+                        className={cn(
+                          "relative z-10 size-3.5",
+                          active && tc.text,
+                        )}
+                      />
+                      <span className="relative z-10">{m.label}</span>
+                    </button>
+                  );
+                },
+              )}
             </div>
           </div>
 
-          {/* Hero amount */}
+          {/* Name + emoji */}
+          <GlassField
+            label="Template name"
+            icon={TagIcon}
+            iconClassName="text-violet-500"
+          >
+            <div className="flex items-center gap-2">
+              <FormField
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value.slice(0, 4))}
+                    placeholder="☕"
+                    aria-label="Emoji"
+                    className="h-10 w-12 shrink-0 rounded-xl border-border bg-background/40 text-center text-xl"
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value ?? ""}
+                        placeholder="e.g. Morning coffee"
+                        className="h-10 border-0 bg-transparent text-sm font-medium shadow-none focus-visible:ring-0"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="name"
+              render={() => <FormMessage className="mt-2" />}
+            />
+          </GlassField>
+
+          {/* Hero amount (optional) */}
           <FormField
             control={form.control}
             name="amount"
@@ -389,7 +370,7 @@ export function RecurringForm({
                           tint.text,
                         )}
                       >
-                        {meta.label.toUpperCase()} AMOUNT
+                        {meta.label.toUpperCase()} AMOUNT · OPTIONAL
                       </span>
                     </div>
                     {isTransfer && selectedAccount && selectedToAccount && (
@@ -422,7 +403,7 @@ export function RecurringForm({
                         if (parts.length > 2) return;
                         if (parts[1] && parts[1].length > 2) return;
                         setRawAmount(v);
-                        field.onChange(v === "" ? 0 : Number(v));
+                        field.onChange(v === "" ? null : Number(v));
                       }}
                       className="bg-transparent text-center text-6xl font-light tabular-nums outline-none placeholder:text-muted-foreground/30"
                       style={{
@@ -438,6 +419,10 @@ export function RecurringForm({
                       {selectedAccount?.currency?.symbol ?? ""}
                     </span>
                   </div>
+                  <p className="mt-4 text-center text-[11px] text-muted-foreground">
+                    Leave blank to type the amount each time you use this
+                    template
+                  </p>
                 </div>
                 <FormMessage className="mt-2" />
               </FormItem>
@@ -481,46 +466,6 @@ export function RecurringForm({
                         onChange={field.onChange}
                         excludeId={accountId}
                       />
-                    </GlassField>
-                    <FormMessage className="mt-2" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="to_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <GlassField
-                      label="Receive amount"
-                      icon={ArrowDownLeft}
-                      iconClassName="text-emerald-500"
-                    >
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-light text-emerald-500">
-                          +
-                        </span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          placeholder={amount ? String(amount) : "0.00"}
-                          {...field}
-                          value={field.value ?? ""}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value ? Number(e.target.value) : null,
-                            )
-                          }
-                          className="h-auto flex-1 border-0 bg-transparent p-0 text-2xl font-light tabular-nums shadow-none focus-visible:ring-0"
-                        />
-                        <span className="text-base text-muted-foreground">
-                          {selectedToAccount?.currency?.symbol ?? ""}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-[11px] text-muted-foreground">
-                        Leave empty to auto-fill from send amount
-                      </p>
                     </GlassField>
                     <FormMessage className="mt-2" />
                   </FormItem>
@@ -581,7 +526,7 @@ export function RecurringForm({
                 <GlassField label="Description">
                   <FormControl>
                     <Textarea
-                      placeholder="e.g. Monthly rent payment"
+                      placeholder="Prefilled into the transaction (optional)"
                       {...field}
                       value={field.value ?? ""}
                       rows={3}
@@ -593,207 +538,6 @@ export function RecurringForm({
               </FormItem>
             )}
           />
-
-          {/* Frequency segmented selector */}
-          <FormField
-            control={form.control}
-            name="frequency"
-            render={({ field }) => (
-              <FormItem>
-                <GlassField
-                  label="Repeats"
-                  icon={Repeat}
-                  iconClassName="text-sky-500"
-                >
-                  <div className="grid grid-cols-4 gap-2">
-                    {FREQUENCY_META.map((f) => {
-                      const Icon = f.icon;
-                      const active = field.value === f.id;
-                      return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => field.onChange(f.id)}
-                          className={cn(
-                            "relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border py-3 transition",
-                            active
-                              ? cn(tint.bg, tint.border)
-                              : "border-border bg-card/40 hover:border-muted-foreground/30",
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              "size-4",
-                              active ? tint.text : "text-muted-foreground",
-                            )}
-                          />
-                          <span
-                            className={cn(
-                              "text-[11px] font-medium",
-                              active ? tint.text : "text-muted-foreground",
-                            )}
-                          >
-                            {f.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </GlassField>
-                <FormMessage className="mt-2" />
-              </FormItem>
-            )}
-          />
-
-          {/* Interval */}
-          <FormField
-            control={form.control}
-            name="interval"
-            render={({ field }) => (
-              <FormItem>
-                <GlassField
-                  label="Every"
-                  icon={CalendarClock}
-                  iconClassName="text-sky-500"
-                >
-                  <div className="flex items-baseline gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      {...field}
-                      className="h-9 w-20 border-0 bg-transparent p-0 text-2xl font-light tabular-nums shadow-none focus-visible:ring-0"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {freqUnit}
-                    </span>
-                  </div>
-                </GlassField>
-                <FormMessage className="mt-2" />
-              </FormItem>
-            )}
-          />
-
-          {/* Day of week (weekly) */}
-          {frequency === "weekly" && (
-            <FormField
-              control={form.control}
-              name="day_of_week"
-              render={({ field }) => (
-                <FormItem>
-                  <GlassField
-                    label="Day of week"
-                    icon={CalendarDays}
-                    iconClassName="text-sky-500"
-                  >
-                    <div className="flex gap-1.5">
-                      {DAY_OF_WEEK.map((d) => {
-                        const active = field.value === d.value;
-                        return (
-                          <button
-                            key={d.value}
-                            type="button"
-                            aria-label={d.label}
-                            onClick={() => field.onChange(d.value)}
-                            className={cn(
-                              "flex size-9 flex-1 items-center justify-center rounded-xl border text-sm font-semibold transition",
-                              active
-                                ? cn(tint.bg, tint.border, tint.text)
-                                : "border-border bg-card/40 text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            {d.short}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </GlassField>
-                  <FormMessage className="mt-2" />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {/* Day of month (monthly) */}
-          {frequency === "monthly" && (
-            <FormField
-              control={form.control}
-              name="day_of_month"
-              render={({ field }) => (
-                <FormItem>
-                  <GlassField
-                    label="Day of month"
-                    sub="1–31 (adjusted for shorter months)"
-                    icon={CalendarRange}
-                    iconClassName="text-sky-500"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setDaySheetOpen(true)}
-                      className="flex w-full items-center justify-between gap-2 text-left"
-                    >
-                      <span className="text-2xl font-light tabular-nums">
-                        {field.value ?? "—"}
-                      </span>
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                    </button>
-                  </GlassField>
-                  <FormMessage className="mt-2" />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {/* Start / End dates */}
-          <div className="grid grid-cols-2 gap-3">
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem>
-                  <GlassField
-                    label="Start date"
-                    icon={Calendar}
-                    iconClassName="text-sky-500"
-                  >
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={field.value || ""}
-                        className="h-9 w-full border-0 bg-transparent p-0 text-sm font-semibold shadow-none focus-visible:ring-0"
-                      />
-                    </FormControl>
-                  </GlassField>
-                  <FormMessage className="mt-2" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="end_date"
-              render={({ field }) => (
-                <FormItem>
-                  <GlassField
-                    label="End date"
-                    icon={Calendar}
-                    iconClassName="text-sky-500"
-                  >
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value || null)}
-                        className="h-9 w-full border-0 bg-transparent p-0 text-sm font-semibold shadow-none focus-visible:ring-0"
-                      />
-                    </FormControl>
-                  </GlassField>
-                  <FormMessage className="mt-2" />
-                </FormItem>
-              )}
-            />
-          </div>
 
           {/* Tags */}
           {tags && tags.length > 0 && (
@@ -866,85 +610,26 @@ export function RecurringForm({
             />
           )}
 
-          {/* Active toggle */}
-          <FormField
-            control={form.control}
-            name="is_active"
-            render={({ field }) => (
-              <button
-                type="button"
-                onClick={() => field.onChange(!field.value)}
-                className={cn(
-                  "flex w-full items-center justify-between gap-3 rounded-2xl border p-3.5 text-left backdrop-blur-xl transition",
-                  field.value
-                    ? "border-emerald-500/30 bg-emerald-500/10"
-                    : "border-border bg-card/40 hover:border-muted-foreground/30",
-                )}
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div
-                    className={cn(
-                      "grid size-9 shrink-0 place-items-center rounded-xl",
-                      field.value ? "bg-emerald-500/10" : "bg-muted",
-                    )}
-                  >
-                    <Power
-                      className={cn(
-                        "size-4",
-                        field.value
-                          ? "text-emerald-500"
-                          : "text-muted-foreground",
-                      )}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold">Active</div>
-                    <div className="text-[11px] leading-snug text-muted-foreground">
-                      {field.value
-                        ? "Generating transactions on schedule"
-                        : "Paused — no transactions generated"}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "relative h-6 w-10 shrink-0 rounded-full transition",
-                    field.value ? "bg-emerald-500" : "bg-muted",
-                  )}
-                >
-                  <motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 700, damping: 30 }}
-                    className={cn(
-                      "absolute top-0.5 size-5 rounded-full bg-white shadow",
-                      field.value ? "right-0.5" : "left-0.5",
-                    )}
-                  />
-                </div>
-              </button>
-            )}
-          />
-
           {/* Sticky submit */}
           <StickyFooterActions className="bg-unset">
             <Button
               type="submit"
-              disabled={isSubmitting || !isValid}
+              disabled={isSubmitting}
               className={cn(
                 "h-10 w-full rounded-xl font-semibold shadow-lg transition",
-                isValid
-                  ? cn(tint.solid, tint.shadow, "text-white")
-                  : "bg-muted text-muted-foreground",
+                tint.solid,
+                tint.shadow,
+                "text-white",
               )}
             >
               <Plus className="size-5" />
               {isSubmitting ? "Saving…" : submitLabel}
-              {isValid && (
-                <span className="ml-1 text-sm font-normal tabular-nums opacity-80">
-                  · {sign}
-                  {amountNum} {selectedAccount?.currency?.symbol ?? ""}
-                </span>
-              )}
+              <span className="ml-1 text-sm font-normal tabular-nums opacity-80">
+                · {icon ? `${icon} ` : ""}
+                {amount != null
+                  ? `${sign}${amount} ${selectedAccount?.currency?.symbol ?? ""}`
+                  : ""}
+              </span>
             </Button>
           </StickyFooterActions>
         </form>
@@ -962,19 +647,6 @@ export function RecurringForm({
         selectedIds={selectedTagIds}
         onSelectMulti={(ids) => form.setValue("tag_ids", ids)}
         emptyMessage="No tags yet"
-      />
-
-      {/* Day-of-month picker sheet */}
-      <BottomSheet
-        open={daySheetOpen}
-        onClose={() => setDaySheetOpen(false)}
-        title="Day of month"
-        items={dayOfMonthItems}
-        layout="grid"
-        gridCols={7}
-        selectedId={dayOfMonth != null ? String(dayOfMonth) : null}
-        onSelect={(id) => form.setValue("day_of_month", Number(id))}
-        emptyMessage="No days"
       />
     </FormWrapper>
   );

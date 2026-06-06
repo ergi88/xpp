@@ -35,6 +35,11 @@ export const debtPaymentSchema = z.object({
   date: z.string().min(1, "Date is required"),
 
   description: z.string().max(1000).optional(),
+
+  // decrease = settle the debt (reduce remaining); increase = grow the debt.
+  // The resulting transaction type (income/expense) is derived from this plus
+  // the debt's direction — see resolvePaymentTxType in api/debts.
+  direction: z.enum(["decrease", "increase"]).default("decrease"),
 });
 
 export type DebtPaymentFormData = z.infer<typeof debtPaymentSchema>;

@@ -36,6 +36,7 @@ export default function BudgetEditPage() {
           is_active: budget.isActive,
           category_ids: budget.categories.map((c) => c.id),
           tag_ids: budget.tags?.map((t) => t.id) ?? [],
+          account_ids: budget.accounts?.map((a) => a.id) ?? [],
         }}
         onSubmit={(data) => updateBudget.mutate({ id: id!, data })}
         isSubmitting={updateBudget.isPending}
