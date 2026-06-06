@@ -1,4 +1,5 @@
 import { BaseEntity } from './api'
+import { Account } from './accounts'
 import { Category } from './categories'
 import { Currency } from './currencies'
 import { Tag } from './tags'
@@ -29,6 +30,8 @@ export interface Budget extends BaseEntity {
     isActive: boolean
     categories: Category[]
     tags: Tag[]
+    /** Accounts this budget is scoped to. Empty = all accounts count. */
+    accounts: Account[]
     progress?: BudgetProgress
     matchingTransactions?: Transaction[]
 }
@@ -45,4 +48,6 @@ export interface BudgetFormData {
     is_active: boolean
     category_ids: string[]
     tag_ids?: string[]
+    /** Account ids to scope the budget to. Empty/omitted = all accounts. */
+    account_ids?: string[]
 }

@@ -30,6 +30,7 @@ import { AmountText } from "@/components/shared/AmountText";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import { cn } from "@/lib/utils";
+import { AccountAvatar } from "@/components/shared/AccountAvatar";
 import { useFABActions } from "@/lib/fab-context";
 
 export default function AccountViewPage() {
@@ -166,7 +167,6 @@ export default function AccountViewPage() {
   }
 
   const config = ACCOUNT_TYPE_CONFIG[enrichedAccount.type];
-  const Icon = config.icon;
   const transactions = txnsData?.data ?? [];
 
   return (
@@ -179,9 +179,7 @@ export default function AccountViewPage() {
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
-          <div className={cn("p-2 rounded-lg", config.color)}>
-            <Icon className="size-5" />
-          </div>
+          <AccountAvatar account={enrichedAccount} size="lg" />
           <div>
             <h1 className="text-2xl font-semibold">{enrichedAccount.name}</h1>
             <div className="flex items-center gap-2 mt-0.5">

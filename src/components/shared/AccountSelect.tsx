@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ChevronRight, Wallet } from "lucide-react";
-import { BottomSheet, type BottomSheetItem } from "@/components/ui/bottom-sheet";
+import { ChevronRight } from "lucide-react";
+import {
+  BottomSheet,
+  type BottomSheetItem,
+} from "@/components/ui/bottom-sheet";
 import { useAccounts } from "@/hooks";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
 import { cn } from "@/lib/utils";
+import { AccountAvatar } from "@/components/shared/AccountAvatar";
+import { AmountText } from "@/components/shared";
 import type { AccountType } from "@/types";
 
 interface AccountSelectProps {
@@ -14,13 +19,6 @@ interface AccountSelectProps {
   activeOnly?: boolean;
   placeholder?: string;
   disabled?: boolean;
-}
-
-function formatBalance(value: number, decimals = 2) {
-  return value.toLocaleString(undefined, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
 }
 
 export function AccountSelect({
@@ -42,29 +40,22 @@ export function AccountSelect({
     accounts?.filter((a) => !(excludeId && a.id === excludeId)) ?? [];
 
   const selected = filtered.find((a) => a.id === value);
-  const SelectedIcon =
-    (selected && ACCOUNT_TYPE_CONFIG[selected.type as AccountType]?.icon) ||
-    Wallet;
-  const selectedConfig = selected
-    ? ACCOUNT_TYPE_CONFIG[selected.type as AccountType]
-    : undefined;
 
   const items: BottomSheetItem[] = filtered.map((account) => {
     const config = ACCOUNT_TYPE_CONFIG[account.type as AccountType];
-    const Icon = config?.icon || Wallet;
     return {
       id: account.id,
       label: account.name,
       description: config?.label,
       keywords: account.currency?.code,
-      iconNode: <Icon className={cn("size-4", config?.textColor)} />,
+      iconNode: <AccountAvatar account={account} size="sm" />,
       right: (
         <span>
-          {formatBalance(
-            account.currentBalance,
-            account.currency?.decimals ?? 2,
-          )}{" "}
-          {account.currency?.symbol}
+          <AmountText
+            value={account.currentBalance}
+            decimals={account.currency?.decimals ?? 2}
+            currency={account.currency?.symbol ?? ""}
+          />
         </span>
       ),
     };
@@ -82,16 +73,11 @@ export function AccountSelect({
         aria-haspopup="dialog"
       >
         <div className="flex min-w-0 items-center gap-2.5">
-          <div
-            className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-lg",
-              selectedConfig?.bgColor ?? "bg-muted",
-            )}
-          >
-            <SelectedIcon
-              className={cn("size-4", selectedConfig?.textColor)}
-            />
-          </div>
+          {selected ? (
+            <AccountAvatar account={selected} size="md" />
+          ) : (
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted" />
+          )}
           <div className="min-w-0">
             {selected ? (
               <>
@@ -99,10 +85,11 @@ export function AccountSelect({
                   {selected.name}
                 </div>
                 <div className="text-[11px] tabular-nums text-muted-foreground">
-                  {formatBalance(
-                    selected.currentBalance,
-                    selected.currency?.decimals ?? 2,
-                  )}{" "}
+                  <AmountText
+                    value={selected.currentBalance}
+                    decimals={selected.currency?.decimals ?? 2}
+                    currency={selected.currency?.symbol ?? ""}
+                  />{" "}
                   {selected.currency?.symbol}
                 </div>
               </>

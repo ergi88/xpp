@@ -31,8 +31,7 @@ import {
 } from "@/hooks";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
-import { ACCOUNT_TYPE_CONFIG } from "@/constants";
-import type { AccountType } from "@/types";
+import { AccountAvatar } from "@/components/shared/AccountAvatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Header() {
@@ -47,7 +46,6 @@ export function Header() {
     active: true,
   });
   const { unreadCount } = useNotifications();
-  console.log("🚀 ~ Header ~ balance:", { balance, accounts });
 
   const navigate = useNavigate();
 
@@ -124,22 +122,13 @@ export function Header() {
                 <DropdownMenuSeparator />
                 {accounts && accounts.length > 0 ? (
                   accounts.map((account) => {
-                    const config =
-                      ACCOUNT_TYPE_CONFIG[account.type as AccountType];
-                    const Icon = config?.icon || Wallet;
                     return (
                       <DropdownMenuItem
                         key={account.id}
                         className="flex items-center justify-between gap-6"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className={`flex size-8 items-center justify-center rounded-md shrink-0 ${
-                              config?.color || "bg-muted"
-                            }`}
-                          >
-                            <Icon className="size-4" />
-                          </div>
+                          <AccountAvatar account={account} size="md" />
                           <span className="text-sm truncate">
                             {account.name}
                           </span>

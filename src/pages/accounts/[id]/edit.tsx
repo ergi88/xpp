@@ -20,6 +20,8 @@ export default function AccountEditPage() {
         card_last_digits: account.cardLastDigits ?? null,
         card_expiry: account.cardExpiry ?? null,
         credit_limit: account.creditLimit ?? null,
+        icon: account.icon ?? null,
+        color: account.color ?? null,
       }
     : undefined;
 

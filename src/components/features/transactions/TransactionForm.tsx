@@ -1,5 +1,5 @@
 import { useForm, useWatch } from "react-hook-form";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowDownLeft,
@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/dialog";
 import { AccountSelect } from "@/components/shared/AccountSelect";
 import { CategorySelect } from "@/components/shared/CategorySelect";
+import { TemplateShortcuts } from "@/components/features/transactions/TemplateShortcuts";
+import type { TransactionTemplate } from "@/types";
 import { FormWrapper } from "@/components/shared/FormWrapper";
 import { AmountText } from "@/components/shared/AmountText";
 import { StickyFooterActions } from "@/components/shared/StickyFooterActions";
@@ -294,7 +296,9 @@ export function TransactionForm({
 
   useEffect(() => {
     form.reset(formDefaults);
-    setRawAmount(formDefaults.amount != null ? String(formDefaults.amount) : "");
+    setRawAmount(
+      formDefaults.amount != null ? String(formDefaults.amount) : "",
+    );
     setPickerMode(formDefaults.debt_id ? "debt" : "category");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalDefaultsKey]);
@@ -405,6 +409,51 @@ export function TransactionForm({
     setPendingDebt(null);
     form.setValue("debt_id", null);
   };
+
+  const applyTemplate = useCallback(
+    (t: TransactionTemplate) => {
+      const current = form.getValues();
+
+      // Validation guardrail: only apply fields whose referenced entity still
+      // exists, so a deleted account/category/tag never lands in the form.
+      const accountExists = accounts?.some((a) => a.id === t.accountId);
+      const toAccountExists =
+        t.toAccountId && accounts?.some((a) => a.id === t.toAccountId);
+      const categoryValid =
+        t.categoryId &&
+        categories?.some((c) => c.id === t.categoryId && c.type === t.type);
+      const validTagIds = (t.tagIds ?? []).filter((id) =>
+        tags?.some((tag) => tag.id === id),
+      );
+
+      const nextAmount = t.amount != null ? t.amount : current.amount;
+
+      form.reset({
+        type: t.type,
+        account_id: accountExists ? t.accountId : current.account_id,
+        to_account_id:
+          t.type === "transfer" && toAccountExists ? t.toAccountId! : null,
+        category_id:
+          t.type !== "transfer" && categoryValid ? t.categoryId! : null,
+        amount: nextAmount,
+        to_amount: null,
+        exchange_rate: null,
+        description: t.description ?? current.description,
+        date: current.date,
+        tag_ids: validTagIds,
+        is_excluded: current.is_excluded,
+        is_one_time: current.is_one_time,
+        debt_id: null,
+      });
+
+      setRawAmount(nextAmount != null ? String(nextAmount) : "");
+      setPickerMode("category");
+      setPendingDebt(null);
+      onTypeChange?.(t.type);
+      toast.success(`Applied "${t.name}"`);
+    },
+    [accounts, categories, tags, form, onTypeChange],
+  );
 
   const handleFormSubmit = (data: TransactionFormValues) => {
     const submitData =
@@ -543,6 +592,9 @@ export function TransactionForm({
             </div>
           </div>
 
+          {/* Template shortcuts */}
+          <TemplateShortcuts type={transactionType} onPick={applyTemplate} />
+
           {/* Hero amount */}
           <FormField
             control={form.control}
@@ -558,7 +610,7 @@ export function TransactionForm({
                   )}
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="rounded-full border border-border bg-background/40 px-2.5 py-1 backdrop-blur">
+                    <div className="rounded-full flex border border-border bg-background/40 px-2.5 py-1 backdrop-blur">
                       <span
                         className={cn(
                           "text-[10px] font-semibold tracking-wider",

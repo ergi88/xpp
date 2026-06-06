@@ -1,4 +1,4 @@
-import type { TransactionFormValues } from "@/schemas";
+import type { BudgetFormData, TransactionFormValues } from "@/schemas";
 
 const STORAGE_KEY = "xpp:notifications";
 const MAX_NOTIFICATIONS = 100;
@@ -7,7 +7,10 @@ export type NotificationKind =
   | "tx_create_failed"
   | "tx_update_failed"
   | "tx_delete_failed"
-  | "balance_effect_failed";
+  | "balance_effect_failed"
+  | "budget_create_failed"
+  | "budget_update_failed"
+  | "budget_delete_failed";
 
 export type NotificationSeverity = "error" | "warning" | "info";
 
@@ -17,6 +20,8 @@ export interface NotificationContext {
   accountId?: string;
   toAccountId?: string;
   debtId?: string;
+  budgetPayload?: Partial<BudgetFormData>;
+  budgetId?: string;
   error?: string;
 }
 
@@ -122,18 +127,18 @@ export const notificationsStore = {
 // Convenience: short title/message builders so callsites don't need to know
 // the message shape — they just pass the kind and payload.
 export function buildTxFailureNotification(
-  kind: NotificationKind,
+  kind: Extract<NotificationKind, `tx_${string}` | "balance_effect_failed">,
   context: NotificationContext,
   error: unknown,
 ): Omit<AppNotification, "id" | "createdAt" | "read" | "dismissed"> {
   const errMsg = error instanceof Error ? error.message : String(error ?? "");
-  const titles: Record<NotificationKind, string> = {
+  const titles: Record<typeof kind, string> = {
     tx_create_failed: "Transaction not created",
     tx_update_failed: "Transaction not updated",
     tx_delete_failed: "Transaction not deleted",
     balance_effect_failed: "Balance update failed",
   };
-  const messages: Record<NotificationKind, string> = {
+  const messages: Record<typeof kind, string> = {
     tx_create_failed:
       "The transaction couldn't be saved. The data is preserved here so you can retry.",
     tx_update_failed:
@@ -142,6 +147,36 @@ export function buildTxFailureNotification(
       "The transaction couldn't be deleted. You can retry from here.",
     balance_effect_failed:
       "The transaction was saved, but its balance side-effect didn't apply. Reconcile the affected account to fix.",
+  };
+  return {
+    severity: "error",
+    kind,
+    title: titles[kind],
+    message: errMsg ? `${messages[kind]} (${errMsg})` : messages[kind],
+    context: { ...context, error: errMsg || undefined },
+  };
+}
+
+// Budget mutation failures — the form payload is preserved in context so the
+// user can retry without re-entering everything.
+export function buildBudgetFailureNotification(
+  kind: Extract<NotificationKind, `budget_${string}`>,
+  context: NotificationContext,
+  error: unknown,
+): Omit<AppNotification, "id" | "createdAt" | "read" | "dismissed"> {
+  const errMsg = error instanceof Error ? error.message : String(error ?? "");
+  const titles: Record<typeof kind, string> = {
+    budget_create_failed: "Budget not created",
+    budget_update_failed: "Budget not updated",
+    budget_delete_failed: "Budget not deleted",
+  };
+  const messages: Record<typeof kind, string> = {
+    budget_create_failed:
+      "The budget couldn't be saved. The data is preserved here so you can retry.",
+    budget_update_failed:
+      "The budget couldn't be updated. The changes are preserved here so you can retry.",
+    budget_delete_failed:
+      "The budget couldn't be deleted. You can retry from here.",
   };
   return {
     severity: "error",

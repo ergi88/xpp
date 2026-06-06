@@ -15,6 +15,8 @@ export interface Account extends BaseEntity {
   cardLastDigits?: string
   cardExpiry?: string
   creditLimit?: number
+  icon?: string | null
+  color?: string | null
 }
 
 export interface AccountsSummary {

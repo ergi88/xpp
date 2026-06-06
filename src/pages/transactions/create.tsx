@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQueryState, parseAsStringLiteral, parseAsFloat, parseAsString } from 'nuqs'
+import { useQueryState, parseAsStringLiteral, parseAsFloat, parseAsString, parseAsArrayOf } from 'nuqs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { FormPage } from '@/components/shared'
@@ -17,6 +17,11 @@ export default function TransactionCreatePage() {
     )
     const [amount] = useQueryState('amount', parseAsFloat)
     const [description] = useQueryState('description', parseAsString)
+    // Deep-link prefill: lets links / home-screen shortcuts open the form with
+    // the account, category and tags already filled in.
+    const [accountId] = useQueryState('account_id', parseAsString)
+    const [categoryId] = useQueryState('category_id', parseAsString)
+    const [tagIds] = useQueryState('tag_ids', parseAsArrayOf(parseAsString))
 
     const createTransaction = useCreateTransaction('/transactions')
     const queryClient = useQueryClient()
@@ -57,6 +62,9 @@ export default function TransactionCreatePage() {
                     type: type as TransactionFormValues['type'],
                     amount: amount ?? undefined,
                     description: description ?? undefined,
+                    account_id: accountId ?? undefined,
+                    category_id: categoryId ?? undefined,
+                    tag_ids: tagIds ?? undefined,
                 }}
                 onTypeChange={setType}
                 onSubmit={handleSubmit}

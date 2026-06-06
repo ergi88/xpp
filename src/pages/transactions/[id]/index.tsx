@@ -36,10 +36,10 @@ import {
   Link2,
   Link2Off,
   Repeat,
+  LayoutTemplate,
   CheckCircle2,
   CalendarDays,
   Clock,
-  Wallet,
   Tag,
   ExternalLink,
   Banknote,
@@ -53,6 +53,7 @@ import { debtsApi } from "@/api/debts";
 import { CounterpartLinkPicker } from "@/components/features/transactions/CounterpartLinkPicker";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { DeleteTransactionAlertContent } from "@/components/features/transactions";
+import { AccountAvatar } from "@/components/shared/AccountAvatar";
 
 const TYPE_CONFIG = {
   income: {
@@ -94,14 +95,14 @@ export default function TransactionViewPage() {
   useFABActions(
     [
       {
-        id: 'edit',
-        label: 'Edit',
+        id: "edit",
+        label: "Edit",
         icon: Pencil,
         onClick: () => navigate(`/transactions/${id}/edit`),
       },
       {
-        id: 'back',
-        label: 'Go back',
+        id: "back",
+        label: "Go back",
         icon: ArrowLeft,
         onClick: () => navigate(-1),
       },
@@ -247,7 +248,6 @@ export default function TransactionViewPage() {
         <Card>
           <CardContent className="p-0 divide-y divide-border">
             <div className="flex items-center gap-3 px-5 py-3.5">
-              <Wallet className="size-4 text-muted-foreground shrink-0" />
               <span className="text-sm text-muted-foreground w-20 shrink-0">
                 Account
               </span>
@@ -255,6 +255,7 @@ export default function TransactionViewPage() {
                 to={`/accounts/${t.account.id}`}
                 className="text-sm font-medium hover:underline flex items-center gap-1 ml-auto"
               >
+                <AccountAvatar account={t.account} size="sm" />
                 {t.account.name}
                 <ExternalLink className="size-3 text-muted-foreground" />
               </Link>
@@ -262,7 +263,6 @@ export default function TransactionViewPage() {
 
             {t.toAccount ? (
               <div className="flex items-center gap-3 px-5 py-3.5">
-                <ArrowLeftRight className="size-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground w-20 shrink-0">
                   To
                 </span>
@@ -270,6 +270,7 @@ export default function TransactionViewPage() {
                   to={`/accounts/${t.toAccount.id}`}
                   className="text-sm font-medium hover:underline flex items-center gap-1 ml-auto"
                 >
+                  <AccountAvatar account={t.toAccount} size="sm" />
                   {t.toAccount.name}
                   <ExternalLink className="size-3 text-muted-foreground" />
                 </Link>
@@ -453,7 +454,9 @@ export default function TransactionViewPage() {
         {/* Split editor — modal */}
         <SplitEditor
           open={splitMode}
-          onOpenChange={(v) => { if (!v) setSplitMode(false); }}
+          onOpenChange={(v) => {
+            if (!v) setSplitMode(false);
+          }}
           parent={t}
           isSubmitting={splitTransaction.isPending || splitWithDebtPending}
           onUnsplit={() => {
@@ -706,6 +709,30 @@ export default function TransactionViewPage() {
                   >
                     <Link to={`/recurring/create?from_transaction=${t.id}`}>
                       Mark Recurring
+                    </Link>
+                  </Button>
+                </div>
+              )}
+
+              {/* Save as template — conditional */}
+              {!t.parentId && (
+                <div className="flex items-start gap-3 px-5 py-4">
+                  <LayoutTemplate className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className="text-sm font-medium">Save as Template</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Save these fields as a reusable template for one-tap
+                      prefill on the transaction form.
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 mt-0.5"
+                  >
+                    <Link to={`/templates/create?from_transaction=${t.id}`}>
+                      Save Template
                     </Link>
                   </Button>
                 </div>

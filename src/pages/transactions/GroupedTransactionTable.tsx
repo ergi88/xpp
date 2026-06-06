@@ -157,7 +157,7 @@ export function GroupedTransactionTable({
         });
 
         return (
-          <div key={date} className="p-2 bg-[#242424] m-2 rounded-lg">
+          <div key={date} className="p-2 bg-muted/40 m-2 rounded-lg">
             {/* Group header row */}
             <div
               className={cn(
@@ -215,7 +215,7 @@ export function GroupedTransactionTable({
               {/* <div /> */}
             </div>
 
-            <div className="bg-[#171717] rounded-lg">
+            <div className="bg-card border rounded-lg">
               {/* Transaction rows */}
               {sortedGroupTxns.map((t) => {
                 const isTransfer = t.type === "transfer";

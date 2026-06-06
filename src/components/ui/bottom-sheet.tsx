@@ -23,6 +23,8 @@ type BaseProps = {
   description?: string;
   items: BottomSheetItem[];
   layout?: "grid" | "list";
+  /** Column count for the grid layout. Defaults to 4. */
+  gridCols?: number;
   searchable?: boolean;
   onCreate?: () => void;
   createLabel?: string;
@@ -55,6 +57,7 @@ export function BottomSheet(props: BottomSheetProps) {
     description,
     items,
     layout = "list",
+    gridCols = 4,
     searchable = false,
     onCreate,
     createLabel = "Create new",
@@ -194,7 +197,12 @@ export function BottomSheet(props: BottomSheetProps) {
         >
           <div className="p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
             {layout === "grid" ? (
-              <div className="grid grid-cols-4 gap-2">
+              <div
+                className="grid gap-2"
+                style={{
+                  gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+                }}
+              >
                 {filtered.map((item) => {
                   const active = isActive(item.id);
                   return (

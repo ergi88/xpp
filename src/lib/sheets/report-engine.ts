@@ -222,6 +222,7 @@ export function computeNetWorth(accounts: Account[], currency: string) {
     current, previous: null, change: 0, changePercent: 0,
     accounts: accounts.map(a => ({
       id: a.id, name: a.name, type: a.type, balance: a.currentBalance,
+      icon: a.icon ?? null, color: a.color ?? null,
       percentage: total > 0 ? (Math.abs(a.currentBalance) / total) * 100 : 0,
     })),
     currency,

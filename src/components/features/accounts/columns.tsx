@@ -24,6 +24,7 @@ import {
 import { AmountText } from '@/components/shared/AmountText'
 import { Account } from '@/types'
 import { ACCOUNT_TYPE_CONFIG } from '@/constants'
+import { AccountAvatar } from '@/components/shared/AccountAvatar'
 
 export const createAccountColumns = (
     onDelete: (id: string) => void,
@@ -33,17 +34,12 @@ export const createAccountColumns = (
         accessorKey: 'name',
         header: 'Account',
         cell: ({ row }) => {
-            const config = ACCOUNT_TYPE_CONFIG[row.original.type]
-            const Icon = config.icon
-
             return (
                 <Link
                     to={`/accounts/${row.original.id}`}
                     className="flex items-center gap-3 hover:opacity-75 transition-opacity"
                 >
-                    <div className={`p-2 rounded-lg ${config.color}`}>
-                        <Icon className="size-5" />
-                    </div>
+                    <AccountAvatar account={row.original} size="md" />
                     <div>
                         <p className="font-medium">{row.original.name}</p>
                         <p className="text-xs text-muted-foreground">

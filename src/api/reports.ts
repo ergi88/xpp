@@ -187,6 +187,8 @@ export interface NetWorthAccount {
   type: string
   balance: number
   percentage: number
+  icon?: string | null
+  color?: string | null
 }
 
 export interface NetWorthData {

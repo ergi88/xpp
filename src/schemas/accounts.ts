@@ -20,6 +20,14 @@ export const accountSchema = z.object({
 
   is_active: z.boolean().optional().default(true),
 
+  icon: z.string().optional().nullable(),
+
+  color: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{6})$/, "Must be a valid hex color")
+    .optional()
+    .nullable(),
+
   card_last_digits: z
     .string()
     .length(4, "Must be exactly 4 digits")
