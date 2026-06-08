@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   Calculator as CalcIcon,
   StickyNote as NotesIcon,
+  NotebookText as CalciPadIcon,
   ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ import { type EdgeSnap, type EdgeOffsets } from "@/lib/fab-edge-snap";
 import type { FABAction } from "@/lib/fab-context";
 import Calculator from "../features/mini-apps/Calculator";
 import Notes from "../features/mini-apps/Notes";
+import CalciPad from "../features/mini-apps/calci-pad";
 
 const CELL_SIZE = 72;
 const PANEL_PAD = 8;
@@ -95,6 +97,7 @@ export function AssistiveTouchPanel({
   const [activeParent, setActiveParent] = useState<FABAction | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [calciPadOpen, setCalciPadOpen] = useState(false);
 
   const calculatorAction: FABAction = {
     id: "__calculator",
@@ -110,8 +113,19 @@ export function AssistiveTouchPanel({
     onClick: () => setNotesOpen(true),
   };
 
+  const calciPadAction: FABAction = {
+    id: "__calcipad",
+    label: "Calci Pad",
+    icon: CalciPadIcon,
+    onClick: () => setCalciPadOpen(true),
+  };
+
   const isSubView = Boolean(activeParent);
-  const mainActions = [...actions, calculatorAction, notesAction];
+  const mainActions = [
+    ...actions,
+    // calculatorAction, notesAction,
+    calciPadAction,
+  ];
   const currentActions = isSubView
     ? (activeParent!.children ?? []).slice(0, 8)
     : mainActions.slice(0, 9);
@@ -158,7 +172,11 @@ export function AssistiveTouchPanel({
             setActiveParent(action);
           } else {
             action.onClick?.();
-            if (action.id !== "__calculator" && action.id !== "__notes")
+            if (
+              action.id !== "__calculator" &&
+              action.id !== "__notes" &&
+              action.id !== "__calcipad"
+            )
               onClose();
           }
         }}
@@ -201,7 +219,7 @@ export function AssistiveTouchPanel({
 
       {/* Grid panel — hidden while any modal is open */}
       <AnimatePresence>
-        {!calcOpen && !notesOpen && (
+        {!calcOpen && !notesOpen && !calciPadOpen && (
           <motion.div
             key="grid-panel"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -281,6 +299,32 @@ export function AssistiveTouchPanel({
               onPointerDown={(e) => e.stopPropagation()}
             >
               <Notes goBack={() => setNotesOpen(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Calci Pad — full-screen modal */}
+      <AnimatePresence>
+        {calciPadOpen && (
+          <motion.div
+            key="calcipad-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-500 bg-black/70 flex justify-center pt-25"
+            onPointerDown={() => setCalciPadOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-lg max-h-[75dvh] h-max overflow-auto"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <CalciPad goBack={() => setCalciPadOpen(false)} />
             </motion.div>
           </motion.div>
         )}
