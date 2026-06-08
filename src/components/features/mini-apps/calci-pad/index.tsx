@@ -305,7 +305,18 @@ export default function CalciPad({ goBack }: CalciPadProps) {
             <HelpCircle className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => setMode((m) => (m === "decimal" ? "number" : "decimal"))}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setMode((m) => (m === "decimal" ? "number" : "decimal"));
+              requestAnimationFrame(() => {
+                const el = textareaRef.current;
+                if (!el) return;
+                el.focus();
+                try {
+                  el.setSelectionRange(selRef.current.start, selRef.current.end);
+                } catch {}
+              });
+            }}
             className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 hover:bg-sky-500/20 transition grid place-items-center"
             title={mode === "decimal" ? "Switch to full keyboard" : "Switch to number pad"}
           >
