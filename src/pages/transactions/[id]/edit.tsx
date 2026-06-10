@@ -34,6 +34,7 @@ export default function TransactionEditPage() {
         <FormPage title="Edit Transaction" backLink="/transactions" isLoading={isLoading}>
             <TransactionForm
                 defaultValues={defaultValues}
+                isEditing
                 onTypeChange={setType}
                 onSubmit={(data) => updateTransaction.mutate({ id: id!, data })}
                 isSubmitting={updateTransaction.isPending}

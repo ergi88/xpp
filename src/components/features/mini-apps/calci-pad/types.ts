@@ -4,6 +4,8 @@ export interface Page {
   content: string
   color: string
   lastModified: string
+  /** Title tracks the first line until the user manually renames the page. */
+  autoTitle?: boolean
 }
 
 export interface Currency {

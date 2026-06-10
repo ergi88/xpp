@@ -50,3 +50,16 @@ export function loadActivePageId(prefix = ''): string | null {
 export function saveActivePageId(id: string, prefix = ''): void {
   localStorage.setItem(key(prefix, 'active_page_id'), id)
 }
+
+export function loadAutoComment(prefix = ''): boolean {
+  try {
+    const raw = localStorage.getItem(key(prefix, 'auto_comment'))
+    return raw === null ? true : raw === 'true'
+  } catch {
+    return true
+  }
+}
+
+export function saveAutoComment(value: boolean, prefix = ''): void {
+  localStorage.setItem(key(prefix, 'auto_comment'), String(value))
+}
