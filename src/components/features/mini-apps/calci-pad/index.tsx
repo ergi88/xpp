@@ -26,6 +26,8 @@ import {
   savePrecision,
   loadActivePageId,
   saveActivePageId,
+  loadAutoComment,
+  saveAutoComment,
 } from "./lib/persistence";
 import { Editor } from "./Editor";
 import { Results } from "./Results";
@@ -81,6 +83,7 @@ function createPage(title = "Untitled"): Page {
     content: "",
     color: "default",
     lastModified: new Date().toISOString(),
+    autoTitle: true,
   };
 }
 
@@ -114,7 +117,13 @@ export default function CalciPad({ goBack }: CalciPadProps) {
     const loaded = loadPages(prefix);
     const pages =
       loaded.length > 0
-        ? loaded.map((p) => ({ ...p, color: p.color ?? "default" })) // migrate old entries
+        ? loaded.map((p) => ({
+            ...p,
+            color: p.color ?? "default",
+            // Existing pages already have titles — treat them as manual so we
+            // don't suddenly overwrite them.
+            autoTitle: p.autoTitle ?? false,
+          })) // migrate old entries
         : [createPage()];
     const saved = loadActivePageId(prefix);
     const activePageId =
@@ -154,6 +163,9 @@ export default function CalciPad({ goBack }: CalciPadProps) {
   // ── settings ───────────────────────────────────────────────────────────────
   const [precision, setPrecision] = useState<number>(() =>
     loadPrecision(prefix),
+  );
+  const [autoComment, setAutoComment] = useState<boolean>(() =>
+    loadAutoComment(prefix),
   );
   const [showSettings, setShowSettings] = useState(false);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
@@ -196,6 +208,9 @@ export default function CalciPad({ goBack }: CalciPadProps) {
   useEffect(() => {
     if (activePageId) saveActivePageId(activePageId, prefix);
   }, [activePageId, prefix]);
+  useEffect(() => {
+    saveAutoComment(autoComment, prefix);
+  }, [autoComment, prefix]);
 
   // ── page handlers ──────────────────────────────────────────────────────────
   function handleInputChange(text: string) {
@@ -203,7 +218,15 @@ export default function CalciPad({ goBack }: CalciPadProps) {
       prev.map((p) => {
         if (p.id !== activePageId) return p;
         const firstLine = text.split("\n")[0]?.trim() ?? "";
-        const title = p.title === "Untitled" && firstLine ? firstLine : p.title;
+        // While the title is still auto-tracked, keep following the first line —
+        // but only once it's meaningful (more than 5 characters or a space) so it
+        // doesn't snap to a single char. Manual renames stop the tracking.
+        const titleReady = firstLine.length > 5 || firstLine.includes(" ");
+        const title = p.autoTitle
+          ? titleReady
+            ? firstLine
+            : "Untitled"
+          : p.title;
         return {
           ...p,
           content: text,
@@ -238,7 +261,11 @@ export default function CalciPad({ goBack }: CalciPadProps) {
   function handleRenamePage(id: string, title: string) {
     if (title.trim())
       setPages((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, title: title.trim() } : p)),
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, title: title.trim(), autoTitle: false }
+            : p,
+        ),
       );
     setRenamingId(null);
     setActiveDropdown(null);
@@ -307,7 +334,14 @@ export default function CalciPad({ goBack }: CalciPadProps) {
           <button
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
-              setMode((m) => (m === "decimal" ? "number" : "decimal"));
+              const nextMode = mode === "decimal" ? "number" : "decimal";
+              setMode(nextMode);
+              // Switching to the text keyboard drops a "//" comment marker at
+              // the caret (handleInsert restores focus + caret for us).
+              if (nextMode === "number" && autoComment) {
+                handleInsert("//");
+                return;
+              }
               requestAnimationFrame(() => {
                 const el = textareaRef.current;
                 if (!el) return;
@@ -568,6 +602,8 @@ export default function CalciPad({ goBack }: CalciPadProps) {
         <Settings
           precision={precision}
           currencies={currencies}
+          autoComment={autoComment}
+          onAutoCommentChange={setAutoComment}
           onPrecisionChange={setPrecision}
           onCurrencyAdd={(c) => setCurrencies((prev) => [...prev, c])}
           onCurrencyDelete={(id) =>

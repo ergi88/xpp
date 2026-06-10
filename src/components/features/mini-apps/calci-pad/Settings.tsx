@@ -4,6 +4,8 @@ import type { Currency } from './types'
 interface Props {
   precision: number
   currencies: Currency[]
+  autoComment: boolean
+  onAutoCommentChange: (value: boolean) => void
   onPrecisionChange: (precision: number) => void
   onCurrencyAdd: (currency: Currency) => void
   onCurrencyDelete: (id: string) => void
@@ -13,6 +15,8 @@ interface Props {
 export function Settings({
   precision,
   currencies,
+  autoComment,
+  onAutoCommentChange,
   onPrecisionChange,
   onCurrencyAdd,
   onCurrencyDelete,
@@ -73,6 +77,30 @@ export function Settings({
               />
             </div>
             <div style={styles.hint}>Empty = full precision. 1–9 = fixed decimal places.</div>
+          </Section>
+
+          <Section label="Editor">
+            <div style={styles.row}>
+              <span style={styles.label}>Insert “//” on text keyboard</span>
+              <button
+                onClick={() => onAutoCommentChange(!autoComment)}
+                style={{
+                  ...styles.toggle,
+                  ...(autoComment ? styles.toggleOn : styles.toggleOff),
+                }}
+                aria-pressed={autoComment}
+              >
+                <span
+                  style={{
+                    ...styles.toggleKnob,
+                    transform: autoComment ? 'translateX(16px)' : 'translateX(0)',
+                  }}
+                />
+              </button>
+            </div>
+            <div style={styles.hint}>
+              Drops a “//” comment marker at the caret when you switch to the full keyboard.
+            </div>
           </Section>
 
           <Section label="Currencies (base: USD)">
@@ -252,5 +280,26 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#fda4af',
     cursor: 'pointer',
     fontSize: 11,
+  },
+  toggle: {
+    position: 'relative',
+    width: 36,
+    height: 20,
+    borderRadius: 999,
+    border: 'none',
+    cursor: 'pointer',
+    padding: 2,
+    flexShrink: 0,
+    transition: 'background 0.15s ease',
+  },
+  toggleOn: { background: 'rgba(110,231,183,0.45)' },
+  toggleOff: { background: 'rgba(255,255,255,0.12)' },
+  toggleKnob: {
+    display: 'block',
+    width: 16,
+    height: 16,
+    borderRadius: '50%',
+    background: '#fff',
+    transition: 'transform 0.15s ease',
   },
 }

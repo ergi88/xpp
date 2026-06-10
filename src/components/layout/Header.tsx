@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePageTitle } from "@/lib/page-title-context";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,10 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowLeftRight,
+  RefreshCw,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { AmountText } from "@/components/shared";
+import { AmountText, ReconcileAllDialog } from "@/components/shared";
 import {
   useAccounts,
   useHideAmounts,
@@ -29,7 +31,7 @@ import {
   useTotalBalance,
   useUpdateSettings,
 } from "@/hooks";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { AccountAvatar } from "@/components/shared/AccountAvatar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,6 +48,7 @@ export function Header() {
     active: true,
   });
   const { unreadCount } = useNotifications();
+  const [reconcileOpen, setReconcileOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -116,8 +119,18 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  Active accounts
+                <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                  <span className="text-xs text-muted-foreground">
+                    Active accounts
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReconcileOpen(true)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <RefreshCw className="size-3" />
+                    Reconcile
+                  </button>
                 </div>
                 <DropdownMenuSeparator />
                 {accounts && accounts.length > 0 ? (
@@ -125,22 +138,25 @@ export function Header() {
                     return (
                       <DropdownMenuItem
                         key={account.id}
+                        asChild
                         className="flex items-center justify-between gap-6"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <AccountAvatar account={account} size="md" />
-                          <span className="text-sm truncate">
-                            {account.name}
-                          </span>
-                        </div>
-                        <div className="text-right flex flex-nowrap items-center gap-1">
-                          <AmountText
-                            value={account.currentBalance ?? 0}
-                            decimals={account.currency?.decimals ?? 2}
-                            currency={account.currency?.symbol ?? ""}
-                            className="text-sm font-mono font-medium flex-nowrap"
-                          />
-                        </div>
+                        <Link to={`/accounts/${account.id}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <AccountAvatar account={account} size="md" />
+                            <span className="text-sm truncate">
+                              {account.name}
+                            </span>
+                          </div>
+                          <div className="text-right flex flex-nowrap items-center gap-1">
+                            <AmountText
+                              value={account.currentBalance ?? 0}
+                              decimals={account.currency?.decimals ?? 2}
+                              currency={account.currency?.symbol ?? ""}
+                              className="text-sm font-mono font-medium flex-nowrap"
+                            />
+                          </div>
+                        </Link>
                       </DropdownMenuItem>
                     );
                   })
@@ -198,6 +214,8 @@ export function Header() {
           </Button>
         </div>
       </div>
+
+      <ReconcileAllDialog open={reconcileOpen} onOpenChange={setReconcileOpen} />
     </header>
   );
 }

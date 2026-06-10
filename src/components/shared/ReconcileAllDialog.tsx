@@ -28,8 +28,19 @@ const entryKey = (e: ReconcileDriftEntry) => `${e.kind}-${e.id}`;
 const entryHref = (e: ReconcileDriftEntry) =>
   e.kind === "account" ? `/accounts/${e.id}` : `/debts/${e.id}`;
 
-export function ReconcileAllDialog() {
-  const [open, setOpen] = useState(false);
+interface ReconcileAllDialogProps {
+  /** Controlled open state. When provided, the built-in trigger is hidden. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function ReconcileAllDialog({
+  open: openProp,
+  onOpenChange,
+}: ReconcileAllDialogProps = {}) {
+  const isControlled = openProp !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? openProp : internalOpen;
   const [report, setReport] = useState<ReconcileReport | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -37,7 +48,8 @@ export function ReconcileAllDialog() {
   const applyMutation = useApplyReconcile();
 
   const handleOpen = (next: boolean) => {
-    setOpen(next);
+    if (isControlled) onOpenChange?.(next);
+    else setInternalOpen(next);
     if (!next) {
       setReport(null);
       setSelected(new Set());
@@ -52,6 +64,20 @@ export function ReconcileAllDialog() {
       });
     }
   };
+
+  // When opened via the controlled prop (e.g. from the header dropdown), the
+  // built-in trigger never runs, so kick off the scan here.
+  useEffect(() => {
+    if (isControlled && open && !report && !computeMutation.isPending) {
+      computeMutation.mutate(undefined, {
+        onSuccess: (r) => {
+          setReport(r);
+          setSelected(new Set(r.entries.map(entryKey)));
+        },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isControlled, open]);
 
   const entries = report?.entries ?? [];
   const hasDrift = entries.length > 0;
@@ -93,7 +119,7 @@ export function ReconcileAllDialog() {
       onSuccess: () => {
         setReport(null);
         setSelected(new Set());
-        setOpen(false);
+        handleOpen(false);
       },
     });
   };
@@ -114,15 +140,17 @@ export function ReconcileAllDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => handleOpen(true)}
-        className="gap-2"
-      >
-        <RefreshCw className="size-4" />
-        Reconcile
-      </Button>
+      {!isControlled && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => handleOpen(true)}
+          className="gap-2"
+        >
+          <RefreshCw className="size-4" />
+          Reconcile
+        </Button>
+      )}
 
       <DialogContent className="max-w-lg">
         <DialogHeader>

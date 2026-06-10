@@ -221,6 +221,7 @@ interface TransactionFormProps {
   onTypeChange?: (type: TxType) => void;
   isSubmitting?: boolean;
   submitLabel?: string;
+  isEditing?: boolean;
 }
 
 export function TransactionForm({
@@ -229,6 +230,7 @@ export function TransactionForm({
   onTypeChange,
   isSubmitting,
   submitLabel = "Save",
+  isEditing = false,
 }: TransactionFormProps) {
   const { data: accounts } = useAccounts({
     active: true,
@@ -345,7 +347,19 @@ export function TransactionForm({
 
   const balancePreview = useMemo(() => {
     if (!selectedAccount) return null;
-    const currentBalance = selectedAccount.currentBalance;
+    // In edit mode the account's currentBalance already reflects the original
+    // transaction. Reverse that original effect to get the balance as if this
+    // transaction didn't exist, otherwise the edited amount is counted twice.
+    let currentBalance = selectedAccount.currentBalance;
+    if (isEditing && defaultValues?.account_id === selectedAccount.id) {
+      const origAmount = Number(defaultValues?.amount) || 0;
+      if (defaultValues?.type === "income") currentBalance -= origAmount;
+      else if (
+        defaultValues?.type === "expense" ||
+        defaultValues?.type === "transfer"
+      )
+        currentBalance += origAmount;
+    }
     const txAmount = Number(amount) || 0;
     let newBalance = currentBalance;
     if (transactionType === "income") newBalance = currentBalance + txAmount;
@@ -361,11 +375,22 @@ export function TransactionForm({
       currency: selectedAccount.currency?.symbol ?? "",
       decimals: selectedAccount.currency?.decimals ?? 2,
     };
-  }, [selectedAccount, amount, transactionType]);
+  }, [selectedAccount, amount, transactionType, isEditing, defaultValues]);
 
   const toBalancePreview = useMemo(() => {
     if (!selectedToAccount || transactionType !== "transfer") return null;
-    const currentBalance = selectedToAccount.currentBalance;
+    // Reverse the original transfer's effect on the destination account when
+    // editing, mirroring the source-account preview above.
+    let currentBalance = selectedToAccount.currentBalance;
+    if (
+      isEditing &&
+      defaultValues?.type === "transfer" &&
+      defaultValues?.to_account_id === selectedToAccount.id
+    ) {
+      const origToAmount =
+        Number(defaultValues?.to_amount) || Number(defaultValues?.amount) || 0;
+      currentBalance -= origToAmount;
+    }
     const txAmount = Number(toAmount) || Number(amount) || 0;
     return {
       currentBalance,
@@ -373,7 +398,7 @@ export function TransactionForm({
       currency: selectedToAccount.currency?.symbol ?? "",
       decimals: selectedToAccount.currency?.decimals ?? 2,
     };
-  }, [selectedToAccount, toAmount, amount, transactionType]);
+  }, [selectedToAccount, toAmount, amount, transactionType, isEditing, defaultValues]);
 
   // Infer debt type from transaction type:
   // income → i_owe (received money → owe it back)
