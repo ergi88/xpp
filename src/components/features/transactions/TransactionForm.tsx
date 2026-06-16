@@ -3,11 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowDownLeft,
+  ArrowDownUp,
   ArrowLeftRight,
   ArrowRight,
   ArrowUpRight,
   Banknote,
   Calendar,
+  ChevronDown,
   ChevronRight,
   Clock,
   EyeOff,
@@ -119,6 +121,11 @@ function yesterdayIso() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   return d.toISOString().split("T")[0];
+}
+
+function roundTo(value: number, decimals: number) {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
 }
 
 function GlassField({
@@ -249,6 +256,7 @@ export function TransactionForm({
 
   const [debtSheetOpen, setDebtSheetOpen] = useState(false);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
+  const [receiveOpen, setReceiveOpen] = useState(false);
   const [rawAmount, setRawAmount] = useState<string>(
     defaultValues?.amount != null ? String(defaultValues.amount) : "",
   );
@@ -274,6 +282,7 @@ export function TransactionForm({
       category_id: defaultValues?.category_id ?? null,
       amount: defaultValues?.amount ?? undefined,
       to_amount: defaultValues?.to_amount ?? undefined,
+      exchange_rate: defaultValues?.exchange_rate ?? null,
       description: defaultValues?.description ?? "",
       date: defaultValues?.date || todayIso(),
       tag_ids: defaultValues?.tag_ids ?? [],
@@ -315,6 +324,10 @@ export function TransactionForm({
     name: "to_account_id",
   });
   const toAmount = useWatch({ control: form.control, name: "to_amount" });
+  const exchangeRate = useWatch({
+    control: form.control,
+    name: "exchange_rate",
+  });
   const dateValue = useWatch({ control: form.control, name: "date" });
   const selectedTagIds =
     useWatch({ control: form.control, name: "tag_ids" }) ?? [];
@@ -344,6 +357,76 @@ export function TransactionForm({
 
   const selectedAccount = accounts?.find((a) => a.id === accountId);
   const selectedToAccount = accounts?.find((a) => a.id === toAccountId);
+
+  const fromCurrency = selectedAccount?.currency;
+  const toCurrency = selectedToAccount?.currency;
+  // A transfer is cross-currency only when both endpoints are known and their
+  // currencies differ. Same-currency transfers keep the original UX (to_amount
+  // is optional and falls back to the send amount).
+  const isCrossCurrency =
+    transactionType === "transfer" &&
+    !!fromCurrency &&
+    !!toCurrency &&
+    fromCurrency.id !== toCurrency.id;
+  // `currency.rate` is "units of that currency per 1 base unit" (base = 1), so
+  // converting from→to multiplies by toRate/fromRate. Matches currencyCalc.ts.
+  const defaultRate =
+    fromCurrency?.rate && toCurrency?.rate && fromCurrency.rate > 0
+      ? toCurrency.rate / fromCurrency.rate
+      : null;
+  const toDecimals = toCurrency?.decimals ?? 2;
+
+  // Seed the exchange rate from currency defaults and derive the receive amount.
+  const seedDefaultRate = useCallback(() => {
+    if (!defaultRate) return;
+    const rate = roundTo(defaultRate, 6);
+    form.setValue("exchange_rate", rate);
+    const amt = Number(form.getValues("amount")) || 0;
+    form.setValue(
+      "to_amount",
+      amt > 0 ? roundTo(amt * rate, toDecimals) : null,
+    );
+  }, [defaultRate, toDecimals, form]);
+
+  // Keep the rate/receive amount sensible as the account pair changes. We only
+  // overwrite a user-set rate when the pair actually changes (not on the first
+  // load, so editing an existing transfer preserves its saved rate).
+  const pairKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (transactionType !== "transfer" || !fromCurrency || !toCurrency) return;
+    const key = `${fromCurrency.id}->${toCurrency.id}`;
+    const firstKnown = pairKeyRef.current === null;
+    const changed = !firstKnown && pairKeyRef.current !== key;
+    pairKeyRef.current = key;
+    if (!isCrossCurrency) {
+      // Back to a same-currency pair: drop the rate so the fallback applies.
+      if (changed) {
+        form.setValue("exchange_rate", null);
+        form.setValue("to_amount", null);
+      }
+      return;
+    }
+    if (changed || exchangeRate == null || exchangeRate <= 0) {
+      seedDefaultRate();
+    }
+    // exchangeRate intentionally omitted: editing the rate must not reseed it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromCurrency?.id, toCurrency?.id, transactionType, isCrossCurrency]);
+
+  // Cross-currency transfers need the rate front-and-centre, so expand the
+  // receive accordion automatically when one is detected.
+  useEffect(() => {
+    if (isCrossCurrency) setReceiveOpen(true);
+  }, [isCrossCurrency]);
+
+  // Swap the from/to accounts. The pair-change effect above reseeds the rate
+  // for the new currency direction.
+  const handleSwapAccounts = () => {
+    const from = form.getValues("account_id");
+    const to = form.getValues("to_account_id");
+    form.setValue("account_id", to ?? "");
+    form.setValue("to_account_id", from || null);
+  };
 
   const balancePreview = useMemo(() => {
     if (!selectedAccount) return null;
@@ -678,6 +761,16 @@ export function TransactionForm({
                         if (parts[1] && parts[1].length > 2) return;
                         setRawAmount(v);
                         field.onChange(v === "" ? undefined : Number(v));
+                        // Cross-currency: the receive amount tracks the rate.
+                        if (isCrossCurrency && exchangeRate && exchangeRate > 0) {
+                          const amt = v === "" ? 0 : Number(v);
+                          form.setValue(
+                            "to_amount",
+                            amt > 0
+                              ? roundTo(amt * exchangeRate, toDecimals)
+                              : null,
+                          );
+                        }
                       }}
                       className="bg-transparent text-center text-6xl font-light tabular-nums outline-none placeholder:text-muted-foreground/30"
                       style={{
@@ -757,6 +850,162 @@ export function TransactionForm({
                       )}
                     </div>
                   )}
+
+                  {/* Receive amount + exchange rate (transfer only) */}
+                  {transactionType === "transfer" && (
+                    <div
+                      className="mt-4 border-t border-border/60 pt-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setReceiveOpen((o) => !o)}
+                        className="flex w-full items-center justify-between gap-2"
+                      >
+                        <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] text-muted-foreground">
+                          <ArrowDownLeft className="size-3 text-emerald-500" />
+                          RECEIVE AMOUNT
+                          {isCrossCurrency && (
+                            <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-normal text-sky-600 dark:text-sky-400">
+                              FX
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
+                          +
+                          {(toAmount ?? amount ?? 0).toFixed(toDecimals)}{" "}
+                          {toCurrency?.symbol ??
+                            selectedToAccount?.currency?.symbol ??
+                            ""}
+                          <ChevronDown
+                            className={cn(
+                              "size-4 text-muted-foreground transition",
+                              receiveOpen && "rotate-180",
+                            )}
+                          />
+                        </span>
+                      </button>
+
+                      {receiveOpen && (
+                        <div className="mt-3 space-y-3">
+                          <FormField
+                            control={form.control}
+                            name="to_amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-light text-emerald-500">
+                                      +
+                                    </span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min={0}
+                                      placeholder={
+                                        amount ? String(amount) : "0.00"
+                                      }
+                                      value={field.value ?? ""}
+                                      onChange={(e) => {
+                                        const val = e.target.value
+                                          ? Number(e.target.value)
+                                          : null;
+                                        field.onChange(val);
+                                        // Cross-currency: editing the receive
+                                        // amount back-solves the exchange rate.
+                                        if (
+                                          isCrossCurrency &&
+                                          val != null &&
+                                          val > 0
+                                        ) {
+                                          const amt =
+                                            Number(form.getValues("amount")) ||
+                                            0;
+                                          if (amt > 0) {
+                                            form.setValue(
+                                              "exchange_rate",
+                                              roundTo(val / amt, 6),
+                                            );
+                                          }
+                                        }
+                                      }}
+                                      className="h-auto flex-1 border-0 bg-transparent p-0 text-2xl font-light tabular-nums shadow-none focus-visible:ring-0"
+                                    />
+                                    <span className="text-base text-muted-foreground">
+                                      {toCurrency?.symbol ??
+                                        selectedToAccount?.currency?.symbol ??
+                                        ""}
+                                    </span>
+                                  </div>
+                                  {!isCrossCurrency && (
+                                    <p className="mt-1.5 text-[11px] text-muted-foreground">
+                                      Leave empty to auto-fill from send amount
+                                    </p>
+                                  )}
+                                </div>
+                                <FormMessage className="mt-2" />
+                              </FormItem>
+                            )}
+                          />
+
+                          {isCrossCurrency && (
+                            <FormField
+                              control={form.control}
+                              name="exchange_rate"
+                              render={({ field: rateField }) => (
+                                <div className="rounded-2xl border border-border bg-background/40 p-3">
+                                  <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] text-muted-foreground">
+                                    <ArrowLeftRight className="size-3 text-sky-500" />
+                                    EXCHANGE RATE
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-sm">
+                                    <span className="shrink-0 text-muted-foreground">
+                                      1 {fromCurrency?.symbol} =
+                                    </span>
+                                    <Input
+                                      type="number"
+                                      step="0.000001"
+                                      min={0}
+                                      value={rateField.value ?? ""}
+                                      onChange={(e) => {
+                                        const r = e.target.value
+                                          ? Number(e.target.value)
+                                          : null;
+                                        rateField.onChange(r);
+                                        const amt =
+                                          Number(form.getValues("amount")) || 0;
+                                        form.setValue(
+                                          "to_amount",
+                                          r && r > 0 && amt > 0
+                                            ? roundTo(amt * r, toDecimals)
+                                            : null,
+                                        );
+                                      }}
+                                      className="h-8 flex-1 border-0 bg-transparent p-0 text-base font-semibold tabular-nums shadow-none focus-visible:ring-0"
+                                    />
+                                    <span className="shrink-0 text-muted-foreground">
+                                      {toCurrency?.symbol}
+                                    </span>
+                                  </div>
+                                  {defaultRate != null && (
+                                    <button
+                                      type="button"
+                                      onClick={seedDefaultRate}
+                                      className="mt-1.5 text-[11px] text-muted-foreground transition hover:text-foreground"
+                                    >
+                                      Default: 1 {fromCurrency?.symbol} ={" "}
+                                      {roundTo(defaultRate, 6)}{" "}
+                                      {toCurrency?.symbol} · tap to reset
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <FormMessage className="mt-2" />
               </FormItem>
@@ -785,6 +1034,16 @@ export function TransactionForm({
                   </FormItem>
                 )}
               />
+              <div className="relative z-10 -my-1.5 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleSwapAccounts}
+                  aria-label="Swap from and to accounts"
+                  className="grid size-8 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:bg-accent hover:text-foreground"
+                >
+                  <ArrowDownUp className="size-4" />
+                </button>
+              </div>
               <FormField
                 key="to_account_id"
                 control={form.control}
@@ -801,47 +1060,6 @@ export function TransactionForm({
                         onChange={field.onChange}
                         excludeId={accountId}
                       />
-                    </GlassField>
-                    <FormMessage className="mt-2" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                key="to_amount"
-                control={form.control}
-                name="to_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <GlassField
-                      label="Receive amount"
-                      icon={ArrowDownLeft}
-                      iconClassName="text-emerald-500"
-                    >
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-light text-emerald-500">
-                          +
-                        </span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          placeholder={amount ? String(amount) : "0.00"}
-                          {...field}
-                          value={field.value ?? ""}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value ? Number(e.target.value) : null,
-                            )
-                          }
-                          className="h-auto flex-1 border-0 bg-transparent p-0 text-2xl font-light tabular-nums shadow-none focus-visible:ring-0"
-                        />
-                        <span className="text-base text-muted-foreground">
-                          {selectedToAccount?.currency?.symbol ?? ""}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-[11px] text-muted-foreground">
-                        Leave empty to auto-fill from send amount
-                      </p>
                     </GlassField>
                     <FormMessage className="mt-2" />
                   </FormItem>
