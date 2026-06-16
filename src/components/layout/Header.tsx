@@ -134,32 +134,34 @@ export function Header() {
                 </div>
                 <DropdownMenuSeparator />
                 {accounts && accounts.length > 0 ? (
-                  accounts.map((account) => {
-                    return (
-                      <DropdownMenuItem
-                        key={account.id}
-                        asChild
-                        className="flex items-center justify-between gap-6"
-                      >
-                        <Link to={`/accounts/${account.id}`}>
-                          <div className="flex items-center gap-2 min-w-0">
-                            <AccountAvatar account={account} size="md" />
-                            <span className="text-sm truncate">
-                              {account.name}
-                            </span>
-                          </div>
-                          <div className="text-right flex flex-nowrap items-center gap-1">
-                            <AmountText
-                              value={account.currentBalance ?? 0}
-                              decimals={account.currency?.decimals ?? 2}
-                              currency={account.currency?.symbol ?? ""}
-                              className="text-sm font-mono font-medium flex-nowrap"
-                            />
-                          </div>
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })
+                  accounts
+                    .filter((a) => a?.isActive && a?.currentBalance > 0)
+                    .map((account) => {
+                      return (
+                        <DropdownMenuItem
+                          key={account.id}
+                          asChild
+                          className="flex items-center justify-between gap-6"
+                        >
+                          <Link to={`/accounts/${account.id}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <AccountAvatar account={account} size="md" />
+                              <span className="text-sm truncate">
+                                {account.name}
+                              </span>
+                            </div>
+                            <div className="text-right flex flex-nowrap items-center gap-1">
+                              <AmountText
+                                value={account.currentBalance ?? 0}
+                                decimals={account.currency?.decimals ?? 2}
+                                currency={account.currency?.symbol ?? ""}
+                                className="text-sm font-mono font-medium flex-nowrap"
+                              />
+                            </div>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })
                 ) : (
                   <div className="px-2 py-2 text-sm text-muted-foreground">
                     No active accounts
@@ -215,7 +217,10 @@ export function Header() {
         </div>
       </div>
 
-      <ReconcileAllDialog open={reconcileOpen} onOpenChange={setReconcileOpen} />
+      <ReconcileAllDialog
+        open={reconcileOpen}
+        onOpenChange={setReconcileOpen}
+      />
     </header>
   );
 }
