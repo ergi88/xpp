@@ -38,6 +38,17 @@ const SECTIONS = [
       { code: '# Title', desc: 'Headers / comments' },
     ],
   },
+  {
+    title: 'Transactions',
+    items: [
+      { code: '-3000 //food', desc: '− = expense, category' },
+      { code: '5000 //salary', desc: '+ = income, category' },
+      { code: '//word', desc: 'Bare word = category' },
+      { code: '#tag', desc: 'Add a tag' },
+      { code: '@cash', desc: 'Source account' },
+      { code: '> Savings', desc: 'Transfer to account' },
+    ],
+  },
 ]
 
 export function CheatSheet({ onClose }: Props) {

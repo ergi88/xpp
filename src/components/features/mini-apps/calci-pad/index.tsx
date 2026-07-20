@@ -12,8 +12,10 @@ import {
   Trash2,
   Check,
   CornerDownLeft,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useCurrencies } from "@/hooks/use-currencies";
+import { useAccounts, useCategories, useTags } from "@/hooks";
 import type { Page, Currency } from "./types";
 import { DEFAULT_CURRENCIES } from "./types";
 import { evaluateText } from "./lib/calculator";
@@ -29,13 +31,21 @@ import {
   loadAutoComment,
   saveAutoComment,
 } from "./lib/persistence";
+import { useNavigate } from "react-router-dom";
 import { Editor } from "./Editor";
 import { Results } from "./Results";
 import { Footer } from "./Footer";
 import { Settings } from "./Settings";
 import { CheatSheet } from "./CheatSheet";
+import { TokenAutocomplete, type Suggestion } from "./TokenAutocomplete";
+import {
+  getActiveToken,
+  filterByQuery,
+  parseAmount,
+  isLineCreated,
+} from "./lib/transactionParser";
 
-const STORAGE_PREFIX = "xpp_calcipad";
+export const STORAGE_PREFIX = "xpp_calcipad";
 
 const PAGE_COLORS = [
   {
@@ -132,6 +142,7 @@ export default function CalciPad({ goBack }: CalciPadProps) {
   }
 
   const [pages, setPages] = useState<Page[]>(initRef.current.pages);
+  console.log("🚀 ~ CalciPad ~ pages:", { pages });
   const [activePageId, setActivePageId] = useState<string>(
     initRef.current.activePageId,
   );
@@ -169,6 +180,18 @@ export default function CalciPad({ goBack }: CalciPadProps) {
   );
   const [showSettings, setShowSettings] = useState(false);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
+
+  // ── transactions ─────────────────────────────────────────────────────────
+  const navigate = useNavigate();
+  const { data: txAccounts } = useAccounts({
+    active: true,
+    exclude_debts: true,
+  });
+  const { data: txCategories } = useCategories();
+  const { data: txTags } = useTags();
+  // Caret position that drives the autocomplete strip (kept in state so the
+  // strip re-renders as the caret moves — selRef alone wouldn't trigger it).
+  const [caret, setCaret] = useState(0);
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<"decimal" | "number">("decimal");
@@ -262,9 +285,7 @@ export default function CalciPad({ goBack }: CalciPadProps) {
     if (title.trim())
       setPages((prev) =>
         prev.map((p) =>
-          p.id === id
-            ? { ...p, title: title.trim(), autoTitle: false }
-            : p,
+          p.id === id ? { ...p, title: title.trim(), autoTitle: false } : p,
         ),
       );
     setRenamingId(null);
@@ -298,6 +319,78 @@ export default function CalciPad({ goBack }: CalciPadProps) {
     });
   }
 
+  // Track caret alongside selRef so the autocomplete strip re-renders on move.
+  function handleSelection() {
+    captureSel();
+    const el = textareaRef.current;
+    if (el) setCaret(el.selectionStart ?? 0);
+  }
+
+  // ── transaction parsing (derived) ──────────────────────────────────────────
+  // Per-line: does it evaluate to an amount, and has a transaction been made
+  // from it already? (cheap — no entity lookups.)
+  const lineFlags = inputText.split("\n").map((l) => ({
+    hasAmount: parseAmount(l) !== null,
+    created: isLineCreated(l),
+  }));
+  const createdFlags = lineFlags.map((f) => f.hasAmount && f.created);
+  const amountLineCount = lineFlags.filter((f) => f.hasAmount).length;
+  const newLineCount = lineFlags.filter(
+    (f) => f.hasAmount && !f.created,
+  ).length;
+
+  const activeToken = getActiveToken(inputText, caret);
+
+  const suggestions: Suggestion[] = (() => {
+    if (!activeToken) return [];
+    if (activeToken.kind === "tag")
+      return filterByQuery(txTags ?? [], activeToken.query);
+    if (activeToken.kind === "account")
+      return filterByQuery(txAccounts ?? [], activeToken.query);
+    // Category: scope to the current line's derived type (sign of the amount).
+    const lineStart = inputText.lastIndexOf("\n", caret - 1) + 1;
+    const lineEnd = inputText.indexOf("\n", caret);
+    const line = inputText.slice(lineStart, lineEnd < 0 ? undefined : lineEnd);
+    const amt = parseAmount(line);
+    const lineType = amt == null ? undefined : amt < 0 ? "expense" : "income";
+    const cats = (txCategories ?? []).filter(
+      (c) => !lineType || c.type === lineType,
+    );
+    return filterByQuery(cats, activeToken.query);
+  })();
+
+  function handlePickSuggestion(name: string) {
+    if (!activeToken) return;
+    const insert = name + " ";
+    const next =
+      inputText.slice(0, activeToken.start) +
+      insert +
+      inputText.slice(activeToken.end);
+    handleInputChange(next);
+    const newCaret = activeToken.start + insert.length;
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      try {
+        el.setSelectionRange(newCaret, newCaret);
+      } catch {}
+      selRef.current = { start: newCaret, end: newCaret };
+      setCaret(newCaret);
+    });
+  }
+
+  function handleOpenReview() {
+    if (amountLineCount === 0) return;
+    // Hand off to a full page so the account/category drawers aren't trapped
+    // behind the floating panel's stacking context. The page re-parses the
+    // text (it has the same entity hooks) and strips saved lines on success.
+    navigate("/transactions/bulk-create", {
+      state: { calciText: inputText, calciPageId: activePageId },
+    });
+    goBack?.();
+  }
+
   // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div
@@ -317,6 +410,16 @@ export default function CalciPad({ goBack }: CalciPadProps) {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          {amountLineCount > 0 && (
+            <button
+              onClick={handleOpenReview}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 transition"
+              title="Review and create transactions from these lines"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+              {newLineCount > 0 ? `Create (${newLineCount})` : "Review"}
+            </button>
+          )}
           <button
             onClick={() => setShowSettings(true)}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition"
@@ -347,12 +450,19 @@ export default function CalciPad({ goBack }: CalciPadProps) {
                 if (!el) return;
                 el.focus();
                 try {
-                  el.setSelectionRange(selRef.current.start, selRef.current.end);
+                  el.setSelectionRange(
+                    selRef.current.start,
+                    selRef.current.end,
+                  );
                 } catch {}
               });
             }}
             className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 hover:bg-sky-500/20 transition grid place-items-center"
-            title={mode === "decimal" ? "Switch to full keyboard" : "Switch to number pad"}
+            title={
+              mode === "decimal"
+                ? "Switch to full keyboard"
+                : "Switch to number pad"
+            }
           >
             {mode === "decimal" ? (
               <Keyboard className="w-3.5 h-3.5" />
@@ -369,11 +479,20 @@ export default function CalciPad({ goBack }: CalciPadProps) {
           ref={textareaRef}
           value={inputText}
           onChange={handleInputChange}
-          onSelectionChange={captureSel}
+          onSelectionChange={handleSelection}
           inputMode={mode === "decimal" ? "decimal" : "text"}
         />
-        <Results results={results} />
+        <Results results={results} created={createdFlags} />
       </div>
+
+      {/* ── Autocomplete strip (category / tag / account) ─────────────────── */}
+      {activeToken && (
+        <TokenAutocomplete
+          kind={activeToken.kind}
+          suggestions={suggestions}
+          onPick={handlePickSuggestion}
+        />
+      )}
 
       {/* ── 3. Actions footer (operators / keywords / units) ──────────────── */}
       <Footer currencies={currencies} onInsert={handleInsert} />
@@ -411,91 +530,97 @@ export default function CalciPad({ goBack }: CalciPadProps) {
         </motion.button>
 
         {/* Page chips */}
-        <div className="flex flex-1 gap-1.5 min-w-0 overflow-hidden">
-          {pages.map((page) => {
-            const meta =
-              PAGE_COLORS.find((c) => c.id === (page.color ?? "default")) ??
-              PAGE_COLORS[0];
-            const isActive = page.id === activePageId;
-            return (
-              <div key={page.id} className="relative shrink-0">
-                {renamingId === page.id ? (
-                  <input
-                    autoFocus
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={() => handleRenamePage(page.id, renameValue)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter")
-                        handleRenamePage(page.id, renameValue);
-                      if (e.key === "Escape") {
-                        setRenamingId(null);
-                        setActiveDropdown(null);
-                      }
-                    }}
-                    className="h-7 px-2 rounded-lg border border-emerald-500/40 bg-white/5 text-white text-xs outline-none w-24"
-                  />
-                ) : (
-                  <button
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      if (isActive) {
-                        setActiveDropdown(
-                          activeDropdown === page.id ? null : page.id,
-                        );
-                      } else {
-                        setActivePageId(page.id);
-                        setActiveDropdown(null);
-                      }
-                    }}
-                    className={`h-7 px-2.5 rounded-lg border text-xs flex items-center gap-1.5 transition max-w-20 truncate ${
-                      isActive
-                        ? "bg-white/15 border-white/20 text-white"
-                        : "bg-white/5 border-white/10 hover:bg-white/15 text-white/60"
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`}
-                    />
-                    <span className="truncate">{page.title}</span>
-                  </button>
-                )}
-
-                <AnimatePresence>
-                  {activeDropdown === page.id && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                      transition={{ duration: 0.1 }}
-                      className="absolute bottom-full mb-1.5 left-0 z-20 rounded-xl overflow-hidden border border-white/10 bg-neutral-800 shadow-2xl min-w-22"
-                    >
-                      <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setRenameValue(page.title);
-                          setRenamingId(page.id);
+        <div className="flex flex-1 gap-1.5 min-w-0 max-w-[80%] overflow-x-auto">
+          {pages
+            .sort(
+              (a, b) =>
+                new Date(b.lastModified).getTime() -
+                new Date(a.lastModified).getTime(),
+            )
+            .map((page) => {
+              const meta =
+                PAGE_COLORS.find((c) => c.id === (page.color ?? "default")) ??
+                PAGE_COLORS[0];
+              const isActive = page.id === activePageId;
+              return (
+                <div key={page.id} className="relative shrink-0">
+                  {renamingId === page.id ? (
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => handleRenamePage(page.id, renameValue)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter")
+                          handleRenamePage(page.id, renameValue);
+                        if (e.key === "Escape") {
+                          setRenamingId(null);
                           setActiveDropdown(null);
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 hover:bg-white/10 text-white/80 text-xs transition"
-                      >
-                        <Pencil className="w-3 h-3 shrink-0" />
-                        Rename
-                      </button>
-                      <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => handleDeletePage(page.id)}
-                        className="flex w-full items-center gap-2 px-3 py-2 hover:bg-white/10 text-rose-300 text-xs transition"
-                      >
-                        <Trash2 className="w-3 h-3 shrink-0" />
-                        Delete
-                      </button>
-                    </motion.div>
+                        }
+                      }}
+                      className="h-7 px-2 rounded-lg border border-emerald-500/40 bg-white/5 text-white text-xs outline-none w-24"
+                    />
+                  ) : (
+                    <button
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        if (isActive) {
+                          setActiveDropdown(
+                            activeDropdown === page.id ? null : page.id,
+                          );
+                        } else {
+                          setActivePageId(page.id);
+                          setActiveDropdown(null);
+                        }
+                      }}
+                      className={`h-7 px-2.5 rounded-lg border text-xs flex items-center gap-1.5 transition max-w-20 truncate ${
+                        isActive
+                          ? "bg-white/15 border-white/20 text-white"
+                          : "bg-white/5 border-white/10 hover:bg-white/15 text-white/60"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`}
+                      />
+                      <span className="truncate">{page.title}</span>
+                    </button>
                   )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+
+                  <AnimatePresence>
+                    {activeDropdown === page.id && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                        transition={{ duration: 0.1 }}
+                        className="absolute bottom-full mb-1.5 left-0 z-20 rounded-xl overflow-hidden border border-white/10 bg-neutral-800 shadow-2xl min-w-22"
+                      >
+                        <button
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setRenameValue(page.title);
+                            setRenamingId(page.id);
+                            setActiveDropdown(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 hover:bg-white/10 text-white/80 text-xs transition"
+                        >
+                          <Pencil className="w-3 h-3 shrink-0" />
+                          Rename
+                        </button>
+                        <button
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleDeletePage(page.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 hover:bg-white/10 text-rose-300 text-xs transition"
+                        >
+                          <Trash2 className="w-3 h-3 shrink-0" />
+                          Delete
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
         </div>
 
         {/* Expand toggle */}
