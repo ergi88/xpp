@@ -292,6 +292,53 @@ export function useBulkDeleteTransactions() {
     })
 }
 
+export interface BulkCreateResult {
+    ok: boolean
+    index: number
+    error?: Error
+}
+
+export function useBulkCreateTransactions() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (drafts: TransactionFormData[]): Promise<BulkCreateResult[]> => {
+            // Sequential: each create runs its own account/debt side-effects
+            // (applyTransactionEffects), so there is no true batch write. One
+            // failure must not abort the rest — collect per-row outcomes.
+            const results: BulkCreateResult[] = []
+            for (let i = 0; i < drafts.length; i++) {
+                try {
+                    await transactionsApi.create(drafts[i])
+                    results.push({ ok: true, index: i })
+                } catch (error) {
+                    results.push({ ok: false, index: i, error: error as Error })
+                }
+            }
+            return results
+        },
+        onSuccess: (results) => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['categories'] })
+            queryClient.invalidateQueries({ queryKey: ['reports'] })
+            const ok = results.filter((r) => r.ok).length
+            const failed = results.length - ok
+            if (failed === 0) {
+                toast.success(`${ok} transaction${ok === 1 ? '' : 's'} created`)
+            } else if (ok === 0) {
+                toast.error(`Failed to create ${failed} transaction${failed === 1 ? '' : 's'}`)
+            } else {
+                toast.warning(`${ok} created · ${failed} failed`)
+            }
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to create transactions')
+        },
+    })
+}
+
 export function useBulkUpdateTransactions() {
     const queryClient = useQueryClient()
 

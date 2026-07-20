@@ -1,6 +1,7 @@
 import { CreditCard, Landmark } from 'lucide-react'
 import { Account } from '@/types'
 import { cn } from '@/lib/utils'
+import { getAccountColor } from '@/lib/account-icon'
 
 interface AccountCardProps {
   account: Account
@@ -13,15 +14,17 @@ export function AccountCard({ account, className }: AccountCardProps) {
   const isCredit = account.type === 'credit'
   const Icon = isCredit ? CreditCard : Landmark
 
+  const baseColor = getAccountColor(account.type, account.color)
+
   return (
     <div
       className={cn(
         'relative overflow-hidden rounded-2xl p-6 text-white select-none',
-        isCredit
-          ? 'bg-gradient-to-br from-rose-500 to-rose-700'
-          : 'bg-gradient-to-br from-blue-500 to-blue-700',
         className
       )}
+      style={{
+        backgroundImage: `linear-gradient(to bottom right, ${baseColor}, color-mix(in srgb, ${baseColor}, black 40%))`,
+      }}
     >
       <div className="flex items-start justify-between">
         <div>

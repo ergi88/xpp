@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Pencil, ArrowLeft, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,15 @@ import {
   useCurrencies,
   useCreateTransaction,
   useCategories,
+  useDeleteTransaction,
+  useDuplicateTransaction,
 } from "@/hooks";
+import { GroupedTransactionTable } from "@/pages/transactions/GroupedTransactionTable";
 import { AccountCard } from "@/components/features/accounts/AccountCard";
 import { AccountStats } from "@/components/features/accounts/AccountStats";
 import { AmountText } from "@/components/shared/AmountText";
 import { CategorySelect } from "@/components/shared/CategorySelect";
 import { ACCOUNT_TYPE_CONFIG } from "@/constants";
-import { cn } from "@/lib/utils";
 import { AccountAvatar } from "@/components/shared/AccountAvatar";
 import { useFABActions } from "@/lib/fab-context";
 
@@ -40,6 +42,9 @@ export default function AccountViewPage() {
   const { data: txnsData } = useTransactions({ account_id: id, per_page: 10 });
   const { data: categories } = useCategories();
   const createTransaction = useCreateTransaction();
+  const deleteTransaction = useDeleteTransaction();
+  const duplicateTransaction = useDuplicateTransaction();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reconcileOpen, setReconcileOpen] = useState(false);
   const [reconcileBalance, setReconcileBalance] = useState("");
   const [reconcileDate, setReconcileDate] = useState("");
@@ -152,6 +157,36 @@ export default function AccountViewPage() {
     );
   };
 
+  const transactionsRef = useRef<NonNullable<typeof txnsData>["data"]>([]);
+
+  const handleSelectId = useCallback((txnId: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(txnId);
+      else next.delete(txnId);
+      return next;
+    });
+  }, []);
+
+  const handleSelectGroup = useCallback((ids: string[], checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        for (const gid of ids) next.add(gid);
+      } else {
+        for (const gid of ids) next.delete(gid);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback((checked: boolean) => {
+    const selectable = transactionsRef.current
+      .filter((t) => t.type === "income" || t.type === "expense")
+      .map((t) => t.id);
+    setSelectedIds(() => (checked ? new Set(selectable) : new Set()));
+  }, []);
+
   if (isLoading) {
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-4">
@@ -168,6 +203,7 @@ export default function AccountViewPage() {
 
   const config = ACCOUNT_TYPE_CONFIG[enrichedAccount.type];
   const transactions = txnsData?.data ?? [];
+  transactionsRef.current = transactions;
 
   return (
     <div className="md:p-6 max-w-2xl mx-auto space-y-6">
@@ -331,38 +367,18 @@ export default function AccountViewPage() {
             <Link to={`/transactions?account_id=${id}`}>View all</Link>
           </Button>
         </div>
-        {transactions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No transactions yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {transactions.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between rounded-lg border px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium text-sm">
-                    {t.description ?? "No description"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{t.date}</p>
-                </div>
-                <p
-                  className={cn(
-                    "font-mono font-medium",
-                    t.type === "income" ? "text-green-600" : "text-red-600",
-                  )}
-                >
-                  <AmountText
-                    value={t.type === "income" ? t.amount : -t.amount}
-                    decimals={enrichedAccount.currency?.decimals ?? 2}
-                    currency={enrichedAccount.currency?.symbol}
-                    signDisplay="always"
-                  />
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <GroupedTransactionTable
+          transactions={transactions}
+          selectedIds={selectedIds}
+          onSelectId={handleSelectId}
+          onSelectGroup={handleSelectGroup}
+          onSelectAll={handleSelectAll}
+          onDelete={(txnId, opts) =>
+            deleteTransaction.mutate({ id: txnId, skipEffects: opts?.skipEffects })
+          }
+          onDuplicate={(txnId) => duplicateTransaction.mutate(txnId)}
+          showCheckboxes={false}
+        />
       </div>
 
       {/* Recurring / Maintenance Fee */}

@@ -14,9 +14,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       {children}
       <Toaster
-        offset={{ bottom: 100 }}
-        mobileOffset={{ bottom: 100 }}
-        position="bottom-center"
+        offset={{ top: 60 }}
+        mobileOffset={{ top: 60 }}
+        position="top-center"
         richColors
       />
     </PersistQueryClientProvider>
