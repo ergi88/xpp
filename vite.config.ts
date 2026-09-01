@@ -29,6 +29,20 @@ export default defineConfig({
         background_color: "#000000",
         display: "standalone",
         start_url: "/xpp/",
+        shortcuts: [
+          {
+            name: "New expense",
+            short_name: "Expense",
+            url: "/xpp/transactions/new?type=expense",
+            icons: [{ src: "icons/pwa-192.png", sizes: "192x192" }],
+          },
+          {
+            name: "New income",
+            short_name: "Income",
+            url: "/xpp/transactions/new?type=income",
+            icons: [{ src: "icons/pwa-192.png", sizes: "192x192" }],
+          },
+        ],
         icons: [
           {
             src: "icons/pwa-192.png",

@@ -38,6 +38,7 @@ import {
   SpreadsheetCard,
 } from "@/pages/settings/sections";
 import { ImportSettingsSection } from "@/pages/settings/import";
+import { QuickAddSettingsSection } from "@/pages/settings/quick-add";
 
 const SETTINGS_TABS = [
   { value: "general", label: "General" },
@@ -46,6 +47,7 @@ const SETTINGS_TABS = [
   { value: "organization", label: "Organization" },
   { value: "currencies", label: "Currencies" },
   { value: "data", label: "Data & Import" },
+  { value: "quick-add", label: "Quick Add" },
 ];
 
 const TAB_ALIASES: Record<string, string> = {
@@ -336,6 +338,21 @@ function SecurityTab() {
   );
 }
 
+function QuickAddTab() {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold">Quick Add Links</h2>
+        <p className="text-sm text-muted-foreground">
+          Every query parameter the transaction form accepts, for wiring up iOS
+          Shortcuts and other automations.
+        </p>
+      </div>
+      <QuickAddSettingsSection />
+    </div>
+  );
+}
+
 function DataTab() {
   return (
     <div className="space-y-4">
@@ -428,6 +445,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="data">
             <DataTab />
+          </TabsContent>
+          <TabsContent value="quick-add">
+            <QuickAddTab />
           </TabsContent>
         </Tabs>
       </div>
