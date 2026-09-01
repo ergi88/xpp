@@ -1,5 +1,10 @@
 import React, { lazy, Suspense } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
@@ -63,6 +68,20 @@ const withSuspense = (
   </ErrorBoundary>
 );
 
+// An automation that guesses a create-ish path (/transactions/add) would
+// otherwise match :id and dead-end on "Transaction not found". Send anything
+// that clearly means "new transaction" to the form, query string intact.
+const CREATE_ALIASES = new Set(["new", "create", "add", "quick-add"]);
+
+function TransactionByIdRoute() {
+  const { id } = useParams<{ id: string }>();
+  const { search } = useLocation();
+  if (id && CREATE_ALIASES.has(id.toLowerCase())) {
+    return <Navigate to={`/transactions/create${search}`} replace />;
+  }
+  return withSuspense(TransactionViewPage);
+}
+
 const BASE = import.meta.env.BASE_URL;
 export const router = createBrowserRouter(
   [
@@ -77,12 +96,17 @@ export const router = createBrowserRouter(
           element: withSuspense(TransactionCreatePage),
         },
         {
+          // Shortcut-friendly alias: /transactions/new?amount=…&category=…
+          path: "transactions/new",
+          element: withSuspense(TransactionCreatePage),
+        },
+        {
           path: "transactions/bulk-create",
           element: withSuspense(TransactionBulkCreatePage),
         },
         {
           path: "transactions/:id",
-          element: withSuspense(TransactionViewPage),
+          element: <TransactionByIdRoute />,
         },
         {
           path: "transactions/:id/edit",
